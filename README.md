@@ -5,16 +5,17 @@
 <h1 align="center">SkyReels V3: Multimodal Video Generation Model</h1> 
 
 <p align="center">
-👋 <a href="https://www.skyreels.ai/" target="_blank">Playground</a> · 🤗 <a href="https://huggingface.co/collections/Skywork/skyreels-v3" target="_blank">Hugging Face</a> · 🤖 <a href="https://www.modelscope.cn/collections/Skywork/SkyReels-V3" target="_blank">ModelScope</a>
+👋 <a href="https://www.skyreels.ai/" target="_blank">Playground</a> · 🤗 <a href="https://huggingface.co/collections/Skywork/skyreels-v3" target="_blank">Hugging Face</a> · 🤖 <a href="https://www.modelscope.cn/collections/Skywork/SkyReels-V3" target="_blank">ModelScope</a> · 🌐 <a href="https://github.com/SkyworkAI/SkyReels-V3" target="_blank">GitHub</a>
 </p>
 
 ---
 Welcome to the **SkyReels V3** repository! This is the official release of our flagship video generation model, built upon a unified **multimodal in-context learning framework**. SkyReels V3 natively supports three core generative capabilities: **1) multi-subject video generation from reference images**, **2) video generation guided by audio**, and **3) video-to-video generation**.
 
-We also provide API access to this model. You can integrate and use the SkyReels V3 series models through the **[SkyReels Developer Platform](https://www.skyreels.ai/)**.
+We also provide API access to this model. You can integrate and use the SkyReels V3 series models through the **[SkyReels Developer Platform](https://platform.skyreels.ai/)**.
 
 ## 🔥🔥🔥 News!!
 * Jan 21, 2026: 🎉 We release the inference code and model weights of [SkyReels-V3](https://github.com/SkyworkAI/SkyReels-V3).
+* Dec 1, 2025: 🎉 We launched the API for the SkyReels-V3 models on the [SkyReels Developer Platform](https://platform.skyreels.ai/).
 * Jun 1, 2025: 🎉 We published the technical report, [SkyReels-Audio: Omni Audio-Conditioned Talking Portraits in Video Diffusion Transformers](https://arxiv.org/pdf/2506.00830).
 * May 16, 2025: 🔥 We release the inference code for [video extension](#ve) and [start/end frame control](#se) in diffusion forcing model.
 * Apr 24, 2025: 🔥 We release the 720P models, [SkyReels-V2-DF-14B-720P](https://huggingface.co/Skywork/SkyReels-V2-DF-14B-720P) and [SkyReels-V2-I2V-14B-720P](https://huggingface.co/Skywork/SkyReels-V2-I2V-14B-720P). The former facilitates infinite-length autoregressive video generation, and the latter focuses on Image2Video synthesis.
@@ -28,19 +29,19 @@ We also provide API access to this model. You can integrate and use the SkyReels
   <tr>
     <td align="center" width="33%">
       <a href="https://www.skyreels.ai/videos/ReferencetoVideo/1.mp4">
-        <img src="assets/ref_to_video.gif" width="100%" alt="Reference to Video">
+        <img src="https://skyreels-api.oss-cn-hongkong.aliyuncs.com/examples/ref_to_video.gif" width="100%" alt="Reference to Video">
       </a>
       <br><b>Reference to Video</b>
     </td>
     <td align="center" width="33%">
       <a href="https://www.skyreels.ai/videos/VideoExtension/1.mp4">
-        <img src="assets/video_ext.gif" width="100%" alt="Video Extension">
+        <img src="https://skyreels-api.oss-cn-hongkong.aliyuncs.com/examples/video_ext.gif" width="100%" alt="Video Extension">
       </a>
       <br><b>Video Extension</b>
     </td>
     <td align="center" width="33%">
       <a href="https://www.skyreels.ai/videos/TalkingAvatar/1.mp4">
-        <img src="assets/talking_avatar.gif" width="100%" alt="Talking Avatar">
+        <img src="https://skyreels-api.oss-cn-hongkong.aliyuncs.com/examples/talking_avatar.gif" width="100%" alt="Talking Avatar">
       </a>
       <br><b>Talking Avatar</b>
     </td>
@@ -56,7 +57,7 @@ The demos above showcase videos generated using our SkyReels-V3 unified multimod
 # clone the repository.
 git clone https://github.com/SkyworkAI/SkyReels-V3
 cd SkyReels-V3
-# Install dependencies. Test environment uses Python 3.10.12.
+# Install dependencies. Test environment uses Python 3.12.3 & cuda 12.8.
 pip install -r requirements.txt
 ```
 
@@ -74,17 +75,17 @@ You can download our models from Hugging Face:
     <tr>
       <td>Reference to Video</td>
       <td>14B-720P</td>
-      <td>🤗 <a href="https://huggingface.co/Skywork/SkyReels-V3-R2V-14B">Huggingface</a> 🤖 <a href="www.modelscope.cn/models/Skywork/SkyReels-V3-R2V-14B">ModelScope</a></td>
+      <td>🤗 <a href="https://huggingface.co/Skywork/SkyReels-V3-R2V-14B">Huggingface</a> 🤖 <a href="https://www.modelscope.cn/models/Skywork/SkyReels-V3-R2V-14B">ModelScope</a></td>
     </tr>
     <tr>
       <td>Video Extension</td>
       <td>14B-720P</td>
-      <td>🤗 <a href="https://huggingface.co/Skywork/SkyReels-V3-V2V-14B">Huggingface</a> 🤖 <a href="www.modelscope.cn/models/Skywork/SkyReels-V3-V2V-14B">ModelScope</a></td>
+      <td>🤗 <a href="https://huggingface.co/Skywork/SkyReels-V3-V2V-14B">Huggingface</a> 🤖 <a href="https://www.modelscope.cn/models/Skywork/SkyReels-V3-V2V-14B">ModelScope</a></td>
     </tr>
     <tr>
       <td>Talking Avatar</td>
       <td>19B-720P</td>
-      <td>🤗 <a href="https://huggingface.co/Skywork/SkyReels-V3-A2V-19B">Huggingface</a> 🤖 <a href="www.modelscope.cn/models/Skywork/SkyReels-V3-A2V-19B">ModelScope</a></td>
+      <td>🤗 <a href="https://huggingface.co/Skywork/SkyReels-V3-A2V-19B">Huggingface</a> 🤖 <a href="https://www.modelscope.cn/models/Skywork/SkyReels-V3-A2V-19B">ModelScope</a></td>
     </tr>
   </tbody>
 </table>
@@ -229,8 +230,8 @@ In internal evaluations against mainstream avatar models, SkyReels model excel a
 
 | Model | Audio-Visual Sync ↑ | Visual Quality ↑ | Charactr Consistency ↑ |
 |-------|-------------------------|-------------------------|------------------|
-| OmniHuman | **8.25** | 4.60 | **0.81** |
-| Kling | 8.01 | 4.55 | 0.78 |
+| OmniHuman 1.5 | **8.25** | 4.60 | **0.81** |
+| KlingAvatar | 8.01 | 4.55 | 0.78 |
 | HunyuanAvatar | 6.72 | 4.50 | 0.74 |
 | **SkyReels V3** | 8.18 | **4.60** | 0.80 |
 
