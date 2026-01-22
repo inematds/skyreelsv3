@@ -200,7 +200,6 @@ The engine accurately parses scene semantics, motion trajectories, and emotional
 
 Technical Innovations:
 - Unified multi-segment positional encoding and hybrid hierarchical data training enable precise motion prediction and smooth transitions in complex scenes.
-- A novel fusion of token concatenation flexibility and channel concatenation efficiency significantly reduces total token count while enhancing computational performance without compromising output quality.
 - The architecture robustly handles challenges such as rapid motion, multi-person interactions, and abrupt scene changes, strictly ensuring physical plausibility and emotional consistency.
 - In intelligent shot switching, the system dynamically plans cut rhythms and viewpoint variations based on video semantics and user prompts, generating freely lengthened, professionally shot-extended content within a unified style.
 
