@@ -7,6 +7,19 @@ Convenção de versão: **Major.Recursos.Correções**
 
 ---
 
+## 3.8.3 — 2026-02-24
+
+### Correções
+- **OOM em tarefas de extensão sem flash_attn** — tarefas `single_shot_extension` e
+  `shot_switching_extension` falhavam com kill silencioso no step 0 em hardware ARM64
+  (sem `flash_attn`). Root cause: atenção O(n²) com 471K tokens a 720P excedia RAM.
+  Solução: definir `low_vram: true` nessas tarefas ativa o block-level offload durante
+  o denoising + FP8 quantization + `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`.
+  Atualizado em: `queues.json`, `uploads/fila1/exemplo_10_cenas.json`,
+  `doc/exemplo_10_cenas.json`.
+
+---
+
 ## 3.8.2 — 2026-02-24
 
 ### Recursos

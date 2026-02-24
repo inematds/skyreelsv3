@@ -8,7 +8,7 @@
     "seed": 1001,
     "offload": true,
     "low_vram": false,
-    "ref_imgs": ["uploads/paisagem_montanha.jpg"]
+    "ref_imgs": ["uploads/fila1/paisagem_montanha.png"]
   },
   {
     "label": "Cena 02 — Extensão da paisagem",
@@ -30,7 +30,7 @@
     "seed": 1003,
     "offload": true,
     "low_vram": false,
-    "ref_imgs": ["uploads/personagem_trilha.jpg", "uploads/paisagem_montanha.jpg"]
+    "ref_imgs": ["uploads/fila1/personagem_trilha.png", "uploads/fila1/paisagem_montanha.png"]
   },
   {
     "label": "Cena 04 — Transição: zoom no rosto do personagem",
@@ -52,7 +52,12 @@
     "seed": 1005,
     "offload": true,
     "low_vram": false,
-    "ref_imgs": ["uploads/personagem_trilha.jpg"]
+    "ref_imgs": [
+      "uploads/fila1/personagem_acampamento.png",
+      "uploads/fila1/personagem_fogueira_estrelas.png",
+      "uploads/fila1/personagem_acampamento_duplo.png",
+      "uploads/fila1/personagem_barraca_duplo.png"
+    ]
   },
   {
     "label": "Cena 06 — Extensão: fogueira à noite",
@@ -85,7 +90,7 @@
     "seed": 1008,
     "offload": true,
     "low_vram": false,
-    "ref_imgs": ["uploads/personagem_trilha.jpg", "uploads/paisagem_montanha.jpg"]
+    "ref_imgs": ["uploads/fila1/personagem_cume_vitoria.png", "uploads/fila1/paisagem_montanha.png"]
   },
   {
     "label": "Cena 09 — Extensão: contemplação no cume",
@@ -105,7 +110,7 @@
     "resolution": "720P",
     "seed": 1010,
     "low_vram": true,
-    "input_image": "uploads/personagem_trilha.jpg",
-    "input_audio": "uploads/narracao_final.mp3"
+    "input_image": "uploads/fila1/personagem_narracao.png",
+    "input_audio": "uploads/fila1/narracao_final.mp3"
   }
 ]
