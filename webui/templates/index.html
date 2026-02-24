@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SkyReels V3</title>
+<title>INEMA SkyReels V3 1.2.0</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -17,6 +17,9 @@
     gap: 12px;
   }
   header h1 { font-size: 1.3rem; font-weight: 700; color: #a78bfa; }
+  header h1 .ver { font-size: 0.75rem; font-weight: 400; color: #666; margin-left: 8px; vertical-align: middle; }
+  header h1 .ver .feat { color: #7c6fe0; }
+  header h1 .ver .fix  { color: #4caf88; }
   header span { font-size: 0.8rem; color: #666; }
 
   .layout { display: grid; grid-template-columns: 400px 1fr; gap: 0; height: calc(100vh - 57px); }
@@ -663,7 +666,7 @@
 <body>
 
 <header>
-  <h1>SkyReels V3</h1>
+  <h1>INEMA SkyReels V3 <span class="ver">1.<span class="feat" title="2 recursos adicionados">2</span>.<span class="fix" title="0 correções">0</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
