@@ -92,23 +92,31 @@ class TalkingAvatarPipeline:
         quant: bool = False,
     ) -> Dict[str, WanModel]:
         print(f"load dit model from: {checkpoint_dir}")
-        state_dict = {}
-        with torch.device("cpu"):
-            for file in os.listdir(checkpoint_dir):
-                if file.endswith(".safetensors"):
-                    state_dict.update(load_file(os.path.join(checkpoint_dir, file)))
 
-        model = WanModel.from_config(os.path.join(checkpoint_dir, "config.json")).to(torch.bfloat16)
-        model.load_state_dict(state_dict, strict=True, assign=True)
-        del state_dict
-        gc.collect()
-        torch.cuda.empty_cache()
+        # Create model on 'meta' device: structure only, zero actual memory allocated.
+        # This avoids the 38 GB random-weight allocation that would double peak memory
+        # when the real weights are later loaded file by file.
+        with torch.device("meta"):
+            model = WanModel.from_config(os.path.join(checkpoint_dir, "config.json"))
+            model = model.to(torch.bfloat16)
+
+        # Load one safetensors file at a time.
+        # assign=True replaces meta tensors with real CPU tensors (no extra copy).
+        # strict=False allows partial state dicts (one file at a time).
+        # Peak memory per iteration = one file (~1-2 GB) not the full model (38 GB).
+        safetensor_files = sorted(
+            f for f in os.listdir(checkpoint_dir) if f.endswith(".safetensors")
+        )
+        for file in safetensor_files:
+            partial_sd = load_file(os.path.join(checkpoint_dir, file), device="cpu")
+            model.load_state_dict(partial_sd, strict=False, assign=True)
+            del partial_sd
+            gc.collect()
 
         model.eval().requires_grad_(False)
-        model = model.to(torch.bfloat16)
         if quant:
             quantize_(model, float8_weight_only(), device="cuda")
-            print(f"quantize dit model")
+            print("quantize dit model")
 
         return {"model": model}
 

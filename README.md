@@ -47,6 +47,68 @@ Welcome to the **SkyReels V3** repository! This is the official release of our f
 
 The demos above showcase videos generated using our SkyReels-V3 unified multimodal in-context learning framework.
 
+## 🖥️ Local Web UI
+
+SkyReels V3 includes a browser-based interface for generating videos without using the command line.
+
+### Starting the Web UI
+
+```bash
+# Activate the virtual environment (if using one)
+source .venv/bin/activate
+
+# Start the web server
+python webui/app.py
+# → opens on http://localhost:7860
+```
+
+### Web UI Features
+
+#### Left Panel — Generation Form
+| Field | Description |
+|---|---|
+| **Task Type** | Select one of the 4 generation modes |
+| **Prompt** | Text description of the desired video |
+| **Reference Images** | Drag & drop or path list (reference_to_video only) |
+| **Input Video** | Path or URL for extension tasks |
+| **Portrait + Audio** | Image and audio for talking_avatar |
+| **Resolution** | 480P / 540P / 720P (task-dependent) |
+| **Duration** | Seconds (ignored for talking_avatar — set by audio length) |
+| **Seed** | Random seed for reproducibility |
+| **Offload CPU** | Moves models to CPU between passes — reduces VRAM usage |
+| **Low VRAM** | FP8 quantization + block offload — required for talking_avatar on <24 GB GPUs |
+
+Two action buttons at the bottom:
+- **Gerar Vídeo** — start generation immediately
+- **+ Fila** — add the current configuration to the generation queue
+
+#### Right Panel — Tabs
+
+**Progresso**
+- Real-time log output streamed from `generate_video.py`
+- Progress bar parsed from tqdm output
+- Status badge: Aguardando / Gerando / Concluído / Erro
+
+**Vídeos**
+- Left sidebar: gallery with all generated `.mp4` files
+  - Toggle between **list** (☰) and **grid** (▦) views
+  - Hover over a card to reveal ▶ (open) and 🔒 (lock) buttons
+  - ▶ opens the video in the player on the right
+  - 🔒 marks the card as private (blurred, hidden); click again to unlock
+  - Per-card privacy state persists across browser reloads (localStorage)
+  - **🔒 Ocultar tudo** / **🔓 Revelar tudo** toggle for all cards at once
+- Right area: video player + generation details panel
+  - Shows all generation parameters saved in the `.json` sidecar file
+
+**Fila**
+- Queue of pending / running / completed generation jobs
+- **↑ Importar** — load a `.json` or `.md` file with multiple jobs
+- **Limpar** — remove all pending jobs
+- Jobs run automatically one at a time; next job starts when current finishes
+- See `doc/QUEUE_FORMAT.md` for the import file format
+
+---
+
 ## 🚀 Quickstart
 
 ### ⚙️ Installation
@@ -56,8 +118,25 @@ The demos above showcase videos generated using our SkyReels-V3 unified multimod
 git clone https://github.com/SkyworkAI/SkyReels-V3
 cd SkyReels-V3
 
+# Create and activate virtual environment (recommended)
+python3.12 -m venv .venv
+source .venv/bin/activate
+
 # Install dependencies (Recommended: Python 3.12+, CUDA 12.8+)
 pip install -r requirements.txt
+```
+
+#### Additional dependencies
+
+```bash
+# Required for flash attention (optional but recommended on supported hardware)
+pip install flash-attn --no-build-isolation
+
+# Required for multi-GPU inference
+pip install xfuser
+
+# Required for Low VRAM mode (FP8 quantization)
+pip install torchao
 ```
 
 ### 📥 Model Download
@@ -155,6 +234,71 @@ Example:
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True" && python3 generate_video.py --low_vram --resolution 540P ...
 ```
 
+
+---
+
+## ⚙️ Task Reference
+
+### Task Types Summary
+
+| Task | Model | VRAM | Duration | Output |
+|---|---|---|---|---|
+| `reference_to_video` | 14B | ~20 GB (offload) / ~49 GB (full) | 1–30 s | 24 fps |
+| `single_shot_extension` | 14B | ~20 GB (offload) | 5–30 s | 24 fps |
+| `shot_switching_extension` | 14B | ~20 GB (offload) | max 5 s | 24 fps |
+| `talking_avatar` | 19B | ~19 GB (low_vram) / ~38 GB (full) | audio length (max 200 s) | 25 fps |
+
+### All CLI Flags
+
+```
+--task_type        reference_to_video | single_shot_extension |
+                   shot_switching_extension | talking_avatar
+--model_id         HuggingFace ID or local path (auto-detected if omitted)
+--prompt           Text prompt describing the video
+--resolution       480P | 540P | 720P  (default: 720P)
+--duration         Output duration in seconds (ignored for talking_avatar)
+--seed             Random seed (required when using --use_usp)
+--offload          CPU offload for non-active models
+--low_vram         FP8 quantization + block offload (recommended for <24 GB VRAM)
+--use_usp          Multi-GPU inference via xDiT USP (torchrun required)
+--ref_imgs         Comma-separated image paths/URLs (reference_to_video)
+--input_video      Video path/URL (extension tasks)
+--input_image      Portrait image path/URL (talking_avatar)
+--input_audio      Audio file path/URL — mp3/wav/m4a/mp4/mov (talking_avatar)
+```
+
+### Output Location
+
+Videos are saved to `result/<task_type>/<seed>_<timestamp>.mp4`.
+For `talking_avatar`, a second file `<seed>_<timestamp>_with_audio.mp4` is also saved with the audio merged.
+The web UI saves a `<seed>_<timestamp>.json` sidecar with all generation parameters.
+
+### Memory Modes
+
+| Mode | Flag | VRAM usage | When to use |
+|---|---|---|---|
+| Full | _(none)_ | ~49 GB (14B) / ~38 GB (19B) | Multiple high-end GPUs |
+| Offload | `--offload` | ~20 GB (14B) | Single GPU ≥20 GB |
+| Low VRAM | `--low_vram` | ~19 GB (19B), ~12 GB (14B) | Single GPU <24 GB |
+
+For low VRAM also set:
+```bash
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+```
+
+### Shot Switching Prompt Prefixes
+
+For `shot_switching_extension`, start the prompt with one of:
+
+| Prefix | Effect |
+|---|---|
+| `[ZOOM_IN_CUT]` | Camera zooms in after cut |
+| `[ZOOM_OUT_CUT]` | Camera zooms out after cut |
+| `[STATIC_CUT]` | Simple cut, static camera |
+| `[PAN_LEFT_CUT]` | Pan to the left after cut |
+| `[PAN_RIGHT_CUT]` | Pan to the right after cut |
+
+---
 
 ## Introduction of SkyReels-V3
 

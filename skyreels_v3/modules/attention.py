@@ -111,8 +111,7 @@ def flash_attention(
             causal=causal,
             deterministic=deterministic,
         )[0].unflatten(0, (b, lq))
-    else:
-        assert FLASH_ATTN_2_AVAILABLE
+    elif FLASH_ATTN_2_AVAILABLE:
         x = flash_attn.flash_attn_varlen_func(
             q=q,
             k=k,
@@ -131,6 +130,15 @@ def flash_attention(
             window_size=window_size,
             deterministic=deterministic,
         ).unflatten(0, (b, lq))
+    else:
+        # PyTorch SDPA fallback when flash_attn is not available
+        q = q.unflatten(0, (b, lq)).transpose(1, 2)  # [B, Nq, Lq, C]
+        k = k.unflatten(0, (b, lk)).transpose(1, 2)  # [B, Nk, Lk, C]
+        v = v.unflatten(0, (b, lk)).transpose(1, 2)  # [B, Nk, Lk, C]
+        x = torch.nn.functional.scaled_dot_product_attention(
+            q, k, v, attn_mask=None, is_causal=causal, dropout_p=dropout_p,
+        )
+        x = x.transpose(1, 2).contiguous()  # [B, Lq, Nq, C]
     torch.cuda.nvtx.range_pop()
 
     # output

@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkyReels V3</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
+
+  header {
+    background: #1a1a24;
+    border-bottom: 1px solid #2a2a3a;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header h1 { font-size: 1.3rem; font-weight: 700; color: #a78bfa; }
+  header span { font-size: 0.8rem; color: #666; }
+
+  .layout { display: grid; grid-template-columns: 400px 1fr; gap: 0; height: calc(100vh - 57px); }
+
+  /* ---- LEFT PANEL ---- */
+  .panel-left {
+    background: #14141e;
+    border-right: 1px solid #2a2a3a;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .form-scroll { overflow-y: auto; flex: 1; padding: 20px; }
+
+  .field { margin-bottom: 14px; }
+  label { display: block; font-size: 0.78rem; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; }
+
+  select, input[type=text], input[type=number], textarea {
+    width: 100%;
+    background: #1e1e2e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #e0e0e0;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color .2s;
+  }
+  select:focus, input:focus, textarea:focus { border-color: #7c3aed; }
+  textarea { resize: vertical; min-height: 90px; font-family: inherit; }
+
+  /* hints below fields */
+  .hint {
+    font-size: 0.72rem;
+    color: #666;
+    margin-top: 5px;
+    line-height: 1.4;
+  }
+  .hint.warn { color: #f59e0b; }
+  .hint.info { color: #60a5fa; }
+  .hint.muted { color: #444; font-style: italic; }
+
+  /* info box (replaces a hidden field) */
+  .info-box {
+    background: #1a1a28;
+    border: 1px solid #2a2a40;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    color: #888;
+    line-height: 1.5;
+  }
+  .info-box strong { color: #a78bfa; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .drop-zone {
+    border: 2px dashed #333;
+    border-radius: 8px;
+    padding: 18px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    font-size: 0.85rem;
+    color: #666;
+  }
+  .drop-zone:hover, .drop-zone.drag { border-color: #7c3aed; background: #1e1e2e; color: #a78bfa; }
+  .drop-zone input { display: none; }
+  .preview-imgs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .preview-imgs img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #333; }
+
+  .toggle-row { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+  .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: #333; border-radius: 22px; cursor: pointer; transition: .3s; }
+  .slider:before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: .3s; }
+  input:checked + .slider { background: #7c3aed; }
+  input:checked + .slider:before { transform: translateX(18px); }
+  input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
+
+  /* task description badge */
+  .task-desc {
+    background: #1a1a28;
+    border-left: 3px solid #7c3aed;
+    border-radius: 0 8px 8px 0;
+    padding: 10px 12px;
+    font-size: 0.78rem;
+    color: #999;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .task-desc .time-est { color: #f59e0b; font-weight: 600; }
+
+  .divider { border: none; border-top: 1px solid #222; margin: 16px 0; }
+
+  .btn-generate {
+    width: calc(100% - 40px);
+    margin: 0 20px 20px;
+    padding: 14px;
+    background: #7c3aed;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s, opacity .2s;
+  }
+  .btn-generate:hover { background: #6d28d9; }
+  .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ---- RIGHT PANEL ---- */
+  .panel-right {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .tabs { display: flex; border-bottom: 1px solid #2a2a3a; background: #14141e; }
+  .tab {
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    transition: color .2s;
+  }
+  .tab.active { color: #a78bfa; border-bottom-color: #7c3aed; }
+
+  .tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .tab-content.active { display: flex; }
+
+  /* Progress tab */
+  .progress-wrap { padding: 20px; }
+  .progress-bar-bg { background: #1e1e2e; border-radius: 999px; height: 8px; overflow: hidden; }
+  .progress-bar { background: linear-gradient(90deg, #7c3aed, #a78bfa); height: 100%; width: 0%; transition: width .5s; border-radius: 999px; }
+  .progress-label { font-size: 0.8rem; color: #888; margin-top: 6px; }
+  .status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .status-idle { background: #222; color: #666; }
+  .status-running { background: #1a1a3a; color: #a78bfa; }
+  .status-done { background: #0d2e1a; color: #4ade80; }
+  .status-error { background: #2e0d0d; color: #f87171; }
+
+  .log-box {
+    flex: 1;
+    background: #0a0a10;
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem;
+    padding: 14px;
+    overflow-y: auto;
+    line-height: 1.6;
+    color: #aaa;
+    margin: 0 20px 20px;
+    border-radius: 10px;
+    border: 1px solid #1e1e2e;
+  }
+  .log-box .err { color: #f87171; }
+  .log-box .info { color: #60a5fa; }
+  .log-box .ok { color: #4ade80; }
+  .log-box .step { color: #a78bfa; font-weight: bold; }
+
+  /* ---- VIDEO TAB LAYOUT ---- */
+  #tab-videos { overflow: hidden; }
+
+  /* Body: gallery sidebar on LEFT, player on RIGHT */
+  .vt-body {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* Gallery sidebar */
+  .vt-gallery {
+    width: 224px;
+    flex-shrink: 0;
+    border-right: 1px solid #1e1e2e;
+    background: #0d0d14;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Player area */
+  .vt-player {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    padding: 16px 20px;
+  }
+  .video-player-wrap { background: #000; border-radius: 12px; overflow: hidden; }
+  .video-player-wrap video { width: 100%; max-height: 60vh; display: block; }
+  .video-info { font-size: 0.78rem; color: #666; margin-top: 8px; }
+
+  /* Gallery header */
+  .gallery-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 9px 9px 7px;
+    flex-shrink: 0;
+    border-bottom: 1px solid #1a1a28;
+  }
+  .gallery-title {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #555;
+    flex: 1;
+  }
+  .gallery-btn {
+    background: none;
+    border: 1px solid #2a2a3a;
+    border-radius: 5px;
+    color: #555;
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .gallery-btn:hover { border-color: #7c3aed; color: #a78bfa; }
+  .gallery-btn.on { border-color: #ef4444; color: #f87171; background: #1a0a0a; }
+
+  /* Card containers — toggle between column list and 2-col grid */
+  .gallery-col, .gallery-grid {
+    overflow-y: auto;
+    padding: 8px;
+    flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: #333 transparent;
+    align-content: start;
+  }
+  .gallery-col { display: flex; flex-direction: column; gap: 8px; }
+  .gallery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+  /* ---- VIDEO CARD ---- */
+  .video-card {
+    position: relative;
+    background: #1a1a24;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    transition: border-color .2s;
+    cursor: pointer;
+    flex-shrink: 0;
+    width: 100%;
+  }
+
+  .video-card.selected { border-color: #7c3aed; }
+  .video-card:hover { border-color: #4a3a6a; }
+  .video-card video { width: 100%; height: 80px; object-fit: cover; display: block; pointer-events: none; }
+  .gallery-grid .video-card video { height: 58px; }
+
+  .video-card-info { padding: 4px 7px 6px; }
+  .video-card-info .name { font-size: 0.65rem; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .video-card-info .meta { font-size: 0.6rem; color: #555; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Open button — top-left corner, hidden when private */
+  .card-actions-left {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    opacity: 0;
+    transition: opacity .15s;
+    z-index: 3;
+  }
+  .video-card:hover:not([data-private="true"]) .card-actions-left { opacity: 1; }
+
+  /* Lock button — top-right corner */
+  .card-actions {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    opacity: 0;
+    transition: opacity .15s;
+    z-index: 3;
+  }
+  .video-card:hover .card-actions { opacity: 1; }
+  .video-card[data-private="true"] .card-actions { opacity: 1; }
+
+  .card-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    transition: all .15s;
+  }
+  .card-btn-open { background: rgba(124,58,237,0.85); color: white; }
+  .card-btn-open:hover { background: #7c3aed; }
+  .card-btn-lock { background: rgba(20,20,30,0.85); color: #888; }
+  .card-btn-lock:hover { background: rgba(239,68,68,0.85); color: white; }
+  .video-card[data-private="true"] .card-btn-lock { color: #f87171; background: rgba(239,68,68,0.6); }
+
+  /* Privacy mask */
+  .privacy-mask {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: #0c0c14;
+    border-radius: 10px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    z-index: 2;
+    cursor: default;
+  }
+  .video-card[data-private="true"] .privacy-mask { display: flex; }
+  .privacy-mask .lock-icon { font-size: 1.3rem; }
+  .privacy-mask .lock-label { font-size: 0.6rem; color: #7c3aed; font-weight: 600; letter-spacing:.04em; }
+  .privacy-mask .lock-hint { font-size: 0.58rem; color: #444; text-align: center; line-height: 1.3; padding: 0 6px; }
+
+  .section-title { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px; margin-top: 20px; }
+  .section-title:first-child { margin-top: 0; }
+
+  /* Conditional fields */
+  .cond { display: none; }
+  .cond.show { display: block; }
+
+  /* ---- PRIVACY MODE ---- */
+  .video-tab-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .btn-privacy {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: #1e1e2e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #888;
+    font-size: 0.78rem;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .btn-privacy:hover { border-color: #7c3aed; color: #a78bfa; }
+  .btn-privacy.active { background: #2e1a1a; border-color: #ef4444; color: #f87171; }
+  .btn-privacy .dot { width: 8px; height: 8px; border-radius: 50%; background: #555; flex-shrink: 0; }
+  .btn-privacy.active .dot { background: #ef4444; }
+
+  /* Privacy overlay on cards */
+  /* ---- VIDEO DETAILS PANEL ---- */
+  .details-panel {
+    background: #1a1a24;
+    border: 1px solid #2a2a3a;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 14px;
+    font-size: 0.8rem;
+  }
+  .details-panel h3 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #666;
+    margin-bottom: 10px;
+  }
+  .detail-row {
+    display: flex;
+    gap: 10px;
+    padding: 5px 0;
+    border-bottom: 1px solid #1e1e2e;
+    line-height: 1.4;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-key {
+    color: #666;
+    min-width: 110px;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+  }
+  .detail-val {
+    color: #ccc;
+    word-break: break-all;
+  }
+  .detail-val.prompt-val {
+    color: #a78bfa;
+    font-style: italic;
+  }
+  .detail-val.no-meta {
+    color: #444;
+    font-style: italic;
+  }
+
+  /* ---- QUEUE BUTTON (left panel) ---- */
+  .btn-queue-add {
+    padding: 14px 16px;
+    background: #1e1e2e;
+    color: #a78bfa;
+    border: 1px solid #4a3a8a;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .btn-queue-add:hover { background: #2a1a4a; border-color: #7c3aed; }
+
+  /* ---- QUEUE TAB ---- */
+  #tab-queue { overflow: hidden; }
+  .queue-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+  .queue-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #1e1e2e;
+    flex-shrink: 0;
+    background: #14141e;
+  }
+  .queue-top-title {
+    font-size: 0.78rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    flex: 1;
+  }
+  .queue-btn {
+    background: #1e1e2e;
+    border: 1px solid #2a2a3a;
+    border-radius: 6px;
+    color: #aaa;
+    font-size: 0.75rem;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .queue-btn:hover { border-color: #7c3aed; color: #a78bfa; }
+  .queue-btn.danger:hover { border-color: #ef4444; color: #f87171; background: #1a0a0a; }
+
+  .queue-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .queue-empty {
+    color: #444;
+    font-size: 0.8rem;
+    font-style: italic;
+    text-align: center;
+    padding: 30px 0;
+  }
+
+  /* Job card in queue */
+  .job-card {
+    background: #1a1a24;
+    border: 1px solid #2a2a3a;
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .job-card.status-running { border-color: #4a3a8a; background: #1a1a30; }
+  .job-card.status-done    { border-color: #1a4a2a; background: #0d1a12; }
+  .job-card.status-error   { border-color: #4a1a1a; background: #1a0d0d; }
+
+  .job-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+  .status-pending .job-status-dot  { background: #555; }
+  .status-running .job-status-dot  { background: #a78bfa; animation: pulse 1.2s infinite; }
+  .status-done    .job-status-dot  { background: #4ade80; }
+  .status-error   .job-status-dot  { background: #f87171; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  .job-body { flex: 1; min-width: 0; }
+  .job-label {
+    font-size: 0.8rem;
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+  }
+  .job-meta {
+    font-size: 0.68rem;
+    color: #555;
+    line-height: 1.5;
+  }
+  .job-meta span { color: #7c7c9a; }
+
+  .job-remove {
+    background: none;
+    border: none;
+    color: #444;
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color .15s;
+    flex-shrink: 0;
+  }
+  .job-remove:hover { color: #f87171; }
+  .status-running .job-remove,
+  .status-done    .job-remove,
+  .status-error   .job-remove { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SkyReels V3</h1>
+  <span>Interface de Geração de Vídeo</span>
+</header>
+
+<div class="layout">
+  <!-- LEFT: Form -->
+  <div class="panel-left">
+    <div class="form-scroll">
+
+      <div class="field">
+        <label>Tipo de Tarefa</label>
+        <select id="task_type" onchange="onTaskChange()">
+          <option value="reference_to_video">Reference to Video — imagens → vídeo</option>
+          <option value="single_shot_extension">Single Shot Extension — extender vídeo</option>
+          <option value="shot_switching_extension">Shot Switching Extension — troca de plano</option>
+          <option value="talking_avatar">Talking Avatar — retrato + áudio → vídeo</option>
+        </select>
+      </div>
+
+      <!-- Task description card (updates per task) -->
+      <div id="task-desc" class="task-desc"></div>
+
+      <!-- Prompt (all tasks, but hint changes) -->
+      <div class="field">
+        <label id="prompt-label">Prompt</label>
+        <textarea id="prompt" placeholder="Descreva o vídeo que deseja gerar..."></textarea>
+        <div class="hint" id="prompt-hint"></div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- reference_to_video: imagens de referência -->
+      <div id="ref-section" class="cond show">
+        <div class="field">
+          <label>Imagens de Referência <span style="color:#555">(1–4 imagens)</span></label>
+          <div class="drop-zone" id="drop-zone" onclick="document.getElementById('ref_imgs').click()"
+               ondragover="event.preventDefault();this.classList.add('drag')"
+               ondragleave="this.classList.remove('drag')"
+               ondrop="onDrop(event)">
+            <input type="file" id="ref_imgs" multiple accept="image/*" onchange="onFileSelect(this)">
+            Clique ou arraste imagens aqui
+          </div>
+          <div class="preview-imgs" id="preview-imgs"></div>
+        </div>
+        <div class="field">
+          <label>Ou informe caminhos <span style="color:#555">(separados por vírgula)</span></label>
+          <input type="text" id="ref_imgs_path" placeholder="doc/foto.jpg, uploads/ref2.png">
+        </div>
+      </div>
+
+      <!-- extension: vídeo de entrada -->
+      <div id="ext-section" class="cond">
+        <div class="field">
+          <label>Vídeo de Entrada <span style="color:#555">(path ou URL)</span></label>
+          <input type="text" id="input_video" placeholder="https://... ou caminho local">
+          <div class="hint" id="ext-hint"></div>
+        </div>
+      </div>
+
+      <!-- talking_avatar: retrato + áudio -->
+      <div id="avatar-section" class="cond">
+        <div class="field">
+          <label>Imagem do Retrato <span style="color:#555">(rosto de frente)</span></label>
+          <div class="drop-zone" id="avatar-img-drop"
+               onclick="document.getElementById('input_image_file').click()"
+               ondragover="event.preventDefault();this.classList.add('drag')"
+               ondragleave="this.classList.remove('drag')"
+               ondrop="onAvatarImgDrop(event)">
+            <input type="file" id="input_image_file" accept="image/*" onchange="onAvatarImgSelect(this)">
+            Clique ou arraste a imagem do retrato
+          </div>
+          <input type="text" id="input_image" placeholder="Ou informe URL/path da imagem" style="margin-top:8px">
+        </div>
+        <div class="field">
+          <label>Áudio da Fala <span style="color:#555">(mp3, wav)</span></label>
+          <div class="drop-zone" id="avatar-audio-drop"
+               onclick="document.getElementById('input_audio_file').click()"
+               ondragover="event.preventDefault();this.classList.add('drag')"
+               ondragleave="this.classList.remove('drag')"
+               ondrop="onAvatarAudioDrop(event)">
+            <input type="file" id="input_audio_file" accept="audio/*,video/mp4,video/quicktime,video/x-matroska,video/x-msvideo" onchange="onAvatarAudioSelect(this)">
+            Clique ou arraste o arquivo de áudio
+          </div>
+          <input type="text" id="input_audio" placeholder="Ou informe URL/path do áudio" style="margin-top:8px">
+          <div class="hint warn">Máximo 200 s. O vídeo terá a mesma duração do áudio.<br>Formatos: mp3, wav, m4a, ogg, flac, mp4, mov, mkv (ffmpeg extrai o áudio automaticamente).</div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Resolução + Duração -->
+      <div class="row2">
+        <div class="field">
+          <label>Resolução</label>
+          <select id="resolution">
+            <option value="540P" selected>540P</option>
+            <option value="720P">720P</option>
+            <option value="480P">480P</option>
+          </select>
+          <div class="hint" id="res-hint"></div>
+        </div>
+        <div class="field" id="duration-field">
+          <label>Duração (s)</label>
+          <input type="number" id="duration" value="5" min="1" max="200">
+          <div class="hint" id="dur-hint"></div>
+        </div>
+      </div>
+
+      <!-- Duração desabilitada (talking_avatar) -->
+      <div class="field cond" id="duration-disabled-field">
+        <label>Duração</label>
+        <div class="info-box">Determinada pelo <strong>áudio</strong> — este campo não tem efeito no Talking Avatar.</div>
+      </div>
+
+      <!-- Seed -->
+      <div class="field">
+        <label>Seed</label>
+        <input type="number" id="seed" value="42">
+        <div class="hint">Mesmo seed + mesmos inputs = resultado reproduzível.</div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Offload (oculto para talking_avatar) -->
+      <div class="field" id="offload-row">
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="offload" checked>
+            <span class="slider"></span>
+          </label>
+          <div>
+            <span>Offload CPU</span>
+            <div class="hint" style="margin-top:2px">Move modelos para CPU entre os forward passes. Reduz VRAM mas aumenta o tempo.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Low VRAM (só para talking_avatar, obrigatório) -->
+      <div class="field cond" id="low-vram-row">
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="low_vram" checked disabled>
+            <span class="slider"></span>
+          </label>
+          <div>
+            <span>Low VRAM <span style="color:#f59e0b;font-size:.75rem">— obrigatório</span></span>
+            <div class="hint" style="margin-top:2px">FP8 (38 GB → 19 GB) + block offload (1 bloco por vez na GPU). Necessário para o modelo 19B.</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /form-scroll -->
+
+    <div style="display:flex;gap:8px;padding:0 20px 20px;">
+      <button class="btn-generate" id="btn-generate" onclick="startGeneration()" style="flex:1;margin:0">
+        Gerar Vídeo
+      </button>
+      <button class="btn-queue-add" id="btn-queue-add" onclick="addToQueue()" title="Adicionar à fila de geração">
+        + Fila
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT: Output -->
+  <div class="panel-right">
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('tab-progress', this)">Progresso</div>
+      <div class="tab" onclick="showTab('tab-videos', this)">Vídeos</div>
+      <div class="tab" onclick="showTab('tab-queue', this)">Fila</div>
+    </div>
+
+    <!-- Progress Tab -->
+    <div id="tab-progress" class="tab-content active">
+      <div class="progress-wrap">
+        <div id="status-badge" class="status-badge status-idle">Aguardando</div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="progress-label" id="progress-label">—</div>
+      </div>
+      <div class="log-box" id="log-box"></div>
+    </div>
+
+    <!-- Videos Tab -->
+    <div id="tab-videos" class="tab-content">
+      <div class="vt-body" id="vt-body">
+
+        <!-- Gallery sidebar (left) -->
+        <div class="vt-gallery" id="vt-gallery">
+          <div class="gallery-header">
+            <span class="gallery-title">Vídeos</span>
+            <button class="gallery-btn" id="btn-layout" onclick="toggleLayout()" title="Alternar lista/grade">☰</button>
+            <button class="gallery-btn" id="btn-privacy-g" onclick="togglePrivacyAll()" title="Ocultar/revelar todos">🔒</button>
+          </div>
+          <div class="gallery-col" id="gallery-cards">
+            {% for v in videos %}
+            <div class="video-card" data-path="{{ v.path }}">
+              <div class="privacy-mask">
+                <span class="lock-icon">🔒</span>
+                <span class="lock-label">SKYREELS</span>
+                <span class="lock-hint">Clique no 🔒<br>para revelar</span>
+              </div>
+              <div class="card-actions-left">
+                <button class="card-btn card-btn-open" onclick="openCardBtn(event, this)" title="Abrir">▶</button>
+              </div>
+              <div class="card-actions">
+                <button class="card-btn card-btn-lock" onclick="toggleCardPrivacy(event, this)" title="Privado">🔒</button>
+              </div>
+              <video src="/video/{{ v.path }}" muted></video>
+              <div class="video-card-info">
+                <div class="name">{{ v.name }}</div>
+                <div class="meta">{{ v.task }} · {{ v.size }}</div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Player area (right) -->
+        <div class="vt-player" id="vt-player">
+          <div id="player-section" style="display:none">
+            <div class="video-player-wrap">
+              <video id="main-player" controls autoplay loop></video>
+            </div>
+            <div class="video-info" id="video-info"></div>
+            <div class="details-panel" id="details-panel">
+              <h3>Detalhes da Geração</h3>
+              <div id="details-body"><div class="detail-row"><span class="detail-val no-meta">Selecione um vídeo para ver os detalhes.</span></div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Queue Tab -->
+    <div id="tab-queue" class="tab-content">
+      <div class="queue-panel">
+        <div class="queue-top">
+          <span class="queue-top-title">Fila de Geração</span>
+          <input type="file" id="queue-import-input" accept=".json,.md,.txt" style="display:none"
+                 onchange="importQueueFile(this)">
+          <button class="queue-btn" onclick="document.getElementById('queue-import-input').click()" title="Importar .json ou .md">
+            ↑ Importar
+          </button>
+          <button class="queue-btn danger" onclick="clearQueue()" title="Remover todos os jobs pendentes">
+            Limpar
+          </button>
+        </div>
+        <div class="queue-list" id="queue-list">
+          <div class="queue-empty">Nenhum job na fila.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let selectedFiles = [];
+let avatarImageFile = null;
+let avatarAudioFile = null;
+let eventSource = null;
+
+const TASK_INFO = {
+  reference_to_video: {
+    desc: 'Gera um vídeo a partir de 1–4 imagens de referência + prompt de texto. Modelo 14B.',
+    time: '~15–20 min (5 s, 540P)',
+    promptHint: '',
+    resHint: '540P recomendado. 720P aumenta qualidade mas dobra o tempo.',
+    durHint: 'Recomendado: 5 s. Valores maiores aumentam proporcionalmente o tempo.',
+    durMax: 30,
+  },
+  single_shot_extension: {
+    desc: 'Estende um vídeo existente preservando o estilo e movimento. Modelo 14B.',
+    time: '~5–8 min (5 s, 540P)',
+    promptHint: 'Descreva o que deve acontecer na extensão.',
+    resHint: '',
+    durHint: 'Intervalo: 5–30 s.',
+    durMax: 30,
+    extHint: 'Aceita path local ou URL pública do vídeo.',
+  },
+  shot_switching_extension: {
+    desc: 'Estende com transição cinemática de plano. Use prefixos no prompt: [ZOOM_IN_CUT], [ZOOM_OUT_CUT], [STATIC_CUT]. Modelo 14B.',
+    time: '~5 min (máx 5 s, 540P)',
+    promptHint: 'Prefixos: [ZOOM_IN_CUT] · [ZOOM_OUT_CUT] · [STATIC_CUT] · [PAN_LEFT_CUT] · [PAN_RIGHT_CUT]',
+    resHint: '',
+    durHint: 'Máximo: 5 s.',
+    durMax: 5,
+    extHint: 'Aceita path local ou URL pública do vídeo.',
+  },
+  talking_avatar: {
+    desc: 'Anima um retrato a falar sincronizado com o áudio. Modelo 19B.',
+    time: '~3 min / 5 s de áudio',
+    promptHint: 'Baixa influência — o modelo é guiado principalmente pelo áudio e pela imagem do rosto.',
+    resHint: 'Somente 480P e 720P são suportados (540P não existe neste modelo).',
+    durHint: null, // hidden
+    durMax: null,
+  },
+};
+
+function onTaskChange() {
+  const t = document.getElementById('task_type').value;
+  const info = TASK_INFO[t];
+  const isRef    = t === 'reference_to_video';
+  const isExt    = t === 'single_shot_extension' || t === 'shot_switching_extension';
+  const isSwitch = t === 'shot_switching_extension';
+  const isAvatar = t === 'talking_avatar';
+
+  // Task description
+  document.getElementById('task-desc').innerHTML =
+    `${info.desc} <span class="time-est">⏱ ${info.time}</span>`;
+
+  // Conditional sections
+  document.getElementById('ref-section').classList.toggle('show', isRef);
+  document.getElementById('ext-section').classList.toggle('show', isExt);
+  document.getElementById('avatar-section').classList.toggle('show', isAvatar);
+
+  // Prompt hint
+  document.getElementById('prompt-hint').textContent = info.promptHint;
+  document.getElementById('prompt-hint').className = 'hint' + (isAvatar ? ' muted' : '');
+
+  // Resolution
+  const resEl = document.getElementById('resolution');
+  // Rebuild options based on task
+  resEl.innerHTML = isAvatar
+    ? '<option value="480P" selected>480P</option><option value="720P">720P</option>'
+    : '<option value="540P" selected>540P</option><option value="720P">720P</option><option value="480P">480P</option>';
+  document.getElementById('res-hint').textContent = info.resHint;
+  document.getElementById('res-hint').className = 'hint' + (isAvatar ? ' warn' : '');
+
+  // Duration: show/hide
+  document.getElementById('duration-field').style.display = isAvatar ? 'none' : '';
+  document.getElementById('duration-disabled-field').classList.toggle('show', isAvatar);
+  if (!isAvatar) {
+    const durEl = document.getElementById('duration');
+    durEl.max = info.durMax;
+    if (isSwitch && parseInt(durEl.value) > 5) durEl.value = 5;
+    document.getElementById('dur-hint').textContent = info.durHint;
+    document.getElementById('dur-hint').className = 'hint' + (isSwitch ? ' warn' : '');
+  }
+
+  // Ext hint
+  if (isExt) document.getElementById('ext-hint').textContent = info.extHint || '';
+
+  // Offload / Low VRAM
+  document.getElementById('offload-row').style.display = isAvatar ? 'none' : '';
+  document.getElementById('low-vram-row').classList.toggle('show', isAvatar);
+}
+
+// Init on load
+onTaskChange();
+
+function onFileSelect(input) {
+  selectedFiles = Array.from(input.files);
+  renderPreviews();
+}
+
+function onDrop(ev) {
+  ev.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag');
+  selectedFiles = Array.from(ev.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  renderPreviews();
+}
+
+function onAvatarImgSelect(input) {
+  avatarImageFile = input.files[0] || null;
+  document.getElementById('avatar-img-drop').textContent =
+    avatarImageFile ? avatarImageFile.name : 'Clique ou arraste a imagem do retrato';
+}
+
+function onAvatarImgDrop(ev) {
+  ev.preventDefault();
+  document.getElementById('avatar-img-drop').classList.remove('drag');
+  const f = Array.from(ev.dataTransfer.files).find(f => f.type.startsWith('image/'));
+  if (f) { avatarImageFile = f; document.getElementById('avatar-img-drop').textContent = f.name; }
+}
+
+function onAvatarAudioSelect(input) {
+  avatarAudioFile = input.files[0] || null;
+  document.getElementById('avatar-audio-drop').textContent =
+    avatarAudioFile ? avatarAudioFile.name : 'Clique ou arraste o arquivo de áudio';
+}
+
+function onAvatarAudioDrop(ev) {
+  ev.preventDefault();
+  document.getElementById('avatar-audio-drop').classList.remove('drag');
+  const f = Array.from(ev.dataTransfer.files).find(f => f.type.startsWith('audio/') || f.type.startsWith('video/'));
+  if (f) { avatarAudioFile = f; document.getElementById('avatar-audio-drop').textContent = f.name; }
+}
+
+function renderPreviews() {
+  const wrap = document.getElementById('preview-imgs');
+  wrap.innerHTML = '';
+  selectedFiles.forEach(f => {
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    wrap.appendChild(img);
+  });
+  document.getElementById('drop-zone').textContent = selectedFiles.length
+    ? `${selectedFiles.length} imagem(ns) selecionada(s)`
+    : 'Clique ou arraste imagens aqui';
+}
+
+function showTab(id, el) {
+  document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+
+function setStatus(s, text) {
+  const b = document.getElementById('status-badge');
+  b.className = 'status-badge status-' + s;
+  b.textContent = text;
+}
+
+function appendLog(line) {
+  const box = document.getElementById('log-box');
+  const div = document.createElement('div');
+  let cls = '';
+  if (line.includes('ERROR') || line.includes('Traceback') || line.includes('Error')) cls = 'err';
+  else if (line.includes('INFO')) cls = 'info';
+  else if (line.includes('successfully') || line.includes('saved') || line.includes('CONCLUIDO')) cls = 'ok';
+  else if (line.includes('/8 [') || line.includes('/4 [')) cls = 'step';
+  if (cls) div.className = cls;
+  div.textContent = line;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function updateProgress(pct) {
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = pct > 0 ? `${pct}% completo` : 'Iniciando...';
+}
+
+async function startGeneration() {
+  const btn = document.getElementById('btn-generate');
+  btn.disabled = true;
+  document.getElementById('log-box').innerHTML = '';
+  updateProgress(0);
+  setStatus('running', 'Gerando...');
+
+  const t = document.getElementById('task_type').value;
+  const isAvatar = t === 'talking_avatar';
+
+  const fd = new FormData();
+  fd.append('task_type', t);
+  fd.append('prompt', document.getElementById('prompt').value);
+  fd.append('resolution', document.getElementById('resolution').value);
+  fd.append('duration', document.getElementById('duration').value);
+  fd.append('seed', document.getElementById('seed').value);
+  fd.append('offload', document.getElementById('offload').checked ? 'true' : 'false');
+  fd.append('low_vram', isAvatar ? 'true' : 'false');
+  fd.append('ref_imgs_path', document.getElementById('ref_imgs_path').value);
+  fd.append('input_video', document.getElementById('input_video')?.value || '');
+  fd.append('input_image', document.getElementById('input_image')?.value || '');
+  fd.append('input_audio', document.getElementById('input_audio')?.value || '');
+
+  selectedFiles.forEach(f => fd.append('ref_imgs', f));
+  if (avatarImageFile) fd.append('input_image_file', avatarImageFile);
+  if (avatarAudioFile) fd.append('input_audio_file', avatarAudioFile);
+
+  const res = await fetch('/generate', { method: 'POST', body: fd });
+  const data = await res.json();
+
+  if (!res.ok) {
+    appendLog('ERRO: ' + data.error);
+    setStatus('error', 'Erro');
+    btn.disabled = false;
+    return;
+  }
+
+  // Switch to progress tab
+  showTab('tab-progress', document.querySelectorAll('.tab')[0]);
+
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource('/stream');
+
+  eventSource.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.log) appendLog(msg.log);
+    if (msg.progress !== undefined) updateProgress(msg.progress);
+    if (msg.done) {
+      eventSource.close();
+      btn.disabled = false;
+      if (msg.done.status === 'done') {
+        setStatus('done', 'Concluído!');
+        updateProgress(100);
+        refreshVideos();
+        if (msg.done.video) {
+          setTimeout(() => {
+            showTab('tab-videos', document.querySelectorAll('.tab')[1]);
+            playVideoByPath(msg.done.video);
+          }, 500);
+        }
+      } else {
+        setStatus('error', 'Erro na geração');
+      }
+    }
+  };
+  eventSource.onerror = () => { eventSource.close(); btn.disabled = false; };
+}
+
+// ---- Per-card privacy ----
+let privacyMap = JSON.parse(localStorage.getItem('skyreels_privmap') || '{}');
+
+function savePrivacyMap() {
+  localStorage.setItem('skyreels_privmap', JSON.stringify(privacyMap));
+}
+
+function applyCardPrivacy(card) {
+  card.dataset.private = privacyMap[card.dataset.path] ? 'true' : 'false';
+}
+
+function applyAllCardsPrivacy() {
+  document.querySelectorAll('.video-card').forEach(applyCardPrivacy);
+  updatePrivacyBtn();
+}
+
+function toggleCardPrivacy(ev, btn) {
+  ev.stopPropagation();
+  const card = btn.closest('.video-card');
+  const path = card.dataset.path;
+  privacyMap[path] = !privacyMap[path];
+  savePrivacyMap();
+  applyCardPrivacy(card);
+  updatePrivacyBtn();
+}
+
+function togglePrivacyAll() {
+  const cards = Array.from(document.querySelectorAll('.video-card'));
+  const anyUnlocked = cards.some(c => c.dataset.private !== 'true');
+  cards.forEach(card => { privacyMap[card.dataset.path] = anyUnlocked; });
+  savePrivacyMap();
+  applyAllCardsPrivacy();
+}
+
+function updatePrivacyBtn() {
+  const cards = Array.from(document.querySelectorAll('.video-card'));
+  const anyPrivate = cards.some(c => c.dataset.private === 'true');
+  const btn = document.getElementById('btn-privacy-g');
+  if (!btn) return;
+  btn.classList.toggle('on', anyPrivate);
+  btn.textContent = anyPrivate ? '🔓 Revelar tudo' : '🔒 Ocultar tudo';
+}
+
+function openCardBtn(ev, btn) {
+  ev.stopPropagation();
+  playCardVideo(btn.closest('.video-card'));
+}
+
+function onCardClick(card) {
+  if (card.dataset.private === 'true') return;
+  playCardVideo(card);
+}
+
+// ---- Video details ----
+const TASK_LABELS = {
+  reference_to_video: 'Reference to Video',
+  single_shot_extension: 'Single Shot Extension',
+  shot_switching_extension: 'Shot Switching Extension',
+  talking_avatar: 'Talking Avatar',
+};
+
+async function loadDetails(path) {
+  const body = document.getElementById('details-body');
+  body.innerHTML = '<div class="detail-row"><span class="detail-val no-meta">Carregando...</span></div>';
+  try {
+    const res = await fetch('/video-meta/' + path);
+    if (!res.ok) {
+      body.innerHTML = '<div class="detail-row"><span class="detail-val no-meta">Sem metadados — vídeo gerado antes desta versão.</span></div>';
+      return;
+    }
+    const m = await res.json();
+    if (!m || Object.keys(m).length === 0) {
+      body.innerHTML = '<div class="detail-row"><span class="detail-val no-meta">Sem metadados disponíveis.</span></div>';
+      return;
+    }
+    const rows = [];
+    const add = (key, val, cls='') => {
+      if (val === undefined || val === null) return;
+      rows.push(`<div class="detail-row">
+        <span class="detail-key">${key}</span>
+        <span class="detail-val ${cls}">${val}</span>
+      </div>`);
+    };
+    add('Tarefa', TASK_LABELS[m.task_type] || m.task_type);
+    add('Prompt', m.prompt || '(sem prompt)', 'prompt-val');
+    add('Resolução', m.resolution);
+    add('Duração', m.duration);
+    add('Seed', m.seed);
+    add('Modo', m.low_vram ? 'Low VRAM (FP8 + block offload)' : m.offload ? 'Offload CPU' : 'Padrão');
+    if (m.ref_imgs) add('Imagens ref.', Array.isArray(m.ref_imgs) ? m.ref_imgs.map(p => p.split('/').pop()).join(', ') : m.ref_imgs);
+    if (m.input_video) add('Vídeo entrada', m.input_video.split('/').pop());
+    if (m.input_image) add('Imagem retrato', m.input_image.split('/').pop() || m.input_image);
+    if (m.input_audio) add('Áudio', m.input_audio.split('/').pop() || m.input_audio);
+    add('Gerado em', m.generated_at);
+    body.innerHTML = rows.join('');
+  } catch(e) {
+    body.innerHTML = '<div class="detail-row"><span class="detail-val no-meta">Erro ao carregar metadados.</span></div>';
+  }
+}
+
+// ---- Gallery layout (col = single list, grid = 2-column grid) ----
+let galleryMode = localStorage.getItem('skyreels_galmode') || 'col';
+
+function applyLayout() {
+  const cards = document.getElementById('gallery-cards');
+  const btn = document.getElementById('btn-layout');
+  const isGrid = galleryMode === 'grid';
+  if (cards) cards.className = isGrid ? 'gallery-grid' : 'gallery-col';
+  if (btn) btn.textContent = isGrid ? '☰' : '▦';
+  if (btn) btn.title = isGrid ? 'Vista em lista' : 'Vista em grade';
+}
+
+function toggleLayout() {
+  galleryMode = (galleryMode === 'grid') ? 'col' : 'grid';
+  localStorage.setItem('skyreels_galmode', galleryMode);
+  applyLayout();
+}
+
+applyLayout();
+
+function buildCard(v) {
+  const card = document.createElement('div');
+  card.className = 'video-card';
+  card.dataset.path = v.path;
+  card.innerHTML = `
+    <div class="privacy-mask">
+      <span class="lock-icon">🔒</span>
+      <span class="lock-label">SKYREELS</span>
+      <span class="lock-hint">Clique no 🔒<br>para revelar</span>
+    </div>
+    <div class="card-actions-left">
+      <button class="card-btn card-btn-open" onclick="openCardBtn(event, this)" title="Abrir">▶</button>
+    </div>
+    <div class="card-actions">
+      <button class="card-btn card-btn-lock" onclick="toggleCardPrivacy(event, this)" title="Privado">🔒</button>
+    </div>
+    <video src="/video/${v.path}" muted></video>
+    <div class="video-card-info">
+      <div class="name">${v.name}</div>
+      <div class="meta">${v.task} · ${v.size}</div>
+    </div>`;
+  card.addEventListener('click', () => onCardClick(card));
+  applyCardPrivacy(card);
+  return card;
+}
+
+async function refreshVideos() {
+  const res = await fetch('/videos');
+  const videos = await res.json();
+  const container = document.getElementById('gallery-cards');
+  if (!container) return;
+  container.innerHTML = '';
+  videos.forEach(v => container.appendChild(buildCard(v)));
+  updatePrivacyBtn();
+}
+
+function playCardVideo(card) {
+  const path = card.dataset.path;
+  const name = card.querySelector('.name')?.textContent || path.split('/').pop();
+  const meta = card.querySelector('.meta')?.textContent || '';
+  document.querySelectorAll('.video-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  const player = document.getElementById('main-player');
+  player.src = '/video/' + path;
+  player.play();
+  document.getElementById('player-section').style.display = 'block';
+  document.getElementById('video-info').textContent = name + (meta ? ' · ' + meta : '');
+  loadDetails(path);
+}
+
+function playVideoByPath(path) {
+  const cards = document.querySelectorAll('.video-card');
+  for (const card of cards) {
+    if (card.dataset.path === path) {
+      playCardVideo(card);
+      return;
+    }
+  }
+  // Fallback: play without selecting a card
+  const player = document.getElementById('main-player');
+  player.src = '/video/' + path;
+  player.play();
+  document.getElementById('player-section').style.display = 'block';
+  loadDetails(path);
+}
+
+// Init: restore privacy state for server-rendered cards
+applyAllCardsPrivacy();
+
+// ============================================================
+// QUEUE
+// ============================================================
+
+const STATUS_LABEL = {
+  pending: 'Aguardando',
+  running: 'Gerando...',
+  done:    'Concluído',
+  error:   'Erro',
+};
+
+function buildJobCard(job) {
+  const div = document.createElement('div');
+  div.className = `job-card status-${job.status}`;
+  div.id = `job-${job.id}`;
+
+  const label = job.label || `${job.task_type} — seed ${job.seed ?? 42}`;
+  const meta = [
+    job.task_type,
+    job.resolution,
+    job.duration ? `${job.duration}s` : null,
+    `seed ${job.seed ?? 42}`,
+    job.created_at,
+  ].filter(Boolean).join(' · ');
+
+  div.innerHTML = `
+    <div class="job-status-dot"></div>
+    <div class="job-body">
+      <div class="job-label">${label}</div>
+      <div class="job-meta"><span>${STATUS_LABEL[job.status] || job.status}</span> · ${meta}</div>
+    </div>
+    <button class="job-remove" onclick="removeJob(${job.id})" title="Remover">✕</button>`;
+  return div;
+}
+
+async function refreshQueue() {
+  const res = await fetch('/queue');
+  const jobs = await res.json();
+  const list = document.getElementById('queue-list');
+  list.innerHTML = '';
+  if (jobs.length === 0) {
+    list.innerHTML = '<div class="queue-empty">Nenhum job na fila.</div>';
+    return;
+  }
+  // Show running/pending first, then done/error
+  const sorted = [...jobs].sort((a, b) => {
+    const order = { running: 0, pending: 1, done: 2, error: 3 };
+    return (order[a.status] ?? 9) - (order[b.status] ?? 9);
+  });
+  sorted.forEach(job => list.appendChild(buildJobCard(job)));
+}
+
+async function removeJob(id) {
+  await fetch(`/queue/remove/${id}`, { method: 'POST' });
+  refreshQueue();
+}
+
+async function clearQueue() {
+  if (!confirm('Remover todos os jobs pendentes?')) return;
+  await fetch('/queue/clear', { method: 'POST' });
+  refreshQueue();
+}
+
+async function importQueueFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const text = await file.text();
+  const res = await fetch('/queue/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: text,
+  });
+  const data = await res.json();
+  input.value = '';
+  if (data.ok) {
+    showTab('tab-queue', document.querySelectorAll('.tab')[2]);
+    refreshQueue();
+    alert(`${data.added} job(s) importado(s).`);
+  } else {
+    alert('Erro ao importar: ' + data.error);
+  }
+}
+
+function collectFormJob() {
+  const t = document.getElementById('task_type').value;
+  const isAvatar = t === 'talking_avatar';
+  const job = {
+    task_type: t,
+    prompt:     document.getElementById('prompt').value,
+    resolution: document.getElementById('resolution').value,
+    duration:   parseInt(document.getElementById('duration').value) || 5,
+    seed:       parseInt(document.getElementById('seed').value) || 42,
+    offload:    document.getElementById('offload').checked,
+    low_vram:   isAvatar ? true : false,
+  };
+  if (t === 'reference_to_video') {
+    const manual = document.getElementById('ref_imgs_path').value.trim();
+    if (manual) job.ref_imgs = manual.split(',').map(s => s.trim()).filter(Boolean);
+    // Note: uploaded files can't be queued (no path yet); user must use path field
+  }
+  if (t === 'single_shot_extension' || t === 'shot_switching_extension') {
+    job.input_video = document.getElementById('input_video').value.trim();
+  }
+  if (isAvatar) {
+    job.input_image = document.getElementById('input_image').value.trim();
+    job.input_audio = document.getElementById('input_audio').value.trim();
+  }
+  return job;
+}
+
+async function addToQueue() {
+  const job = collectFormJob();
+
+  // Basic validation
+  if (job.task_type === 'reference_to_video' && (!job.ref_imgs || job.ref_imgs.length === 0)) {
+    alert('Para adicionar à fila, informe os caminhos das imagens de referência (não é possível usar upload de arquivo na fila — use o campo de path).'); return;
+  }
+  if ((job.task_type === 'single_shot_extension' || job.task_type === 'shot_switching_extension') && !job.input_video) {
+    alert('Informe o vídeo de entrada.'); return;
+  }
+  if (job.task_type === 'talking_avatar' && (!job.input_image || !job.input_audio)) {
+    alert('Informe a imagem do retrato e o áudio.'); return;
+  }
+
+  const res = await fetch('/queue/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(job),
+  });
+  const data = await res.json();
+  if (data.ok) {
+    showTab('tab-queue', document.querySelectorAll('.tab')[2]);
+    refreshQueue();
+  } else {
+    alert('Erro: ' + data.error);
+  }
+}
+
+// Poll queue every 3 seconds to update status
+setInterval(refreshQueue, 3000);
+refreshQueue();
+</script>
+</body>
+</html>
