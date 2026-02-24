@@ -1,0 +1,54 @@
+[
+  {
+    "label": "Cena 1 — Abertura: personagem acorda",
+    "task_type": "reference_to_video",
+    "prompt": "A young woman slowly wakes up in a sunlit bedroom. She stretches her arms, soft morning light filters through white curtains, warm and cinematic atmosphere.",
+    "resolution": "540P",
+    "duration": 5,
+    "seed": 101,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": ["uploads/personagem_principal.jpg"]
+  },
+  {
+    "label": "Cena 2 — Extensão: ela se levanta e olha pela janela",
+    "task_type": "single_shot_extension",
+    "prompt": "She walks to the window and looks outside at the city below, contemplative expression, golden hour lighting.",
+    "resolution": "540P",
+    "duration": 8,
+    "seed": 102,
+    "offload": true,
+    "input_video": "result/reference_to_video/101_2026-02-22_06-22-44.mp4"
+  },
+  {
+    "label": "Cena 3 — Transição: close no rosto [ZOOM_IN_CUT]",
+    "task_type": "shot_switching_extension",
+    "prompt": "[ZOOM_IN_CUT] Close-up on her face, eyes full of determination, shallow depth of field, cinematic portrait.",
+    "resolution": "540P",
+    "duration": 5,
+    "seed": 103,
+    "offload": true,
+    "input_video": "result/single_shot_extension/102_2026-02-22_06-30-00.mp4"
+  },
+  {
+    "label": "Cena 4 — Externa: ela sai do prédio",
+    "task_type": "reference_to_video",
+    "prompt": "The young woman exits a glass building into a busy urban street, confident stride, morning rush hour, realistic city environment.",
+    "resolution": "720P",
+    "duration": 5,
+    "seed": 104,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": ["uploads/personagem_principal.jpg", "uploads/cenario_cidade.jpg"]
+  },
+  {
+    "label": "Cena 5 — Narração: personagem fala para câmera",
+    "task_type": "talking_avatar",
+    "prompt": "A confident young woman speaking directly to camera, natural expression, urban background slightly blurred.",
+    "resolution": "720P",
+    "seed": 105,
+    "low_vram": true,
+    "input_image": "uploads/personagem_principal.jpg",
+    "input_audio": "uploads/narracao_cena5.mp3"
+  }
+]

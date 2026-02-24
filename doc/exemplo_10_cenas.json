@@ -1,0 +1,106 @@
+[
+  {
+    "label": "Cena 01 — Paisagem ao amanhecer",
+    "task_type": "reference_to_video",
+    "prompt": "A breathtaking mountain landscape at dawn, mist rolling through valleys, first rays of sunlight painting the peaks in gold and pink, timelapse-style movement, cinematic wide shot.",
+    "resolution": "720P",
+    "duration": 5,
+    "seed": 1001,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": ["uploads/paisagem_montanha.jpg"]
+  },
+  {
+    "label": "Cena 02 — Extensão da paisagem",
+    "task_type": "single_shot_extension",
+    "prompt": "The sun rises fully above the mountain range, birds fly across the frame, the mist slowly dissipates revealing a lush green valley below.",
+    "resolution": "720P",
+    "duration": 10,
+    "seed": 1002,
+    "offload": true,
+    "input_video": "result/reference_to_video/1001_2026-02-22_06-00-00.mp4"
+  },
+  {
+    "label": "Cena 03 — Personagem aparece no horizonte",
+    "task_type": "reference_to_video",
+    "prompt": "A lone hiker silhouetted against the sunrise sky, walking on a mountain ridge trail, dramatic backlit composition, epic cinematic feel.",
+    "resolution": "720P",
+    "duration": 5,
+    "seed": 1003,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": ["uploads/personagem_trilha.jpg", "uploads/paisagem_montanha.jpg"]
+  },
+  {
+    "label": "Cena 04 — Transição: zoom no rosto do personagem",
+    "task_type": "shot_switching_extension",
+    "prompt": "[ZOOM_IN_CUT] Close-up of the hiker's determined face, sweat on their brow, eyes focused on the summit ahead, natural lighting.",
+    "resolution": "720P",
+    "duration": 5,
+    "seed": 1004,
+    "offload": true,
+    "input_video": "result/reference_to_video/1003_2026-02-22_06-15-00.mp4"
+  },
+  {
+    "label": "Cena 05 — Acampamento: personagem descansa",
+    "task_type": "reference_to_video",
+    "prompt": "The hiker sets up camp on a flat rocky ledge, unpacking a tent, warm late-afternoon light, mountains in the background, peaceful atmosphere.",
+    "resolution": "540P",
+    "duration": 5,
+    "seed": 1005,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": ["uploads/personagem_trilha.jpg"]
+  },
+  {
+    "label": "Cena 06 — Extensão: fogueira à noite",
+    "task_type": "single_shot_extension",
+    "prompt": "A campfire crackling under a stunning starry night sky, the hiker sits beside the fire, embers floating upward, Milky Way visible overhead.",
+    "resolution": "540P",
+    "duration": 8,
+    "seed": 1006,
+    "offload": true,
+    "input_video": "result/reference_to_video/1005_2026-02-22_06-30-00.mp4"
+  },
+  {
+    "label": "Cena 07 — Transição: panorâmica para o vale",
+    "task_type": "shot_switching_extension",
+    "prompt": "[PAN_RIGHT_CUT] The camera pans from the campfire to reveal a vast illuminated valley town far below, twinkling lights in the darkness.",
+    "resolution": "540P",
+    "duration": 5,
+    "seed": 1007,
+    "offload": true,
+    "input_video": "result/single_shot_extension/1006_2026-02-22_06-45-00.mp4"
+  },
+  {
+    "label": "Cena 08 — Cume: chegada ao topo",
+    "task_type": "reference_to_video",
+    "prompt": "The triumphant hiker reaches the mountain summit, arms raised in victory, 360-degree panoramic view of mountains and clouds below, golden hour, emotional moment.",
+    "resolution": "720P",
+    "duration": 5,
+    "seed": 1008,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": ["uploads/personagem_trilha.jpg", "uploads/paisagem_montanha.jpg"]
+  },
+  {
+    "label": "Cena 09 — Extensão: contemplação no cume",
+    "task_type": "single_shot_extension",
+    "prompt": "The hiker sits on the summit boulder, gazing at the horizon as clouds drift by below, serene and reflective, wind gently moving their hair.",
+    "resolution": "720P",
+    "duration": 10,
+    "seed": 1009,
+    "offload": true,
+    "input_video": "result/reference_to_video/1008_2026-02-22_07-00-00.mp4"
+  },
+  {
+    "label": "Cena 10 — Encerramento: narração do personagem",
+    "task_type": "talking_avatar",
+    "prompt": "A hiker speaking to camera with the mountain summit visible behind them, warm smile, reflective tone, natural wind sound.",
+    "resolution": "720P",
+    "seed": 1010,
+    "low_vram": true,
+    "input_image": "uploads/personagem_trilha.jpg",
+    "input_audio": "uploads/narracao_final.mp3"
+  }
+]

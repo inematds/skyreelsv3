@@ -515,5 +515,28 @@ def queue_import():
         return jsonify({"error": str(e)}), 400
 
 
+@app.route("/doc/<path:filename>")
+def serve_doc(filename):
+    doc_dir = PROJECT_ROOT / "doc"
+    full = doc_dir / filename
+    if not full.exists() or not full.is_file():
+        return "Not found", 404
+    return send_file(str(full), mimetype="text/plain; charset=utf-8")
+
+
+@app.route("/doc/download/<path:filename>")
+def download_doc(filename):
+    doc_dir = PROJECT_ROOT / "doc"
+    full = doc_dir / filename
+    if not full.exists() or not full.is_file():
+        return "Not found", 404
+    return send_file(str(full), as_attachment=True, download_name=filename)
+
+
+@app.route("/help")
+def help_page():
+    return render_template("help.html")
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=7860, debug=False)

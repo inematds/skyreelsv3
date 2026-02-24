@@ -189,15 +189,18 @@
   /* ---- VIDEO TAB LAYOUT ---- */
   #tab-videos { overflow: hidden; }
 
-  /* Body: gallery sidebar on LEFT, player on RIGHT */
+  /* Body — default pos-left (row, gallery first) */
   .vt-body {
     display: flex;
     flex-direction: row;
     height: 100%;
     overflow: hidden;
   }
+  .vt-body.pos-right  { flex-direction: row-reverse; }
+  .vt-body.pos-top    { flex-direction: column; }
+  .vt-body.pos-bottom { flex-direction: column-reverse; }
 
-  /* Gallery sidebar */
+  /* Gallery sidebar (left/right) */
   .vt-gallery {
     width: 224px;
     flex-shrink: 0;
@@ -207,11 +210,30 @@
     flex-direction: column;
     overflow: hidden;
   }
+  .vt-body.pos-right .vt-gallery {
+    border-right: none;
+    border-left: 1px solid #1e1e2e;
+  }
+
+  /* Gallery strip (top/bottom) */
+  .vt-body.pos-top .vt-gallery,
+  .vt-body.pos-bottom .vt-gallery {
+    width: 100%;
+    height: 172px;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid #1e1e2e;
+  }
+  .vt-body.pos-bottom .vt-gallery {
+    border-bottom: none;
+    border-top: 1px solid #1e1e2e;
+  }
 
   /* Player area */
   .vt-player {
     flex: 1;
     min-width: 0;
+    min-height: 0;
     overflow-y: auto;
     padding: 16px 20px;
   }
@@ -219,37 +241,66 @@
   .video-player-wrap video { width: 100%; max-height: 60vh; display: block; }
   .video-info { font-size: 0.78rem; color: #666; margin-top: 8px; }
 
-  /* Gallery header */
+  /* Gallery header — default (column mode) */
   .gallery-header {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 9px 9px 7px;
+    gap: 4px;
+    padding: 8px 8px 6px;
     flex-shrink: 0;
     border-bottom: 1px solid #1a1a28;
+    flex-wrap: wrap;
   }
   .gallery-title {
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     text-transform: uppercase;
     letter-spacing: .06em;
     color: #555;
     flex: 1;
+    min-width: 30px;
   }
+
+  /* Gallery header — strip mode (top/bottom): narrow column on left */
+  .vt-body.pos-top .gallery-header,
+  .vt-body.pos-bottom .gallery-header {
+    flex-direction: column;
+    width: 48px;
+    flex-shrink: 0;
+    border-bottom: none;
+    border-right: 1px solid #1a1a28;
+    padding: 8px 4px;
+    gap: 5px;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+  .vt-body.pos-top .gallery-title,
+  .vt-body.pos-bottom .gallery-title { display: none; }
+
   .gallery-btn {
     background: none;
     border: 1px solid #2a2a3a;
     border-radius: 5px;
     color: #555;
-    font-size: 0.68rem;
-    padding: 2px 6px;
+    font-size: 0.75rem;
+    padding: 2px 5px;
     cursor: pointer;
     transition: all .2s;
     white-space: nowrap;
+    line-height: 1.4;
   }
   .gallery-btn:hover { border-color: #7c3aed; color: #a78bfa; }
-  .gallery-btn.on { border-color: #ef4444; color: #f87171; background: #1a0a0a; }
+  .gallery-btn.on { border-color: #7c3aed; color: #a78bfa; background: #1a1040; }
 
-  /* Card containers — toggle between column list and 2-col grid */
+  /* Position buttons row */
+  .gallery-pos-row {
+    display: flex;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .vt-body.pos-top .gallery-pos-row,
+  .vt-body.pos-bottom .gallery-pos-row { flex-direction: column; gap: 3px; }
+
+  /* Card containers */
   .gallery-col, .gallery-grid {
     overflow-y: auto;
     padding: 8px;
@@ -260,6 +311,62 @@
   }
   .gallery-col { display: flex; flex-direction: column; gap: 8px; }
   .gallery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+  /* Horizontal cards for top/bottom strip */
+  .vt-body.pos-top .gallery-col,
+  .vt-body.pos-bottom .gallery-col,
+  .vt-body.pos-top .gallery-grid,
+  .vt-body.pos-bottom .gallery-grid {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+  }
+  .vt-body.pos-top .video-card,
+  .vt-body.pos-bottom .video-card { width: 128px; flex-shrink: 0; }
+  .vt-body.pos-top .video-card video,
+  .vt-body.pos-bottom .video-card video { height: 68px; }
+
+  /* ---- FULL GALLERY TAB ---- */
+  #tab-galeria { overflow: hidden; }
+  .galeria-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+  .galeria-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px 8px;
+    border-bottom: 1px solid #1e1e2e;
+    flex-shrink: 0;
+    background: #14141e;
+  }
+  .galeria-top-title {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #666;
+    flex: 1;
+  }
+  .galeria-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    padding: 16px;
+    overflow-y: auto;
+    align-content: start;
+  }
+  /* Larger cards in galeria */
+  .galeria-grid .video-card video { height: 110px; }
+  .galeria-grid .video-card-info { padding: 6px 8px 8px; }
+  .galeria-grid .video-card-info .name { font-size: 0.72rem; }
+  .galeria-grid .video-card-info .meta { font-size: 0.65rem; }
 
   /* ---- VIDEO CARD ---- */
   .video-card {
@@ -724,6 +831,7 @@
     <div class="tabs">
       <div class="tab active" onclick="showTab('tab-progress', this)">Progresso</div>
       <div class="tab" onclick="showTab('tab-videos', this)">Vídeos</div>
+      <div class="tab" onclick="showTab('tab-galeria', this); refreshGaleria()">Galeria</div>
       <div class="tab" onclick="showTab('tab-queue', this)">Fila</div>
     </div>
 
@@ -747,7 +855,13 @@
         <div class="vt-gallery" id="vt-gallery">
           <div class="gallery-header">
             <span class="gallery-title">Vídeos</span>
-            <button class="gallery-btn" id="btn-layout" onclick="toggleLayout()" title="Alternar lista/grade">☰</button>
+            <div class="gallery-pos-row">
+              <button class="gallery-btn pos-btn" data-pos="left"   onclick="setGalleryPos('left')"   title="Galeria à esquerda">▌</button>
+              <button class="gallery-btn pos-btn" data-pos="top"    onclick="setGalleryPos('top')"    title="Galeria em cima">▀</button>
+              <button class="gallery-btn pos-btn" data-pos="bottom" onclick="setGalleryPos('bottom')" title="Galeria em baixo">▄</button>
+              <button class="gallery-btn pos-btn" data-pos="right"  onclick="setGalleryPos('right')"  title="Galeria à direita">▐</button>
+            </div>
+            <button class="gallery-btn" id="btn-layout" onclick="toggleLayout()" title="Lista / Grade">☰</button>
             <button class="gallery-btn" id="btn-privacy-g" onclick="togglePrivacyAll()" title="Ocultar/revelar todos">🔒</button>
           </div>
           <div class="gallery-col" id="gallery-cards">
@@ -791,6 +905,18 @@
       </div>
     </div>
 
+    <!-- Galeria Tab -->
+    <div id="tab-galeria" class="tab-content">
+      <div class="galeria-panel">
+        <div class="galeria-top">
+          <span class="galeria-top-title">Galeria de Vídeos</span>
+          <button class="queue-btn" onclick="refreshGaleria()" title="Recarregar">↻</button>
+          <button class="gallery-btn" id="btn-privacy-galeria" onclick="togglePrivacyAll()" title="Ocultar/revelar todos">🔒</button>
+        </div>
+        <div class="galeria-grid" id="galeria-grid"></div>
+      </div>
+    </div>
+
     <!-- Queue Tab -->
     <div id="tab-queue" class="tab-content">
       <div class="queue-panel">
@@ -804,6 +930,9 @@
           <button class="queue-btn danger" onclick="clearQueue()" title="Remover todos os jobs pendentes">
             Limpar
           </button>
+          <a class="queue-btn" href="/help" target="_blank" title="Ver formato de importação">
+            ? Ajuda
+          </a>
         </div>
         <div class="queue-list" id="queue-list">
           <div class="queue-empty">Nenhum job na fila.</div>
@@ -1180,6 +1309,27 @@ function toggleLayout() {
 
 applyLayout();
 
+// ---- Gallery position ----
+let galleryPos = localStorage.getItem('skyreels_galpos') || 'left';
+
+function applyGalleryPos() {
+  const body = document.getElementById('vt-body');
+  if (!body) return;
+  body.classList.remove('pos-left', 'pos-right', 'pos-top', 'pos-bottom');
+  body.classList.add('pos-' + galleryPos);
+  document.querySelectorAll('.pos-btn').forEach(b => {
+    b.classList.toggle('on', b.dataset.pos === galleryPos);
+  });
+}
+
+function setGalleryPos(pos) {
+  galleryPos = pos;
+  localStorage.setItem('skyreels_galpos', pos);
+  applyGalleryPos();
+}
+
+applyGalleryPos();
+
 function buildCard(v) {
   const card = document.createElement('div');
   card.className = 'video-card';
@@ -1213,6 +1363,52 @@ async function refreshVideos() {
   if (!container) return;
   container.innerHTML = '';
   videos.forEach(v => container.appendChild(buildCard(v)));
+  updatePrivacyBtn();
+}
+
+// ---- Full gallery tab ----
+function buildGaleriaCard(v) {
+  const card = document.createElement('div');
+  card.className = 'video-card';
+  card.dataset.path = v.path;
+  card.innerHTML = `
+    <div class="privacy-mask">
+      <span class="lock-icon">🔒</span>
+      <span class="lock-label">SKYREELS</span>
+      <span class="lock-hint">Clique no 🔒<br>para revelar</span>
+    </div>
+    <div class="card-actions-left">
+      <button class="card-btn card-btn-open" onclick="openCardBtn(event, this)" title="Abrir no player">▶</button>
+    </div>
+    <div class="card-actions">
+      <button class="card-btn card-btn-lock" onclick="toggleCardPrivacy(event, this)" title="Privado">🔒</button>
+    </div>
+    <video src="/video/${v.path}" muted></video>
+    <div class="video-card-info">
+      <div class="name">${v.name}</div>
+      <div class="meta">${v.task} · ${v.size}</div>
+    </div>`;
+  card.addEventListener('click', () => {
+    if (card.dataset.private === 'true') return;
+    // Switch to Vídeos tab and play
+    showTab('tab-videos', document.querySelectorAll('.tab')[1]);
+    playVideoByPath(v.path);
+  });
+  applyCardPrivacy(card);
+  return card;
+}
+
+async function refreshGaleria() {
+  const grid = document.getElementById('galeria-grid');
+  if (!grid) return;
+  const res = await fetch('/videos');
+  const videos = await res.json();
+  grid.innerHTML = '';
+  if (videos.length === 0) {
+    grid.innerHTML = '<div style="color:#444;font-style:italic;padding:20px;grid-column:1/-1">Nenhum vídeo gerado ainda.</div>';
+    return;
+  }
+  videos.forEach(v => grid.appendChild(buildGaleriaCard(v)));
   updatePrivacyBtn();
 }
 
