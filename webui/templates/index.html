@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.9.3</title>
+<title>INEMA SkyReels V3 3.10.3</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -730,6 +730,8 @@
   .nq-action-btn.danger:hover   { border-color: #ef4444; color: #f87171; background: #1a0808; }
   .nq-action-btn.reset          { border-color: #b45309; color: #f59e0b; }
   .nq-action-btn.reset:hover    { border-color: #f59e0b; color: #fbbf24; background: #1a1000; }
+  .nq-action-btn.danger2        { border-color: #7f1d1d; color: #f87171; }
+  .nq-action-btn.danger2:hover  { border-color: #ef4444; color: #fca5a5; background: #1a0808; }
   .nq-action-btn:disabled       { opacity: 0.4; cursor: not-allowed; }
 
   /* Scenes list */
@@ -830,7 +832,7 @@
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="9 recursos adicionados">9</span>.<span class="fix" title="3 correções">3</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="10 recursos adicionados">10</span>.<span class="fix" title="3 correções">3</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -1122,8 +1124,9 @@
             <div class="nq-detail-title" id="nq-detail-name"></div>
             <div class="nq-detail-status" id="nq-detail-status"></div>
             <div class="nq-detail-actions">
-              <button id="nq-run-btn"    class="nq-action-btn run"    onclick="runCurrentNq()"    title="Continuar: executar cenas pendentes">▶ Continuar</button>
-              <button id="nq-reset-btn"  class="nq-action-btn reset"  onclick="resetCurrentNq()"  title="Reiniciar: resetar erros e rodar tudo de novo" style="display:none">↺ Reiniciar</button>
+              <button id="nq-run-btn"     class="nq-action-btn run"     onclick="runCurrentNq()"     title="Continuar: executar cenas idle, pula erros">▶ Continuar</button>
+              <button id="nq-retry-btn"  class="nq-action-btn reset"   onclick="retryCurrentNq()"   title="Repetir do erro: reseta erros e continua de onde parou" style="display:none">↩ Repetir do erro</button>
+              <button id="nq-restart-btn" class="nq-action-btn danger2" onclick="restartCurrentNq()" title="Reiniciar do zero: apaga tudo e começa do início" style="display:none">↺ Reiniciar do zero</button>
               <button class="nq-action-btn finalize" onclick="finalizeCurrentNq()" title="Em breve: montar vídeo final (ffmpeg)" disabled>🎬 Finalizar</button>
               <button class="nq-action-btn danger" onclick="deleteCurrentNq()" title="Excluir esta fila">🗑</button>
             </div>
@@ -1666,18 +1669,22 @@ function buildNqCard(nq) {
   div.className = `nq-card status-${nq.status}`;
   div.id = `nq-card-${nq.id}`;
   const pct = nq.job_count > 0 ? Math.round((nq.done_count / nq.job_count) * 100) : 0;
+  const hasIdleJobs  = nq.status !== 'running' && (nq.job_count > (nq.done_count + nq.error_count));
+  const hasErrorJobs = nq.error_count > 0;
   const runBtn = nq.status === 'running'
     ? `<span class="nq-mini-btn" style="color:#a78bfa;cursor:default;border-color:#3a2a6a">⏳</span>`
-    : `<button class="nq-mini-btn run" onclick="event.stopPropagation();runNq(${nq.id})" title="${nq.status === 'error' ? 'Continuar fila' : 'Executar fila'}">${nq.status === 'error' ? '▶' : '▶'}</button>`;
-  const resetBtn = nq.status === 'error'
-    ? `<button class="nq-mini-btn" style="color:#f59e0b;border-color:#b45309" onclick="event.stopPropagation();resetNq(${nq.id})" title="Reiniciar fila do zero">↺</button>`
+    : hasIdleJobs
+      ? `<button class="nq-mini-btn run" onclick="event.stopPropagation();runNq(${nq.id})" title="Continuar: executar cenas idle">▶</button>`
+      : '';
+  const retryBtn = hasErrorJobs && nq.status !== 'running'
+    ? `<button class="nq-mini-btn" style="color:#f59e0b;border-color:#b45309" onclick="event.stopPropagation();retryNq(${nq.id})" title="Repetir do erro">↩</button>`
     : '';
   div.innerHTML = `
     <div class="nq-card-header">
       <span class="nq-card-name">${nq.name}</span>
       <div class="nq-card-actions">
         ${runBtn}
-        ${resetBtn}
+        ${retryBtn}
         <button class="nq-mini-btn del" onclick="event.stopPropagation();deleteNq(${nq.id})"
           title="Excluir" ${nq.status === 'running' ? 'disabled' : ''}>🗑</button>
       </div>
@@ -1752,18 +1759,24 @@ async function refreshNqDetail(id) {
   document.getElementById('nq-detail-status').textContent =
     `${done}/${nq.jobs.length} cenas · ${NQ_STATUS_LABEL[nq.status] || nq.status}`;
 
-  const runBtn   = document.getElementById('nq-run-btn');
-  const resetBtn = document.getElementById('nq-reset-btn');
+  const runBtn     = document.getElementById('nq-run-btn');
+  const retryBtn   = document.getElementById('nq-retry-btn');
+  const restartBtn = document.getElementById('nq-restart-btn');
   const isRunning = nq.status === 'running';
-  const hasError  = nq.status === 'error';
+  const hasError  = nq.jobs.some(j => j.status === 'error');
   const hasIdle   = nq.jobs.some(j => j.status === 'idle');
+  const hasDone   = nq.jobs.some(j => j.status === 'done');
   if (runBtn) {
-    runBtn.disabled = isRunning || (!hasIdle && !hasError);
-    runBtn.textContent = hasError && hasIdle ? '▶ Continuar' : hasIdle ? '▶ Executar' : '▶ Executar';
+    runBtn.disabled   = isRunning || !hasIdle;
+    runBtn.style.display = hasIdle ? '' : 'none';
   }
-  if (resetBtn) {
-    resetBtn.style.display = hasError ? '' : 'none';
-    resetBtn.disabled = isRunning;
+  if (retryBtn) {
+    retryBtn.style.display = hasError ? '' : 'none';
+    retryBtn.disabled = isRunning;
+  }
+  if (restartBtn) {
+    restartBtn.style.display = hasDone ? '' : 'none';
+    restartBtn.disabled = isRunning;
   }
 
   const scenes = document.getElementById('nq-scenes');
@@ -1834,21 +1847,36 @@ async function runNq(id) {
 
 async function runCurrentNq() { if (currentNqId) runNq(currentNqId); }
 
-async function resetNq(id) {
-  if (!confirm('Reiniciar fila? Cenas com erro e pendentes serão resetadas para idle e a fila inteira será reexecutada.')) return;
+async function retryNq(id) {
   const res = await fetch(`/nqueues/${id}/reset`, { method: 'POST' });
   const data = await res.json();
   if (!data.ok) { alert(data.error); return; }
   document.getElementById('log-box').innerHTML = '';
   updateProgress(0);
-  setStatus('running', 'Reiniciando fila...');
+  setStatus('running', 'Repetindo do erro...');
   updateNqProgressInfo(null);
   showTab('tab-progress', document.querySelectorAll('.tab')[0]);
   connectStreamForNq(id);
   refreshNamedQueues();
 }
 
-async function resetCurrentNq() { if (currentNqId) resetNq(currentNqId); }
+async function retryCurrentNq() { if (currentNqId) retryNq(currentNqId); }
+
+async function restartNq(id) {
+  if (!confirm('Reiniciar do zero? Todas as cenas (incluindo as concluídas) serão resetadas e a fila começará do início.')) return;
+  const res = await fetch(`/nqueues/${id}/restart`, { method: 'POST' });
+  const data = await res.json();
+  if (!data.ok) { alert(data.error); return; }
+  document.getElementById('log-box').innerHTML = '';
+  updateProgress(0);
+  setStatus('running', 'Reiniciando do zero...');
+  updateNqProgressInfo(null);
+  showTab('tab-progress', document.querySelectorAll('.tab')[0]);
+  connectStreamForNq(id);
+  refreshNamedQueues();
+}
+
+async function restartCurrentNq() { if (currentNqId) restartNq(currentNqId); }
 
 async function runNqJob(nqId, jobId) {
   const res = await fetch(`/nqueues/${nqId}/jobs/${jobId}/run`, { method: 'POST' });

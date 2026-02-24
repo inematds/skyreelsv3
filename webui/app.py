@@ -929,19 +929,40 @@ def run_nq_job_route(nq_id, job_id):
 
 @app.route("/nqueues/<int:nq_id>/reset", methods=["POST"])
 def reset_nq_route(nq_id):
-    """Reset all error/idle jobs to idle and re-run the full queue from scratch."""
+    """Repetir do erro: reset error+idle jobs (keep done), run from first error."""
     with nq_lock:
         nq = next((q for q in named_queues if q["id"] == nq_id), None)
         if nq is None:
             return jsonify({"error": "Fila não encontrada"}), 404
         if nq["status"] == "running":
-            return jsonify({"error": "Não é possível reiniciar uma fila em execução"}), 400
+            return jsonify({"error": "Não é possível operar uma fila em execução"}), 400
         for j in nq["jobs"]:
             if j["status"] in ("error", "idle"):
                 j["status"] = "idle"
                 j["output_video"] = ""
                 j.pop("started_at", None)
                 j.pop("finished_at", None)
+    _save_queues()
+    ok = run_named_queue(nq_id)
+    if not ok:
+        return jsonify({"error": "Sem cenas a executar"}), 400
+    return jsonify({"ok": True})
+
+
+@app.route("/nqueues/<int:nq_id>/restart", methods=["POST"])
+def restart_nq_route(nq_id):
+    """Reiniciar do zero: reset ALL jobs (including done), run from beginning."""
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return jsonify({"error": "Fila não encontrada"}), 404
+        if nq["status"] == "running":
+            return jsonify({"error": "Não é possível operar uma fila em execução"}), 400
+        for j in nq["jobs"]:
+            j["status"] = "idle"
+            j["output_video"] = ""
+            j.pop("started_at", None)
+            j.pop("finished_at", None)
     _save_queues()
     ok = run_named_queue(nq_id)
     if not ok:
