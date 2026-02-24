@@ -764,6 +764,34 @@
   }
   .nq-scene-details { margin-top: 4px; }
 
+  /* Running banner (top of nq list / detail) */
+  .nq-running-banner {
+    display: none;
+    align-items: center; gap: 10px;
+    padding: 8px 16px;
+    background: #1a1a30; border-bottom: 1px solid #3a2a6a;
+    flex-shrink: 0;
+  }
+  .nq-running-banner.visible { display: flex; }
+  .nq-running-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #a78bfa; flex-shrink: 0;
+    animation: pulse 1.2s infinite;
+  }
+  .nq-running-text { flex: 1; min-width: 0; }
+  .nq-running-text .rb-queue { font-size: 0.72rem; color: #a78bfa; font-weight: 600; }
+  .nq-running-text .rb-scene {
+    font-size: 0.68rem; color: #666;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .nq-running-goto {
+    background: none; border: 1px solid #3a2a6a; border-radius: 5px;
+    color: #a78bfa; font-size: 0.68rem; padding: 2px 7px;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: all .15s;
+  }
+  .nq-running-goto:hover { background: #2a1a4a; border-color: #7c3aed; }
+
   /* nq progress info in progress tab */
   .nq-progress-info {
     font-size: 0.74rem; color: #a78bfa; margin-top: 4px;
@@ -1043,6 +1071,16 @@
             ↑ Importar
           </button>
           <a class="queue-btn" href="/help" target="_blank" title="Ver formato e documentação">? Ajuda</a>
+        </div>
+
+        <!-- Running banner (shown when a named queue is executing) -->
+        <div id="nq-running-banner" class="nq-running-banner">
+          <span class="nq-running-dot"></span>
+          <div class="nq-running-text">
+            <div class="rb-queue" id="rb-queue-name"></div>
+            <div class="rb-scene" id="rb-scene-name"></div>
+          </div>
+          <button class="nq-running-goto" id="rb-goto-btn" onclick="">→ Ver</button>
         </div>
 
         <!-- List view: all named queues -->
@@ -1619,6 +1657,20 @@ function buildNqCard(nq) {
 }
 
 async function refreshNamedQueues() {
+  // Update running banner (universal, regardless of list/detail view)
+  try {
+    const st = await fetch('/status').then(r => r.json());
+    const banner = document.getElementById('nq-running-banner');
+    if (st.running && st.current_nq_id != null) {
+      document.getElementById('rb-queue-name').textContent = '▶ ' + (st.current_nq_name || 'Fila em execução');
+      document.getElementById('rb-scene-name').textContent = st.current_nq_scene || '';
+      document.getElementById('rb-goto-btn').onclick = () => openNq(st.current_nq_id);
+      banner.classList.add('visible');
+    } else {
+      banner.classList.remove('visible');
+    }
+  } catch(_) {}
+
   const list = document.getElementById('nq-list-view');
   if (!list || list.style.display === 'none') {
     if (currentNqId !== null) refreshNqDetail(currentNqId);
