@@ -17,6 +17,7 @@ UPLOAD_DIR = PROJECT_ROOT / "uploads"
 VENV_PYTHON = PROJECT_ROOT / ".venv" / "bin" / "python"
 
 UPLOAD_DIR.mkdir(exist_ok=True)
+QUEUES_FILE = UPLOAD_DIR / "queues.json"
 
 app = Flask(__name__)
 
@@ -50,6 +51,49 @@ def _next_nq_id():
     global _nq_id_counter
     _nq_id_counter += 1
     return _nq_id_counter
+
+
+def _save_queues():
+    """Persist named_queues to disk (called after every mutation)."""
+    try:
+        with nq_lock:
+            data = json.loads(json.dumps(named_queues))  # deep copy via JSON
+        # Reset transient states before saving
+        for nq in data:
+            if nq["status"] == "running":
+                nq["status"] = "idle"
+            for j in nq["jobs"]:
+                if j["status"] in ("running", "pending"):
+                    j["status"] = "idle"
+        QUEUES_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+    except Exception as e:
+        print(f"[queues] save error: {e}")
+
+
+def _load_queues():
+    """Load named_queues from disk on startup."""
+    global _nq_id_counter, _job_id_counter
+    if not QUEUES_FILE.exists():
+        return
+    try:
+        data = json.loads(QUEUES_FILE.read_text())
+        for nq in data:
+            # Reset any in-flight states from previous run
+            if nq.get("status") in ("running", "pending"):
+                nq["status"] = "idle"
+            for j in nq.get("jobs", []):
+                if j.get("status") in ("running", "pending"):
+                    j["status"] = "idle"
+            named_queues.append(nq)
+        # Restore counters to avoid ID collisions
+        if named_queues:
+            _nq_id_counter = max(nq["id"] for nq in named_queues)
+            all_job_ids = [j["id"] for nq in named_queues for j in nq.get("jobs", [])]
+            if all_job_ids:
+                _job_id_counter = max(all_job_ids)
+        print(f"[queues] loaded {len(named_queues)} queue(s) from {QUEUES_FILE}")
+    except Exception as e:
+        print(f"[queues] load error: {e}")
 
 
 def _next_job_id():
@@ -174,6 +218,7 @@ def _nq_job_done_hook(job):
                 nq["status"] = "error" if any_error else "done"
             else:
                 nq["status"] = "idle"  # some jobs still idle (not submitted)
+    _save_queues()  # persist status + output_video updates
 
 
 def run_named_queue(nq_id):
@@ -691,6 +736,7 @@ def create_named_queue():
     }
     with nq_lock:
         named_queues.append(nq)
+    _save_queues()
     return jsonify({"ok": True, "id": nq_id})
 
 
@@ -734,6 +780,7 @@ def import_nq_route():
         }
         with nq_lock:
             named_queues.append(nq)
+        _save_queues()
         return jsonify({"ok": True, "id": nq_id, "name": name, "job_count": len(jobs)})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -757,6 +804,7 @@ def delete_named_queue_route(nq_id):
         if nq["status"] == "running":
             return jsonify({"error": "Não é possível excluir uma fila em execução"}), 400
         named_queues.remove(nq)
+    _save_queues()
     return jsonify({"ok": True})
 
 
@@ -780,6 +828,8 @@ def run_nq_job_route(nq_id, job_id):
 def finalize_nq_route(nq_id):
     return jsonify({"error": "Em desenvolvimento — ffmpeg concat ainda não implementado"}), 501
 
+
+_load_queues()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=7860, debug=False)
