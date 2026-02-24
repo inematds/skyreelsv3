@@ -728,6 +728,8 @@
   .nq-action-btn.run:hover      { border-color: #7c3aed; color: #a78bfa; background: #1a1040; }
   .nq-action-btn.finalize:hover { border-color: #f59e0b; color: #fbbf24; }
   .nq-action-btn.danger:hover   { border-color: #ef4444; color: #f87171; background: #1a0808; }
+  .nq-action-btn.reset          { border-color: #b45309; color: #f59e0b; }
+  .nq-action-btn.reset:hover    { border-color: #f59e0b; color: #fbbf24; background: #1a1000; }
   .nq-action-btn:disabled       { opacity: 0.4; cursor: not-allowed; }
 
   /* Scenes list */
@@ -1094,7 +1096,8 @@
             <div class="nq-detail-title" id="nq-detail-name"></div>
             <div class="nq-detail-status" id="nq-detail-status"></div>
             <div class="nq-detail-actions">
-              <button id="nq-run-btn" class="nq-action-btn run" onclick="runCurrentNq()" title="Executar todas as cenas pendentes">▶ Executar</button>
+              <button id="nq-run-btn"    class="nq-action-btn run"    onclick="runCurrentNq()"    title="Continuar: executar cenas pendentes">▶ Continuar</button>
+              <button id="nq-reset-btn"  class="nq-action-btn reset"  onclick="resetCurrentNq()"  title="Reiniciar: resetar erros e rodar tudo de novo" style="display:none">↺ Reiniciar</button>
               <button class="nq-action-btn finalize" onclick="finalizeCurrentNq()" title="Em breve: montar vídeo final (ffmpeg)" disabled>🎬 Finalizar</button>
               <button class="nq-action-btn danger" onclick="deleteCurrentNq()" title="Excluir esta fila">🗑</button>
             </div>
@@ -1637,14 +1640,18 @@ function buildNqCard(nq) {
   div.className = `nq-card status-${nq.status}`;
   div.id = `nq-card-${nq.id}`;
   const pct = nq.job_count > 0 ? Math.round((nq.done_count / nq.job_count) * 100) : 0;
-  const runBtn = nq.status !== 'running'
-    ? `<button class="nq-mini-btn run" onclick="event.stopPropagation();runNq(${nq.id})" title="Executar fila">▶</button>`
-    : `<span class="nq-mini-btn" style="color:#a78bfa;cursor:default;border-color:#3a2a6a">⏳</span>`;
+  const runBtn = nq.status === 'running'
+    ? `<span class="nq-mini-btn" style="color:#a78bfa;cursor:default;border-color:#3a2a6a">⏳</span>`
+    : `<button class="nq-mini-btn run" onclick="event.stopPropagation();runNq(${nq.id})" title="${nq.status === 'error' ? 'Continuar fila' : 'Executar fila'}">${nq.status === 'error' ? '▶' : '▶'}</button>`;
+  const resetBtn = nq.status === 'error'
+    ? `<button class="nq-mini-btn" style="color:#f59e0b;border-color:#b45309" onclick="event.stopPropagation();resetNq(${nq.id})" title="Reiniciar fila do zero">↺</button>`
+    : '';
   div.innerHTML = `
     <div class="nq-card-header">
       <span class="nq-card-name">${nq.name}</span>
       <div class="nq-card-actions">
         ${runBtn}
+        ${resetBtn}
         <button class="nq-mini-btn del" onclick="event.stopPropagation();deleteNq(${nq.id})"
           title="Excluir" ${nq.status === 'running' ? 'disabled' : ''}>🗑</button>
       </div>
@@ -1719,8 +1726,19 @@ async function refreshNqDetail(id) {
   document.getElementById('nq-detail-status').textContent =
     `${done}/${nq.jobs.length} cenas · ${NQ_STATUS_LABEL[nq.status] || nq.status}`;
 
-  const runBtn = document.getElementById('nq-run-btn');
-  if (runBtn) runBtn.disabled = nq.status === 'running';
+  const runBtn   = document.getElementById('nq-run-btn');
+  const resetBtn = document.getElementById('nq-reset-btn');
+  const isRunning = nq.status === 'running';
+  const hasError  = nq.status === 'error';
+  const hasIdle   = nq.jobs.some(j => j.status === 'idle');
+  if (runBtn) {
+    runBtn.disabled = isRunning || (!hasIdle && !hasError);
+    runBtn.textContent = hasError && hasIdle ? '▶ Continuar' : hasIdle ? '▶ Executar' : '▶ Executar';
+  }
+  if (resetBtn) {
+    resetBtn.style.display = hasError ? '' : 'none';
+    resetBtn.disabled = isRunning;
+  }
 
   const scenes = document.getElementById('nq-scenes');
   const expanded = new Set(
@@ -1788,6 +1806,22 @@ async function runNq(id) {
 }
 
 async function runCurrentNq() { if (currentNqId) runNq(currentNqId); }
+
+async function resetNq(id) {
+  if (!confirm('Reiniciar fila? Cenas com erro e pendentes serão resetadas para idle e a fila inteira será reexecutada.')) return;
+  const res = await fetch(`/nqueues/${id}/reset`, { method: 'POST' });
+  const data = await res.json();
+  if (!data.ok) { alert(data.error); return; }
+  document.getElementById('log-box').innerHTML = '';
+  updateProgress(0);
+  setStatus('running', 'Reiniciando fila...');
+  updateNqProgressInfo(null);
+  showTab('tab-progress', document.querySelectorAll('.tab')[0]);
+  connectStreamForNq(id);
+  refreshNamedQueues();
+}
+
+async function resetCurrentNq() { if (currentNqId) resetNq(currentNqId); }
 
 async function runNqJob(nqId, jobId) {
   const res = await fetch(`/nqueues/${nqId}/jobs/${jobId}/run`, { method: 'POST' });

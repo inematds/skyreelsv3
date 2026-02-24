@@ -273,7 +273,7 @@ def start_next_queued_job():
 
 
 def _nq_job_done_hook(job):
-    """Check if the named queue containing this job is now fully complete."""
+    """Called after each job finishes. Stops the queue on error; marks done when all finish."""
     nq_id = job.get("nq_id")
     if nq_id is None:
         return
@@ -281,16 +281,26 @@ def _nq_job_done_hook(job):
         nq = next((q for q in named_queues if q["id"] == nq_id), None)
         if nq is None:
             return
-        # Job status already updated via shared dict reference
-        still_active = any(j["status"] in ("pending", "running") for j in nq["jobs"])
-        all_finished = all(j["status"] in ("done", "error") for j in nq["jobs"])
-        if not still_active:
-            if all_finished:
-                any_error = any(j["status"] == "error" for j in nq["jobs"])
-                nq["status"] = "error" if any_error else "done"
-            else:
-                nq["status"] = "idle"  # some jobs still idle (not submitted)
-    _save_queues()  # persist status + output_video updates
+        # If this job failed, cancel all remaining pending jobs for this queue
+        if job.get("status") == "error":
+            with job_queue_lock:
+                for j in nq["jobs"]:
+                    if j["status"] == "pending":
+                        j["status"] = "idle"
+                        # Remove from global job_queue so they won't start
+                        if j in job_queue:
+                            job_queue.remove(j)
+            nq["status"] = "error"
+        else:
+            still_active = any(j["status"] in ("pending", "running") for j in nq["jobs"])
+            all_finished = all(j["status"] in ("done", "error") for j in nq["jobs"])
+            if not still_active:
+                if all_finished:
+                    any_error = any(j["status"] == "error" for j in nq["jobs"])
+                    nq["status"] = "error" if any_error else "done"
+                else:
+                    nq["status"] = "idle"  # some jobs still idle
+    _save_queues()
 
 
 def run_named_queue(nq_id):
@@ -893,6 +903,28 @@ def run_nq_job_route(nq_id, job_id):
     ok = run_single_nq_job_fn(nq_id, job_id)
     if not ok:
         return jsonify({"error": "Cena não encontrada ou já em execução"}), 400
+    return jsonify({"ok": True})
+
+
+@app.route("/nqueues/<int:nq_id>/reset", methods=["POST"])
+def reset_nq_route(nq_id):
+    """Reset all error/idle jobs to idle and re-run the full queue from scratch."""
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return jsonify({"error": "Fila não encontrada"}), 404
+        if nq["status"] == "running":
+            return jsonify({"error": "Não é possível reiniciar uma fila em execução"}), 400
+        for j in nq["jobs"]:
+            if j["status"] in ("error", "idle"):
+                j["status"] = "idle"
+                j["output_video"] = ""
+                j.pop("started_at", None)
+                j.pop("finished_at", None)
+    _save_queues()
+    ok = run_named_queue(nq_id)
+    if not ok:
+        return jsonify({"error": "Sem cenas a executar"}), 400
     return jsonify({"ok": True})
 
 
