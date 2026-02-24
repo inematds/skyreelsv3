@@ -29,6 +29,9 @@ generation_state = {
     "status": "idle",  # idle | running | done | error
     "last_video": None,
     "current_job_id": None,
+    "current_nq_id": None,
+    "current_nq_name": None,
+    "current_nq_scene": None,
 }
 log_queue = queue.Queue()
 
@@ -36,6 +39,17 @@ log_queue = queue.Queue()
 job_queue = []          # list of job dicts (all statuses)
 job_queue_lock = threading.Lock()
 _job_id_counter = 0
+
+# ---- Named Queues ----
+named_queues = []
+nq_lock = threading.Lock()
+_nq_id_counter = 0
+
+
+def _next_nq_id():
+    global _nq_id_counter
+    _nq_id_counter += 1
+    return _nq_id_counter
 
 
 def _next_job_id():
@@ -142,6 +156,71 @@ def start_next_queued_job():
                 return
 
 
+def _nq_job_done_hook(job):
+    """Check if the named queue containing this job is now fully complete."""
+    nq_id = job.get("nq_id")
+    if nq_id is None:
+        return
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return
+        # Job status already updated via shared dict reference
+        still_active = any(j["status"] in ("pending", "running") for j in nq["jobs"])
+        all_finished = all(j["status"] in ("done", "error") for j in nq["jobs"])
+        if not still_active:
+            if all_finished:
+                any_error = any(j["status"] == "error" for j in nq["jobs"])
+                nq["status"] = "error" if any_error else "done"
+            else:
+                nq["status"] = "idle"  # some jobs still idle (not submitted)
+
+
+def run_named_queue(nq_id):
+    """Schedule all idle jobs of a named queue for sequential execution."""
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None or nq["status"] == "running":
+            return False
+        pending_jobs = [j for j in nq["jobs"] if j["status"] == "idle"]
+        if not pending_jobs:
+            return False
+        nq["status"] = "running"
+        for j in pending_jobs:
+            j["status"] = "pending"
+
+    with job_queue_lock:
+        for j in pending_jobs:
+            if not any(ex["id"] == j["id"] for ex in job_queue):
+                job_queue.append(j)
+
+    if not generation_state["running"]:
+        start_next_queued_job()
+    return True
+
+
+def run_single_nq_job_fn(nq_id, job_id):
+    """Schedule a single named queue job for execution."""
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return False
+        job = next((j for j in nq["jobs"] if j["id"] == job_id), None)
+        if job is None or job["status"] in ("running", "pending"):
+            return False
+        job["status"] = "pending"
+        if nq["status"] == "idle":
+            nq["status"] = "running"
+
+    with job_queue_lock:
+        if not any(j["id"] == job_id for j in job_queue):
+            job_queue.append(job)
+
+    if not generation_state["running"]:
+        start_next_queued_job()
+    return True
+
+
 def run_generation(cmd, env_extra=None, metadata=None, job=None):
     generation_state["running"] = True
     generation_state["log"] = []
@@ -149,6 +228,22 @@ def run_generation(cmd, env_extra=None, metadata=None, job=None):
     generation_state["status"] = "running"
     generation_state["last_video"] = None
     generation_state["current_job_id"] = job["id"] if job else None
+
+    # Named queue progress info
+    nq_id = job.get("nq_id") if job else None
+    if nq_id is not None:
+        with nq_lock:
+            nq = next((q for q in named_queues if q["id"] == nq_id), None)
+            if nq:
+                idx = next((i + 1 for i, j in enumerate(nq["jobs"]) if j["id"] == job["id"]), 1)
+                total = len(nq["jobs"])
+                generation_state["current_nq_id"]   = nq_id
+                generation_state["current_nq_name"] = nq["name"]
+                generation_state["current_nq_scene"] = f"Cena {idx}/{total} — {job.get('label', '')}"
+    else:
+        generation_state["current_nq_id"]   = None
+        generation_state["current_nq_name"] = None
+        generation_state["current_nq_scene"] = None
 
     env = os.environ.copy()
     env["PYTHONUNBUFFERED"] = "1"
@@ -218,6 +313,12 @@ def run_generation(cmd, env_extra=None, metadata=None, job=None):
         generation_state["running"] = False
         generation_state["current_job_id"] = None
         log_queue.put("__DONE__")
+        # Update named queue status
+        if job:
+            _nq_job_done_hook(job)
+        generation_state["current_nq_id"]    = None
+        generation_state["current_nq_name"]  = None
+        generation_state["current_nq_scene"] = None
         # Auto-start next pending job
         start_next_queued_job()
 
@@ -382,7 +483,7 @@ def stream():
             except queue.Empty:
                 if not generation_state["running"]:
                     break
-                yield f"data: {json.dumps({'ping': True, 'progress': generation_state['progress']})}\n\n"
+                yield f"data: {json.dumps({'ping': True, 'progress': generation_state['progress'], 'nq_scene': generation_state.get('current_nq_scene')})}\n\n"
 
     return Response(event_gen(), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
@@ -536,6 +637,148 @@ def download_doc(filename):
 @app.route("/help")
 def help_page():
     return render_template("help.html")
+
+
+# ---- Named Queue endpoints ----
+
+@app.route("/nqueues", methods=["GET"])
+def get_named_queues():
+    with nq_lock:
+        result = [{
+            "id": nq["id"],
+            "name": nq["name"],
+            "status": nq["status"],
+            "job_count": len(nq["jobs"]),
+            "done_count": sum(1 for j in nq["jobs"] if j["status"] == "done"),
+            "error_count": sum(1 for j in nq["jobs"] if j["status"] == "error"),
+            "created_at": nq["created_at"],
+        } for nq in named_queues]
+    return jsonify(result)
+
+
+@app.route("/nqueues", methods=["POST"])
+def create_named_queue():
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({"error": "JSON inválido"}), 400
+    name = data.get("name") or f"Fila {len(named_queues) + 1}"
+    jobs_data = data.get("jobs", [])
+    if isinstance(jobs_data, dict):
+        jobs_data = [jobs_data]
+
+    nq_id = _next_nq_id()
+    jobs = []
+    for i, jd in enumerate(jobs_data):
+        if not jd.get("task_type"):
+            continue
+        jobs.append({
+            "id": _next_job_id(),
+            "nq_id": nq_id,
+            "nq_job_index": i,
+            "status": "idle",
+            "label": jd.get("label") or f"{jd['task_type']} — seed {jd.get('seed', 42)}",
+            "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "output_video": "",
+            **{k: v for k, v in jd.items() if k not in ("id", "nq_id", "status")},
+        })
+
+    nq = {
+        "id": nq_id,
+        "name": name,
+        "status": "idle",
+        "jobs": jobs,
+        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    with nq_lock:
+        named_queues.append(nq)
+    return jsonify({"ok": True, "id": nq_id})
+
+
+@app.route("/nqueues/import", methods=["POST"])
+def import_nq_route():
+    content = request.data.decode("utf-8").strip()
+    name = request.args.get("name") or f"Fila {len(named_queues) + 1}"
+    if not content:
+        return jsonify({"error": "Conteúdo vazio"}), 400
+    try:
+        if content.startswith("[") or content.startswith("{"):
+            raw = json.loads(content)
+            if isinstance(raw, dict):
+                raw = [raw]
+            jobs_data = raw
+        else:
+            jobs_data = parse_md_queue(content)
+
+        nq_id = _next_nq_id()
+        jobs = []
+        for i, jd in enumerate(jobs_data):
+            if not jd.get("task_type"):
+                continue
+            jobs.append({
+                "id": _next_job_id(),
+                "nq_id": nq_id,
+                "nq_job_index": i,
+                "status": "idle",
+                "label": jd.get("label") or f"{jd['task_type']} — seed {jd.get('seed', 42)}",
+                "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "output_video": "",
+                **{k: v for k, v in jd.items() if k not in ("id", "nq_id", "status")},
+            })
+
+        nq = {
+            "id": nq_id,
+            "name": name,
+            "status": "idle",
+            "jobs": jobs,
+            "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        with nq_lock:
+            named_queues.append(nq)
+        return jsonify({"ok": True, "id": nq_id, "name": name, "job_count": len(jobs)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/nqueues/<int:nq_id>", methods=["GET"])
+def get_named_queue_detail(nq_id):
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+    if nq is None:
+        return jsonify({"error": "Fila não encontrada"}), 404
+    return jsonify(nq)
+
+
+@app.route("/nqueues/<int:nq_id>", methods=["DELETE"])
+def delete_named_queue_route(nq_id):
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return jsonify({"error": "Fila não encontrada"}), 404
+        if nq["status"] == "running":
+            return jsonify({"error": "Não é possível excluir uma fila em execução"}), 400
+        named_queues.remove(nq)
+    return jsonify({"ok": True})
+
+
+@app.route("/nqueues/<int:nq_id>/run", methods=["POST"])
+def run_nq_route(nq_id):
+    ok = run_named_queue(nq_id)
+    if not ok:
+        return jsonify({"error": "Fila não encontrada, já em execução, ou sem cenas pendentes"}), 400
+    return jsonify({"ok": True})
+
+
+@app.route("/nqueues/<int:nq_id>/jobs/<int:job_id>/run", methods=["POST"])
+def run_nq_job_route(nq_id, job_id):
+    ok = run_single_nq_job_fn(nq_id, job_id)
+    if not ok:
+        return jsonify({"error": "Cena não encontrada ou já em execução"}), 400
+    return jsonify({"ok": True})
+
+
+@app.route("/nqueues/<int:nq_id>/finalize", methods=["POST"])
+def finalize_nq_route(nq_id):
+    return jsonify({"error": "Em desenvolvimento — ffmpeg concat ainda não implementado"}), 501
 
 
 if __name__ == "__main__":

@@ -661,6 +661,114 @@
   .status-running .job-remove,
   .status-done    .job-remove,
   .status-error   .job-remove { display: none; }
+
+  /* ---- NAMED QUEUE SYSTEM ---- */
+
+  .nq-list {
+    flex: 1; overflow-y: auto; padding: 12px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .nq-card {
+    background: #1a1a24; border: 1px solid #2a2a3a; border-radius: 12px;
+    padding: 12px 14px; cursor: pointer; transition: border-color .2s, background .2s;
+  }
+  .nq-card:hover { border-color: #4a3a8a; background: #1e1e2e; }
+  .nq-card.status-running { border-color: #5a3aed; background: #1a1a30; }
+  .nq-card.status-done    { border-color: #1a4a2a; background: #0d1a12; }
+  .nq-card.status-error   { border-color: #4a1a1a; background: #1a0d0d; }
+  .nq-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .nq-card-name {
+    flex: 1; font-size: 0.9rem; font-weight: 600; color: #d0c0ff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .nq-card-actions { display: flex; gap: 5px; flex-shrink: 0; }
+  .nq-mini-btn {
+    background: none; border: 1px solid #2a2a3a; border-radius: 5px;
+    color: #666; font-size: 0.72rem; padding: 2px 7px; cursor: pointer;
+    transition: all .15s; line-height: 1.5;
+  }
+  .nq-mini-btn.run:hover  { border-color: #7c3aed; color: #a78bfa; background: #1a1040; }
+  .nq-mini-btn.del:hover  { border-color: #ef4444; color: #f87171; background: #1a0808; }
+  .nq-mini-btn:disabled   { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+  .nq-card-meta { font-size: 0.7rem; color: #555; line-height: 1.5; margin-bottom: 6px; }
+  .nq-status-pill {
+    display: inline-block; padding: 1px 8px; border-radius: 999px;
+    font-size: 0.65rem; font-weight: 600; margin-right: 4px;
+  }
+  .status-idle    .nq-status-pill { background: #222; color: #666; }
+  .status-running .nq-status-pill { background: #1a1a3a; color: #a78bfa; }
+  .status-done    .nq-status-pill { background: #0d2e1a; color: #4ade80; }
+  .status-error   .nq-status-pill { background: #2e0d0d; color: #f87171; }
+  .nq-card-progress-bg { background: #111; border-radius: 999px; height: 4px; overflow: hidden; margin-top: 4px; }
+  .nq-card-progress-fill {
+    height: 100%; background: linear-gradient(90deg, #7c3aed, #a78bfa);
+    border-radius: 999px; transition: width .4s;
+  }
+
+  /* Detail view */
+  .nq-detail-view {
+    display: none; flex-direction: column; flex: 1; overflow: hidden;
+  }
+  .nq-detail-header {
+    display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+    border-bottom: 1px solid #1e1e2e; flex-shrink: 0;
+    background: #14141e; flex-wrap: wrap;
+  }
+  .nq-detail-title {
+    flex: 1; font-size: 0.88rem; font-weight: 600; color: #d0c0ff;
+    min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .nq-detail-status { font-size: 0.7rem; color: #666; flex-shrink: 0; }
+  .nq-detail-actions { display: flex; gap: 5px; flex-shrink: 0; }
+  .nq-action-btn {
+    background: #1e1e2e; border: 1px solid #2a2a3a; border-radius: 6px;
+    color: #aaa; font-size: 0.72rem; padding: 4px 9px; cursor: pointer;
+    transition: all .2s; white-space: nowrap;
+  }
+  .nq-action-btn.run:hover      { border-color: #7c3aed; color: #a78bfa; background: #1a1040; }
+  .nq-action-btn.finalize:hover { border-color: #f59e0b; color: #fbbf24; }
+  .nq-action-btn.danger:hover   { border-color: #ef4444; color: #f87171; background: #1a0808; }
+  .nq-action-btn:disabled       { opacity: 0.4; cursor: not-allowed; }
+
+  /* Scenes list */
+  .nq-scenes {
+    flex: 1; overflow-y: auto; padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  .nq-scene-card {
+    background: #1a1a24; border: 1px solid #2a2a3a;
+    border-radius: 10px; overflow: hidden; transition: border-color .2s;
+  }
+  .nq-scene-card.status-running { border-color: #5a3aed; }
+  .nq-scene-card.status-done    { border-color: #1a4a2a; }
+  .nq-scene-card.status-error   { border-color: #4a1a1a; }
+  .nq-scene-header {
+    display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+    cursor: pointer; transition: background .15s; user-select: none;
+  }
+  .nq-scene-header:hover { background: rgba(255,255,255,.03); }
+  .nq-scene-info { flex: 1; min-width: 0; }
+  .nq-scene-expand {
+    font-size: 0.65rem; color: #444; flex-shrink: 0; transition: transform .2s;
+  }
+  .nq-scene-card.expanded .nq-scene-expand { transform: rotate(180deg); }
+  .nq-scene-body { display: none; padding: 0 12px 12px; }
+  .nq-scene-card.expanded .nq-scene-body { display: block; }
+  .nq-scene-video {
+    width: 100%; max-height: 200px; border-radius: 8px;
+    display: block; margin-bottom: 10px; background: #000;
+  }
+  .nq-no-video {
+    color: #444; font-size: 0.75rem; font-style: italic;
+    padding: 12px 0; text-align: center;
+  }
+  .nq-scene-details { margin-top: 4px; }
+
+  /* nq progress info in progress tab */
+  .nq-progress-info {
+    font-size: 0.74rem; color: #a78bfa; margin-top: 4px;
+    font-style: italic; min-height: 16px;
+  }
 </style>
 </head>
 <body>
@@ -835,7 +943,7 @@
       <div class="tab active" onclick="showTab('tab-progress', this)">Progresso</div>
       <div class="tab" onclick="showTab('tab-videos', this)">Vídeos</div>
       <div class="tab" onclick="showTab('tab-galeria', this); refreshGaleria()">Galeria</div>
-      <div class="tab" onclick="showTab('tab-queue', this)">Fila</div>
+      <div class="tab" onclick="showTab('tab-queue', this); refreshNamedQueues()">Fila</div>
     </div>
 
     <!-- Progress Tab -->
@@ -846,6 +954,7 @@
           <div class="progress-bar" id="progress-bar"></div>
         </div>
         <div class="progress-label" id="progress-label">—</div>
+        <div class="nq-progress-info" id="nq-progress-info" style="display:none"></div>
       </div>
       <div class="log-box" id="log-box"></div>
     </div>
@@ -923,23 +1032,38 @@
     <!-- Queue Tab -->
     <div id="tab-queue" class="tab-content">
       <div class="queue-panel">
+
+        <!-- Top bar (shared by list and detail views) -->
         <div class="queue-top">
-          <span class="queue-top-title">Fila de Geração</span>
+          <button id="btn-nq-back" class="queue-btn" style="display:none" onclick="showNqList()">← Voltar</button>
+          <span class="queue-top-title" id="queue-view-title">Filas de Geração</span>
           <input type="file" id="queue-import-input" accept=".json,.md,.txt" style="display:none"
                  onchange="importQueueFile(this)">
-          <button class="queue-btn" onclick="document.getElementById('queue-import-input').click()" title="Importar .json ou .md">
+          <button class="queue-btn" onclick="document.getElementById('queue-import-input').click()" title="Importar .json ou .md como nova fila">
             ↑ Importar
           </button>
-          <button class="queue-btn danger" onclick="clearQueue()" title="Remover todos os jobs pendentes">
-            Limpar
-          </button>
-          <a class="queue-btn" href="/help" target="_blank" title="Ver formato de importação">
-            ? Ajuda
-          </a>
+          <a class="queue-btn" href="/help" target="_blank" title="Ver formato e documentação">? Ajuda</a>
         </div>
-        <div class="queue-list" id="queue-list">
-          <div class="queue-empty">Nenhum job na fila.</div>
+
+        <!-- List view: all named queues -->
+        <div id="nq-list-view" class="nq-list">
+          <div class="queue-empty">Nenhuma fila criada.<br>Use <strong>+ Fila</strong> ou <strong>↑ Importar</strong> para começar.</div>
         </div>
+
+        <!-- Detail view: one named queue -->
+        <div id="nq-detail-view" class="nq-detail-view">
+          <div class="nq-detail-header">
+            <div class="nq-detail-title" id="nq-detail-name"></div>
+            <div class="nq-detail-status" id="nq-detail-status"></div>
+            <div class="nq-detail-actions">
+              <button id="nq-run-btn" class="nq-action-btn run" onclick="runCurrentNq()" title="Executar todas as cenas pendentes">▶ Executar</button>
+              <button class="nq-action-btn finalize" onclick="finalizeCurrentNq()" title="Em breve: montar vídeo final (ffmpeg)" disabled>🎬 Finalizar</button>
+              <button class="nq-action-btn danger" onclick="deleteCurrentNq()" title="Excluir esta fila">🗑</button>
+            </div>
+          </div>
+          <div id="nq-scenes" class="nq-scenes"></div>
+        </div>
+
       </div>
     </div>
 
@@ -1129,6 +1253,7 @@ async function startGeneration() {
   btn.disabled = true;
   document.getElementById('log-box').innerHTML = '';
   updateProgress(0);
+  updateNqProgressInfo(null);
   setStatus('running', 'Gerando...');
 
   const t = document.getElementById('task_type').value;
@@ -1449,104 +1574,270 @@ function playVideoByPath(path) {
 applyAllCardsPrivacy();
 
 // ============================================================
-// QUEUE
+// NAMED QUEUES
 // ============================================================
 
 const STATUS_LABEL = {
+  idle:    'Pronto',
   pending: 'Aguardando',
   running: 'Gerando...',
   done:    'Concluído',
   error:   'Erro',
 };
 
-function buildJobCard(job) {
+const NQ_STATUS_LABEL = { idle: 'Pronto', running: 'Executando', done: 'Concluído', error: 'Erro' };
+
+let currentNqId = null;
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function buildNqCard(nq) {
   const div = document.createElement('div');
-  div.className = `job-card status-${job.status}`;
-  div.id = `job-${job.id}`;
-
-  const label = job.label || `${job.task_type} — seed ${job.seed ?? 42}`;
-  const meta = [
-    job.task_type,
-    job.resolution,
-    job.duration ? `${job.duration}s` : null,
-    `seed ${job.seed ?? 42}`,
-    job.created_at,
-  ].filter(Boolean).join(' · ');
-
+  div.className = `nq-card status-${nq.status}`;
+  div.id = `nq-card-${nq.id}`;
+  const pct = nq.job_count > 0 ? Math.round((nq.done_count / nq.job_count) * 100) : 0;
+  const runBtn = nq.status !== 'running'
+    ? `<button class="nq-mini-btn run" onclick="event.stopPropagation();runNq(${nq.id})" title="Executar fila">▶</button>`
+    : `<span class="nq-mini-btn" style="color:#a78bfa;cursor:default;border-color:#3a2a6a">⏳</span>`;
   div.innerHTML = `
-    <div class="job-status-dot"></div>
-    <div class="job-body">
-      <div class="job-label">${label}</div>
-      <div class="job-meta"><span>${STATUS_LABEL[job.status] || job.status}</span> · ${meta}</div>
+    <div class="nq-card-header">
+      <span class="nq-card-name">${nq.name}</span>
+      <div class="nq-card-actions">
+        ${runBtn}
+        <button class="nq-mini-btn del" onclick="event.stopPropagation();deleteNq(${nq.id})"
+          title="Excluir" ${nq.status === 'running' ? 'disabled' : ''}>🗑</button>
+      </div>
     </div>
-    <button class="job-remove" onclick="removeJob(${job.id})" title="Remover">✕</button>`;
+    <div class="nq-card-meta">
+      <span class="nq-status-pill">${NQ_STATUS_LABEL[nq.status] || nq.status}</span>
+      ${nq.done_count}/${nq.job_count} cenas${nq.error_count ? ` · ${nq.error_count} erro(s)` : ''} · ${nq.created_at}
+    </div>
+    <div class="nq-card-progress-bg">
+      <div class="nq-card-progress-fill" style="width:${pct}%"></div>
+    </div>`;
+  div.addEventListener('click', () => openNq(nq.id));
   return div;
 }
 
-async function refreshQueue() {
-  const res = await fetch('/queue');
-  const jobs = await res.json();
-  const list = document.getElementById('queue-list');
-  list.innerHTML = '';
-  if (jobs.length === 0) {
-    list.innerHTML = '<div class="queue-empty">Nenhum job na fila.</div>';
+async function refreshNamedQueues() {
+  const list = document.getElementById('nq-list-view');
+  if (!list || list.style.display === 'none') {
+    if (currentNqId !== null) refreshNqDetail(currentNqId);
     return;
   }
-  // Show running/pending first, then done/error
-  const sorted = [...jobs].sort((a, b) => {
-    const order = { running: 0, pending: 1, done: 2, error: 3 };
-    return (order[a.status] ?? 9) - (order[b.status] ?? 9);
+  const res = await fetch('/nqueues');
+  const queues = await res.json();
+  list.innerHTML = '';
+  if (queues.length === 0) {
+    list.innerHTML = '<div class="queue-empty">Nenhuma fila criada.<br>Use <strong>+ Fila</strong> ou <strong>↑ Importar</strong> para começar.</div>';
+    return;
+  }
+  queues.forEach(nq => list.appendChild(buildNqCard(nq)));
+}
+
+async function openNq(id) {
+  currentNqId = id;
+  document.getElementById('nq-list-view').style.display = 'none';
+  const dv = document.getElementById('nq-detail-view');
+  dv.style.display = 'flex';
+  document.getElementById('btn-nq-back').style.display = '';
+  await refreshNqDetail(id);
+}
+
+function showNqList() {
+  currentNqId = null;
+  document.getElementById('nq-list-view').style.display = '';
+  document.getElementById('nq-detail-view').style.display = 'none';
+  document.getElementById('btn-nq-back').style.display = 'none';
+  document.getElementById('queue-view-title').textContent = 'Filas de Geração';
+  refreshNamedQueues();
+}
+
+async function refreshNqDetail(id) {
+  const res = await fetch(`/nqueues/${id}`);
+  if (!res.ok) { showNqList(); return; }
+  const nq = await res.json();
+
+  document.getElementById('queue-view-title').textContent = nq.name;
+  document.getElementById('nq-detail-name').textContent = nq.name;
+  const done = nq.jobs.filter(j => j.status === 'done').length;
+  document.getElementById('nq-detail-status').textContent =
+    `${done}/${nq.jobs.length} cenas · ${NQ_STATUS_LABEL[nq.status] || nq.status}`;
+
+  const runBtn = document.getElementById('nq-run-btn');
+  if (runBtn) runBtn.disabled = nq.status === 'running';
+
+  const scenes = document.getElementById('nq-scenes');
+  const expanded = new Set(
+    Array.from(scenes.querySelectorAll('.nq-scene-card.expanded')).map(c => c.dataset.jobId)
+  );
+  scenes.innerHTML = '';
+  nq.jobs.forEach(job => {
+    const card = buildSceneCard(id, job);
+    if (expanded.has(String(job.id))) card.classList.add('expanded');
+    scenes.appendChild(card);
   });
-  sorted.forEach(job => list.appendChild(buildJobCard(job)));
 }
 
-async function removeJob(id) {
-  await fetch(`/queue/remove/${id}`, { method: 'POST' });
-  refreshQueue();
+function buildSceneCard(nqId, job) {
+  const card = document.createElement('div');
+  card.className = `nq-scene-card status-${job.status}`;
+  card.dataset.jobId = job.id;
+
+  const canRun = !['running', 'pending'].includes(job.status);
+  const hasVideo = job.output_video;
+
+  const details = [];
+  if (job.prompt)      details.push(`<div class="detail-row"><span class="detail-key">Prompt</span><span class="detail-val prompt-val">${job.prompt}</span></div>`);
+  if (job.ref_imgs)    details.push(`<div class="detail-row"><span class="detail-key">Imagens ref.</span><span class="detail-val">${(Array.isArray(job.ref_imgs) ? job.ref_imgs : [job.ref_imgs]).map(p => p.split('/').pop()).join(', ')}</span></div>`);
+  if (job.input_video) details.push(`<div class="detail-row"><span class="detail-key">Vídeo entrada</span><span class="detail-val">${job.input_video.split('/').pop()}</span></div>`);
+  if (job.input_image) details.push(`<div class="detail-row"><span class="detail-key">Imagem retrato</span><span class="detail-val">${job.input_image.split('/').pop()}</span></div>`);
+  if (job.input_audio) details.push(`<div class="detail-row"><span class="detail-key">Áudio</span><span class="detail-val">${job.input_audio.split('/').pop()}</span></div>`);
+  if (job.output_video) details.push(`<div class="detail-row"><span class="detail-key">Saída</span><span class="detail-val">${job.output_video}</span></div>`);
+
+  card.innerHTML = `
+    <div class="nq-scene-header" onclick="toggleScene(this.parentElement)">
+      <div class="job-status-dot"></div>
+      <div class="nq-scene-info">
+        <div class="job-label">${job.label}</div>
+        <div class="job-meta">
+          <span>${STATUS_LABEL[job.status] || job.status}</span>
+          · ${job.task_type} · ${job.resolution || ''} · seed ${job.seed ?? 42}${job.duration ? ' · ' + job.duration + 's' : ''}
+        </div>
+      </div>
+      ${canRun ? `<button class="nq-mini-btn run" onclick="event.stopPropagation();runNqJob(${nqId}, ${job.id})" title="Executar esta cena">▶</button>` : ''}
+      <span class="nq-scene-expand">▾</span>
+    </div>
+    <div class="nq-scene-body">
+      ${hasVideo
+        ? `<video class="nq-scene-video" src="/video/${job.output_video}" controls></video>`
+        : '<div class="nq-no-video">Vídeo não gerado ainda.</div>'}
+      <div class="nq-scene-details">${details.join('')}</div>
+    </div>`;
+  return card;
 }
 
-async function clearQueue() {
-  if (!confirm('Remover todos os jobs pendentes?')) return;
-  await fetch('/queue/clear', { method: 'POST' });
-  refreshQueue();
-}
+function toggleScene(card) { card.classList.toggle('expanded'); }
 
-async function importQueueFile(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const text = await file.text();
-  const res = await fetch('/queue/import', {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: text,
-  });
+async function runNq(id) {
+  const res = await fetch(`/nqueues/${id}/run`, { method: 'POST' });
   const data = await res.json();
-  input.value = '';
-  if (data.ok) {
-    showTab('tab-queue', document.querySelectorAll('.tab')[2]);
-    refreshQueue();
-    alert(`${data.added} job(s) importado(s).`);
+  if (!data.ok) { alert(data.error); return; }
+  document.getElementById('log-box').innerHTML = '';
+  updateProgress(0);
+  setStatus('running', 'Iniciando fila...');
+  updateNqProgressInfo(null);
+  showTab('tab-progress', document.querySelectorAll('.tab')[0]);
+  connectStreamForNq(id);
+  refreshNamedQueues();
+}
+
+async function runCurrentNq() { if (currentNqId) runNq(currentNqId); }
+
+async function runNqJob(nqId, jobId) {
+  const res = await fetch(`/nqueues/${nqId}/jobs/${jobId}/run`, { method: 'POST' });
+  const data = await res.json();
+  if (!data.ok) { alert(data.error); return; }
+  document.getElementById('log-box').innerHTML = '';
+  updateProgress(0);
+  setStatus('running', 'Executando cena...');
+  updateNqProgressInfo(null);
+  showTab('tab-progress', document.querySelectorAll('.tab')[0]);
+  connectStreamForNq(nqId);
+  refreshNqDetail(nqId);
+}
+
+async function deleteNq(id) {
+  if (!confirm('Excluir esta fila?')) return;
+  const res = await fetch(`/nqueues/${id}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (!data.ok) { alert(data.error); return; }
+  if (currentNqId === id) showNqList();
+  else refreshNamedQueues();
+}
+
+async function deleteCurrentNq() { if (currentNqId) deleteNq(currentNqId); }
+
+async function finalizeCurrentNq() {
+  alert('🎬 Funcionalidade em desenvolvimento — o vídeo final será montado via ffmpeg em breve.');
+}
+
+function updateNqProgressInfo(scene) {
+  const el = document.getElementById('nq-progress-info');
+  if (!el) return;
+  if (scene) { el.style.display = ''; el.textContent = scene; }
+  else        { el.style.display = 'none'; el.textContent = ''; }
+}
+
+function connectStreamForNq(nqId) {
+  if (eventSource) eventSource.close();
+  eventSource = new EventSource('/stream');
+  document.getElementById('btn-generate').disabled = true;
+
+  eventSource.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.log) appendLog(msg.log);
+    if (msg.progress !== undefined) updateProgress(msg.progress);
+    if (msg.nq_scene !== undefined) updateNqProgressInfo(msg.nq_scene);
+    if (msg.done) {
+      eventSource.close();
+      if (msg.done.status === 'done') { updateProgress(100); refreshVideos(); }
+      setTimeout(() => checkNqContinue(nqId), 200);
+    }
+  };
+  eventSource.onerror = () => { eventSource.close(); setTimeout(() => checkNqContinue(nqId), 1000); };
+}
+
+async function checkNqContinue(nqId) {
+  const nqRes = await fetch(`/nqueues/${nqId}`);
+  if (!nqRes.ok) {
+    document.getElementById('btn-generate').disabled = false;
+    updateNqProgressInfo(null);
+    return;
+  }
+  const nq = await nqRes.json();
+  if (nq.status === 'running') {
+    // Wait for next job to start then reconnect
+    let attempts = 0;
+    while (attempts < 30) {
+      const sr = await fetch('/status');
+      const st = await sr.json();
+      if (st.running) { connectStreamForNq(nqId); return; }
+      await sleep(300);
+      attempts++;
+    }
+    setStatus('error', 'Timeout aguardando próxima cena');
+    document.getElementById('btn-generate').disabled = false;
+    updateNqProgressInfo(null);
+    refreshNamedQueues();
   } else {
-    alert('Erro ao importar: ' + data.error);
+    const isDone = nq.status === 'done';
+    setStatus(isDone ? 'done' : 'error', isDone ? 'Fila concluída!' : 'Fila com erros');
+    if (isDone) updateProgress(100);
+    refreshVideos();
+    refreshNamedQueues();
+    updateNqProgressInfo(null);
+    document.getElementById('btn-generate').disabled = false;
+    if (currentNqId === nqId) refreshNqDetail(nqId);
   }
 }
+
+// ---- Form job helpers ----
 
 function collectFormJob() {
   const t = document.getElementById('task_type').value;
   const isAvatar = t === 'talking_avatar';
   const job = {
-    task_type: t,
+    task_type:  t,
     prompt:     document.getElementById('prompt').value,
     resolution: document.getElementById('resolution').value,
     duration:   parseInt(document.getElementById('duration').value) || 5,
     seed:       parseInt(document.getElementById('seed').value) || 42,
     offload:    document.getElementById('offload').checked,
-    low_vram:   isAvatar ? true : false,
+    low_vram:   isAvatar,
   };
   if (t === 'reference_to_video') {
     const manual = document.getElementById('ref_imgs_path').value.trim();
     if (manual) job.ref_imgs = manual.split(',').map(s => s.trim()).filter(Boolean);
-    // Note: uploaded files can't be queued (no path yet); user must use path field
   }
   if (t === 'single_shot_extension' || t === 'shot_switching_extension') {
     job.input_video = document.getElementById('input_video').value.trim();
@@ -1560,10 +1851,8 @@ function collectFormJob() {
 
 async function addToQueue() {
   const job = collectFormJob();
-
-  // Basic validation
   if (job.task_type === 'reference_to_video' && (!job.ref_imgs || job.ref_imgs.length === 0)) {
-    alert('Para adicionar à fila, informe os caminhos das imagens de referência (não é possível usar upload de arquivo na fila — use o campo de path).'); return;
+    alert('Para adicionar à fila, informe os caminhos das imagens (campo "Ou informe caminhos").'); return;
   }
   if ((job.task_type === 'single_shot_extension' || job.task_type === 'shot_switching_extension') && !job.input_video) {
     alert('Informe o vídeo de entrada.'); return;
@@ -1572,23 +1861,51 @@ async function addToQueue() {
     alert('Informe a imagem do retrato e o áudio.'); return;
   }
 
-  const res = await fetch('/queue/add', {
+  const defaultName = job.label || `${job.task_type} — seed ${job.seed}`;
+  const name = prompt('Nome da fila:', defaultName);
+  if (name === null) return;
+
+  const res = await fetch('/nqueues', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(job),
+    body: JSON.stringify({ name: name || defaultName, jobs: [job] }),
   });
   const data = await res.json();
   if (data.ok) {
-    showTab('tab-queue', document.querySelectorAll('.tab')[2]);
-    refreshQueue();
+    showTab('tab-queue', document.querySelectorAll('.tab')[3]);
+    refreshNamedQueues();
   } else {
     alert('Erro: ' + data.error);
   }
 }
 
-// Poll queue every 3 seconds to update status
-setInterval(refreshQueue, 3000);
-refreshQueue();
+async function importQueueFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const text = await file.text();
+  const defaultName = file.name.replace(/\.[^.]+$/, '');
+  const name = prompt('Nome da fila:', defaultName);
+  if (name === null) { input.value = ''; return; }
+
+  const res = await fetch(`/nqueues/import?name=${encodeURIComponent(name || defaultName)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: text,
+  });
+  const data = await res.json();
+  input.value = '';
+  if (data.ok) {
+    showTab('tab-queue', document.querySelectorAll('.tab')[3]);
+    refreshNamedQueues();
+    alert(`Fila "${data.name}" criada com ${data.job_count} cena(s).`);
+  } else {
+    alert('Erro ao importar: ' + data.error);
+  }
+}
+
+// Poll every 3 seconds
+setInterval(refreshNamedQueues, 3000);
+refreshNamedQueues();
 </script>
 </body>
 </html>
