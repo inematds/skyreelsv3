@@ -18,7 +18,7 @@
     "duration": 10,
     "seed": 1002,
     "offload": true,
-    "input_video": "result/reference_to_video/1001_2026-02-22_06-00-00.mp4"
+    "input_video": "{{prev}}"
   },
   {
     "label": "Cena 03 — Personagem aparece no horizonte",
@@ -39,7 +39,7 @@
     "duration": 5,
     "seed": 1004,
     "offload": true,
-    "input_video": "result/reference_to_video/1003_2026-02-22_06-15-00.mp4"
+    "input_video": "{{prev}}"
   },
   {
     "label": "Cena 05 — Acampamento: personagem descansa",
@@ -60,7 +60,7 @@
     "duration": 8,
     "seed": 1006,
     "offload": true,
-    "input_video": "result/reference_to_video/1005_2026-02-22_06-30-00.mp4"
+    "input_video": "{{prev}}"
   },
   {
     "label": "Cena 07 — Transição: panorâmica para o vale",
@@ -70,7 +70,7 @@
     "duration": 5,
     "seed": 1007,
     "offload": true,
-    "input_video": "result/single_shot_extension/1006_2026-02-22_06-45-00.mp4"
+    "input_video": "{{prev}}"
   },
   {
     "label": "Cena 08 — Cume: chegada ao topo",
@@ -91,7 +91,7 @@
     "duration": 10,
     "seed": 1009,
     "offload": true,
-    "input_video": "result/reference_to_video/1008_2026-02-22_07-00-00.mp4"
+    "input_video": "{{prev}}"
   },
   {
     "label": "Cena 10 — Encerramento: narração do personagem",

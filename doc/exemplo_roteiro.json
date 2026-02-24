@@ -18,7 +18,7 @@
     "duration": 8,
     "seed": 102,
     "offload": true,
-    "input_video": "result/reference_to_video/101_2026-02-22_06-22-44.mp4"
+    "input_video": "{{prev}}"
   },
   {
     "label": "Cena 3 — Transição: close no rosto [ZOOM_IN_CUT]",
@@ -28,7 +28,7 @@
     "duration": 5,
     "seed": 103,
     "offload": true,
-    "input_video": "result/single_shot_extension/102_2026-02-22_06-30-00.mp4"
+    "input_video": "{{prev}}"
   },
   {
     "label": "Cena 4 — Externa: ela sai do prédio",

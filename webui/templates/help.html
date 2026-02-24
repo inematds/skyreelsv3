@@ -265,6 +265,7 @@
       <li><a href="#campos">Campos por tarefa</a></li>
       <li><a href="#limites">Limites e regras</a></li>
       <li><a href="#caminhos">Caminhos de arquivo</a></li>
+      <li><a href="#referencias">Referências entre cenas</a></li>
       <li><a href="#exemplos">Exemplos prontos</a></li>
       <li><a href="/doc/CHANGELOG.md" target="_blank">📋 Changelog completo</a></li>
     </ul>
@@ -316,7 +317,7 @@
     <span class="j-key">"duration"</span><span class="j-punct">:</span>    <span class="j-num">10</span><span class="j-punct">,</span>
     <span class="j-key">"seed"</span><span class="j-punct">:</span>        <span class="j-num">43</span><span class="j-punct">,</span>
     <span class="j-key">"offload"</span><span class="j-punct">:</span>     <span class="j-bool">true</span><span class="j-punct">,</span>
-    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"result/reference_to_video/42_2026-01-01_10-00-00.mp4"</span>
+    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{prev}}"</span>
   <span class="j-punct">},</span>
   <span class="j-punct">{</span>
     <span class="j-key">"label"</span><span class="j-punct">:</span>       <span class="j-str">"Cena 3 — Avatar narrador"</span><span class="j-punct">,</span>
@@ -495,8 +496,75 @@
     <tr><td>Caminho absoluto</td><td><code>/home/usuario/arquivo.png</code></td></tr>
   </table>
 
+  <!-- REFERÊNCIAS ENTRE CENAS -->
+  <h2 id="referencias">Referências entre cenas</h2>
+  <p>
+    Nas tarefas de extensão (<code>single_shot_extension</code>, <code>shot_switching_extension</code>)
+    o campo <code>input_video</code> precisa apontar para o vídeo gerado por uma cena anterior.
+    Em vez de caminhos com timestamp fixo (que mudam a cada geração), use a sintaxe de referência
+    automática — o sistema resolve o caminho real na hora de executar o job.
+  </p>
+
+  <table>
+    <tr>
+      <th>Sintaxe</th>
+      <th>Resolve para</th>
+      <th>Quando usar</th>
+    </tr>
+    <tr>
+      <td><code>{{prev}}</code></td>
+      <td>output da cena imediatamente anterior (índice − 1)</td>
+      <td>caso mais comum — extensão da cena de cima</td>
+    </tr>
+    <tr>
+      <td><code>{{job:N}}</code></td>
+      <td>output da cena no índice N (base 0)</td>
+      <td>quando a cena de origem não é a anterior direta</td>
+    </tr>
+  </table>
+
+  <div class="note">
+    A resolução ocorre em tempo de execução: quando o job for iniciado, o sistema lê o
+    <code>output_video</code> do job referenciado e passa o caminho real para o modelo.
+    Se a cena referenciada ainda não gerou vídeo (falhou ou não rodou), o job vai falhar
+    e exibir um aviso no log.
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header"><span class="lang">JSON</span><span class="fname">uso de referências</span></div>
+<pre><span class="j-punct">[</span>
+  <span class="j-punct">{</span>
+    <span class="j-key">"label"</span><span class="j-punct">:</span>      <span class="j-str">"Cena 1 — Abertura"</span><span class="j-punct">,</span>
+    <span class="j-key">"task_type"</span><span class="j-punct">:</span>  <span class="j-str">"reference_to_video"</span><span class="j-punct">,</span>
+    <span class="j-key">"seed"</span><span class="j-punct">:</span>       <span class="j-num">42</span><span class="j-punct">,</span>
+    <span class="j-key">"ref_imgs"</span><span class="j-punct">:</span>   <span class="j-punct">[</span><span class="j-str">"uploads/personagem.jpg"</span><span class="j-punct">]</span>
+  <span class="j-punct">},</span>
+  <span class="j-punct">{</span>
+    <span class="j-key">"label"</span><span class="j-punct">:</span>       <span class="j-str">"Cena 2 — Extensão"</span><span class="j-punct">,</span>
+    <span class="j-key">"task_type"</span><span class="j-punct">:</span>   <span class="j-str">"single_shot_extension"</span><span class="j-punct">,</span>
+    <span class="j-key">"seed"</span><span class="j-punct">:</span>        <span class="j-num">43</span><span class="j-punct">,</span>
+    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{prev}}"</span>   <span class="j-comment">← output da Cena 1</span>
+  <span class="j-punct">},</span>
+  <span class="j-punct">{</span>
+    <span class="j-key">"label"</span><span class="j-punct">:</span>       <span class="j-str">"Cena 3 — Transição"</span><span class="j-punct">,</span>
+    <span class="j-key">"task_type"</span><span class="j-punct">:</span>   <span class="j-str">"shot_switching_extension"</span><span class="j-punct">,</span>
+    <span class="j-key">"seed"</span><span class="j-punct">:</span>        <span class="j-num">44</span><span class="j-punct">,</span>
+    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{prev}}"</span>   <span class="j-comment">← output da Cena 2</span>
+  <span class="j-punct">},</span>
+  <span class="j-punct">{</span>
+    <span class="j-key">"label"</span><span class="j-punct">:</span>       <span class="j-str">"Cena 4 — Extensão da Cena 1"</span><span class="j-punct">,</span>
+    <span class="j-key">"task_type"</span><span class="j-punct">:</span>   <span class="j-str">"single_shot_extension"</span><span class="j-punct">,</span>
+    <span class="j-key">"seed"</span><span class="j-punct">:</span>        <span class="j-num">45</span><span class="j-punct">,</span>
+    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{job:0}}"</span>  <span class="j-comment">← output da Cena 1 (índice 0)</span>
+  <span class="j-punct">}</span>
+<span class="j-punct">]</span></pre>
+  </div>
+
   <div class="note warn">
-    Para a <strong>extensão de vídeo em sequência</strong> (cenas 2, 3, 4…), o <code>input_video</code> deve apontar para o resultado da cena anterior. O timestamp no nome do arquivo muda a cada geração — ajuste o path após gerar cada cena, ou use o arquivo mais recente em <code>result/&lt;task_type&gt;/</code>.
+    <strong>Importante:</strong> a referência aponta para o índice da cena dentro da fila,
+    começando em 0. <code>{{prev}}</code> é equivalente a <code>{{job:N-1}}</code> onde N é
+    o índice da cena atual. Certifique-se de que a cena referenciada será executada antes
+    desta — a fila processa em sequência, de cima para baixo.
   </div>
 
   <!-- EXEMPLOS -->
