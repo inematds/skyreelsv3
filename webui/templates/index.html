@@ -1392,10 +1392,13 @@ function togglePrivacyAll() {
 function updatePrivacyBtn() {
   const cards = Array.from(document.querySelectorAll('.video-card'));
   const anyPrivate = cards.some(c => c.dataset.private === 'true');
-  const btn = document.getElementById('btn-privacy-g');
-  if (!btn) return;
-  btn.classList.toggle('on', anyPrivate);
-  btn.textContent = anyPrivate ? '🔓 Revelar tudo' : '🔒 Ocultar tudo';
+  const label = anyPrivate ? '🔓 Revelar tudo' : '🔒 Ocultar tudo';
+  ['btn-privacy-g', 'btn-privacy-galeria'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.classList.toggle('on', anyPrivate);
+    btn.textContent = label;
+  });
 }
 
 function openCardBtn(ev, btn) {
