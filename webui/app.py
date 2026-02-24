@@ -877,6 +877,27 @@ def get_named_queue_detail(nq_id):
     return jsonify(nq)
 
 
+@app.route("/nqueues/<int:nq_id>/jobs/<int:job_id>", methods=["PATCH"])
+def patch_nq_job(nq_id, job_id):
+    data = request.get_json(force=True)
+    PROTECTED = {"id", "nq_id", "nq_job_index", "status", "created_at",
+                 "output_video", "started_at", "finished_at", "task_type"}
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return jsonify({"error": "Fila não encontrada"}), 404
+        job = next((j for j in nq["jobs"] if j["id"] == job_id), None)
+        if job is None:
+            return jsonify({"error": "Cena não encontrada"}), 404
+        if job["status"] not in ("idle", "error"):
+            return jsonify({"error": "Cena não pode ser editada no estado atual"}), 400
+        for k, v in data.items():
+            if k not in PROTECTED:
+                job[k] = v
+    _save_queues()
+    return jsonify({"ok": True})
+
+
 @app.route("/nqueues/<int:nq_id>", methods=["DELETE"])
 def delete_named_queue_route(nq_id):
     with nq_lock:

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.8.3</title>
+<title>INEMA SkyReels V3 3.9.3</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -799,12 +799,38 @@
     font-size: 0.74rem; color: #a78bfa; margin-top: 4px;
     font-style: italic; min-height: 16px;
   }
+
+  /* Edit job modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.72);
+    display: flex; align-items: center; justify-content: center; z-index: 1000;
+  }
+  .modal-box {
+    background: #1a1a24; border: 1px solid #2a2a3a; border-radius: 8px;
+    width: min(540px, 95vw); max-height: 90vh; overflow-y: auto;
+    display: flex; flex-direction: column;
+  }
+  .modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px; border-bottom: 1px solid #2a2a3a; font-weight: 600;
+  }
+  .modal-header button { background: none; border: none; color: #888; font-size: 1.1rem; cursor: pointer; }
+  .modal-header button:hover { color: #fff; }
+  .modal-body  { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .modal-footer{ padding: 14px 18px; border-top: 1px solid #2a2a3a; display: flex; justify-content: flex-end; gap: 8px; }
+  .modal-input { width: 100%; background: #0f0f13; border: 1px solid #333; border-radius: 4px; color: #e0e0e0; padding: 6px 8px; font-size: .85rem; font-family: inherit; }
+  textarea.modal-input { resize: vertical; }
+  .modal-body label { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; color: #aaa; }
+  .modal-checks { display: flex; gap: 18px; }
+  .modal-checks label { flex-direction: row; align-items: center; gap: 6px; color: #ccc; }
+  .nq-mini-btn.edit { background: #1a2a1a; color: #6fcf6f; border-color: #2a4a2a; }
+  .nq-mini-btn.edit:hover { background: #2a3a2a; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="8 recursos adicionados">8</span>.<span class="fix" title="3 correções">3</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="9 recursos adicionados">9</span>.<span class="fix" title="3 correções">3</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -1779,6 +1805,7 @@ function buildSceneCard(nqId, job) {
         </div>
       </div>
       ${canRun ? `<button class="nq-mini-btn run" onclick="event.stopPropagation();runNqJob(${nqId}, ${job.id})" title="Executar esta cena">▶</button>` : ''}
+      ${['idle','error'].includes(job.status) ? `<button class="nq-mini-btn edit" title="Editar cena" onclick="event.stopPropagation();openEditJobModal(${nqId}, ${JSON.stringify(job).replace(/"/g,'&quot;')})">✏️</button>` : ''}
       <span class="nq-scene-expand">▾</span>
     </div>
     <div class="nq-scene-body">
@@ -1993,9 +2020,129 @@ async function importQueueFile(input) {
   }
 }
 
+// ── Edit job modal ──────────────────────────────────────────
+let _editJob = null;
+
+function openEditJobModal(nqId, job) {
+  _editJob = job;
+  document.getElementById('edit-nq-id').value = nqId;
+  document.getElementById('edit-job-id').value = job.id;
+  document.getElementById('edit-job-title').textContent = `Editar: ${job.label}`;
+  document.getElementById('edit-label').value      = job.label || '';
+  document.getElementById('edit-prompt').value     = job.prompt || '';
+  document.getElementById('edit-resolution').value = job.resolution || '720P';
+  document.getElementById('edit-seed').value       = job.seed ?? 42;
+  document.getElementById('edit-offload').checked  = !!job.offload;
+  document.getElementById('edit-low-vram').checked = !!job.low_vram;
+
+  const isAvatar = job.task_type === 'talking_avatar';
+  const isExt    = ['single_shot_extension','shot_switching_extension'].includes(job.task_type);
+  const isRef    = job.task_type === 'reference_to_video';
+
+  document.getElementById('edit-duration-row').style.display    = isAvatar ? 'none' : '';
+  document.getElementById('edit-duration').value                = job.duration ?? 5;
+  document.getElementById('edit-ref-imgs-row').style.display    = isRef ? '' : 'none';
+  document.getElementById('edit-ref-imgs').value                = (job.ref_imgs || []).join(', ');
+  document.getElementById('edit-input-video-row').style.display = isExt ? '' : 'none';
+  document.getElementById('edit-input-video').value             = job.input_video || '';
+  document.getElementById('edit-input-image-row').style.display = isAvatar ? '' : 'none';
+  document.getElementById('edit-input-image').value             = job.input_image || '';
+  document.getElementById('edit-input-audio-row').style.display = isAvatar ? '' : 'none';
+  document.getElementById('edit-input-audio').value             = job.input_audio || '';
+
+  document.getElementById('edit-job-modal').style.display = 'flex';
+}
+
+function closeEditJobModal() {
+  document.getElementById('edit-job-modal').style.display = 'none';
+  _editJob = null;
+}
+
+async function saveEditJob() {
+  const nqId  = document.getElementById('edit-nq-id').value;
+  const jobId = document.getElementById('edit-job-id').value;
+  const isAvatar = _editJob && _editJob.task_type === 'talking_avatar';
+  const isExt    = _editJob && ['single_shot_extension','shot_switching_extension'].includes(_editJob.task_type);
+  const isRef    = _editJob && _editJob.task_type === 'reference_to_video';
+
+  const payload = {
+    label:      document.getElementById('edit-label').value,
+    prompt:     document.getElementById('edit-prompt').value,
+    resolution: document.getElementById('edit-resolution').value,
+    seed:       parseInt(document.getElementById('edit-seed').value) || 42,
+    offload:    document.getElementById('edit-offload').checked,
+    low_vram:   document.getElementById('edit-low-vram').checked,
+  };
+  if (!isAvatar) payload.duration = parseInt(document.getElementById('edit-duration').value) || 5;
+  if (isRef) {
+    const raw = document.getElementById('edit-ref-imgs').value;
+    payload.ref_imgs = raw.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  if (isExt)    payload.input_video = document.getElementById('edit-input-video').value.trim();
+  if (isAvatar) payload.input_image = document.getElementById('edit-input-image').value.trim();
+  if (isAvatar) payload.input_audio = document.getElementById('edit-input-audio').value.trim();
+
+  const res = await fetch(`/nqueues/${nqId}/jobs/${jobId}`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    alert(err.error || 'Erro ao salvar');
+    return;
+  }
+  closeEditJobModal();
+  refreshNqDetail(parseInt(nqId));
+}
+// ────────────────────────────────────────────────────────────
+
 // Poll every 3 seconds
 setInterval(refreshNamedQueues, 3000);
 refreshNamedQueues();
 </script>
+
+<!-- Edit job modal -->
+<div id="edit-job-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeEditJobModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span id="edit-job-title">Editar Cena</span>
+      <button onclick="closeEditJobModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-nq-id">
+      <input type="hidden" id="edit-job-id">
+      <label>Label<input id="edit-label" type="text" class="modal-input"></label>
+      <label>Prompt<textarea id="edit-prompt" class="modal-input" rows="3"></textarea></label>
+      <label>Resolução
+        <select id="edit-resolution" class="modal-input">
+          <option>480P</option><option>540P</option><option>720P</option>
+        </select>
+      </label>
+      <label id="edit-duration-row">Duração (s)<input id="edit-duration" type="number" min="1" max="30" class="modal-input"></label>
+      <label>Seed<input id="edit-seed" type="number" class="modal-input"></label>
+      <div class="modal-checks">
+        <label><input id="edit-offload" type="checkbox"> offload</label>
+        <label><input id="edit-low-vram" type="checkbox"> low_vram</label>
+      </div>
+      <label id="edit-ref-imgs-row">Imagens de referência (caminhos separados por vírgula)
+        <input id="edit-ref-imgs" type="text" class="modal-input">
+      </label>
+      <label id="edit-input-video-row">Vídeo de entrada
+        <input id="edit-input-video" type="text" class="modal-input">
+      </label>
+      <label id="edit-input-image-row">Imagem de entrada
+        <input id="edit-input-image" type="text" class="modal-input">
+      </label>
+      <label id="edit-input-audio-row">Áudio de entrada
+        <input id="edit-input-audio" type="text" class="modal-input">
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="nq-action-btn" onclick="closeEditJobModal()">Cancelar</button>
+      <button class="nq-action-btn run" onclick="saveEditJob()">Salvar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
