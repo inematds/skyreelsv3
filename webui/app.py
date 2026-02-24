@@ -102,6 +102,72 @@ def _next_job_id():
     return _job_id_counter
 
 
+# Patterns for named-queue reference resolution
+_RE_PREV     = re.compile(r'^\{\{prev\}\}$', re.IGNORECASE)
+_RE_JOB_IDX  = re.compile(r'^\{\{job:(\d+)\}\}$', re.IGNORECASE)
+_RE_SEED_TS  = re.compile(r'result/[^/]+/(\d+)_<timestamp>\.mp4', re.IGNORECASE)
+
+
+def _resolve_nq_refs(job, nq):
+    """Return a shallow copy of job with forward-reference fields resolved.
+
+    Supported syntaxes (in input_video / input_image / input_audio):
+      {{prev}}       – output_video of the immediately previous job in the queue
+      {{job:N}}      – output_video of the job at 0-based index N
+      result/<task>/<seed>_<timestamp>.mp4  – resolved by matching seed (legacy compat)
+    """
+    if not nq:
+        return job
+
+    jobs = nq.get("jobs", [])
+    idx  = job.get("nq_job_index", 0)
+
+    def resolve(value):
+        if not value or not isinstance(value, str):
+            return value
+
+        # {{prev}}
+        if _RE_PREV.match(value):
+            if idx > 0:
+                out = jobs[idx - 1].get("output_video", "")
+                if out:
+                    print(f"[ref] {{{{prev}}}} → {out}")
+                    return out
+            print(f"[ref] warning: {{{{prev}}}} could not resolve (idx={idx})")
+            return value
+
+        # {{job:N}}
+        m = _RE_JOB_IDX.match(value)
+        if m:
+            ref_idx = int(m.group(1))
+            if 0 <= ref_idx < len(jobs):
+                out = jobs[ref_idx].get("output_video", "")
+                if out:
+                    print(f"[ref] {{{{job:{ref_idx}}}}} → {out}")
+                    return out
+            print(f"[ref] warning: {{{{job:{m.group(1)}}}}} could not resolve")
+            return value
+
+        # result/<task>/<seed>_<timestamp>.mp4
+        m = _RE_SEED_TS.search(value)
+        if m:
+            seed = m.group(1)
+            for j in jobs:
+                if str(j.get("seed", "")) == seed and j.get("output_video"):
+                    print(f"[ref] <timestamp> seed={seed} → {j['output_video']}")
+                    return j["output_video"]
+            print(f"[ref] warning: <timestamp> seed={seed} not found in queue jobs")
+            return value
+
+        return value
+
+    resolved = dict(job)
+    for field in ("input_video", "input_image", "input_audio"):
+        if field in resolved:
+            resolved[field] = resolve(resolved[field])
+    return resolved
+
+
 def build_cmd_from_job(job):
     """Build generate_video.py command + env + metadata from a job dict."""
     task_type = job.get("task_type", "reference_to_video")
@@ -190,7 +256,13 @@ def start_next_queued_job():
             if job["status"] == "pending":
                 job["status"] = "running"
                 job["started_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
-                cmd, env_extra, metadata = build_cmd_from_job(job)
+                # Resolve named-queue references ({{prev}}, {{job:N}}, <timestamp>)
+                nq = None
+                if job.get("nq_id") is not None:
+                    with nq_lock:
+                        nq = next((q for q in named_queues if q["id"] == job["nq_id"]), None)
+                effective_job = _resolve_nq_refs(job, nq)
+                cmd, env_extra, metadata = build_cmd_from_job(effective_job)
                 thread = threading.Thread(
                     target=run_generation,
                     args=(cmd, env_extra, metadata, job),
