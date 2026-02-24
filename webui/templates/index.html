@@ -1377,7 +1377,8 @@ function toggleCardPrivacy(ev, btn) {
   const path = card.dataset.path;
   privacyMap[path] = !privacyMap[path];
   savePrivacyMap();
-  applyCardPrivacy(card);
+  // Apply to every card with this path across all tabs
+  document.querySelectorAll(`.video-card[data-path="${CSS.escape(path)}"]`).forEach(applyCardPrivacy);
   updatePrivacyBtn();
 }
 
