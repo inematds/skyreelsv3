@@ -417,7 +417,7 @@
     <tr>
       <td><code>input_video</code></td><td>string</td>
       <td>—</td><td class="req">✔ obrigatório</td><td>—</td>
-      <td>Caminho ou URL do vídeo a estender</td>
+      <td>Caminho, URL ou referência (<code>{{ "{{prev}}" }}</code>, <code>{{ "{{job:N}}" }}</code>) do vídeo a estender. Não aceita imagens — só vídeo.</td>
     </tr>
     <tr>
       <td><code>input_image</code></td><td>string</td>
@@ -499,72 +499,122 @@
   <!-- REFERÊNCIAS ENTRE CENAS -->
   <h2 id="referencias">Referências entre cenas</h2>
   <p>
-    Nas tarefas de extensão (<code>single_shot_extension</code>, <code>shot_switching_extension</code>)
-    o campo <code>input_video</code> precisa apontar para o vídeo gerado por uma cena anterior.
-    Em vez de caminhos com timestamp fixo (que mudam a cada geração), use a sintaxe de referência
-    automática — o sistema resolve o caminho real na hora de executar o job.
+    Os campos <code>input_video</code>, <code>input_image</code> e <code>input_audio</code>
+    aceitam três formas de valor:
   </p>
 
   <table>
     <tr>
-      <th>Sintaxe</th>
-      <th>Resolve para</th>
+      <th>Forma</th>
+      <th>Exemplo</th>
       <th>Quando usar</th>
     </tr>
     <tr>
+      <td><strong>Caminho fixo</strong></td>
+      <td><code>uploads/meu_video.mp4</code></td>
+      <td>arquivo já existe no servidor; não muda entre gerações</td>
+    </tr>
+    <tr>
       <td><code>{{ "{{prev}}" }}</code></td>
-      <td>output da cena imediatamente anterior (índice − 1)</td>
-      <td>caso mais comum — extensão da cena de cima</td>
+      <td><code>"input_video": "{{ "{{prev}}" }}"</code></td>
+      <td>output da cena imediatamente anterior — caso mais comum</td>
     </tr>
     <tr>
       <td><code>{{ "{{job:N}}" }}</code></td>
-      <td>output da cena no índice N (base 0)</td>
-      <td>quando a cena de origem não é a anterior direta</td>
+      <td><code>"input_video": "{{ "{{job:0}}" }}"</code></td>
+      <td>output de qualquer cena pelo índice N (base 0)</td>
     </tr>
   </table>
 
   <div class="note">
-    A resolução ocorre em tempo de execução: quando o job for iniciado, o sistema lê o
-    <code>output_video</code> do job referenciado e passa o caminho real para o modelo.
-    Se a cena referenciada ainda não gerou vídeo (falhou ou não rodou), o job vai falhar
-    e exibir um aviso no log.
+    <strong>Resolução em tempo de execução:</strong> referências dinâmicas (<code>{{ "{{prev}}" }}</code>,
+    <code>{{ "{{job:N}}" }}</code>) são substituídas pelo caminho real do vídeo no momento
+    em que o job começa. Se a cena referenciada falhou ou ainda não rodou, o job falha
+    com aviso no log.
+  </div>
+
+  <h3 style="margin:20px 0 8px;font-size:.95rem;color:#c4b5fd">Quais campos aceitam referências?</h3>
+  <table>
+    <tr><th>Campo</th><th>Tarefas</th><th>Aceita referência?</th></tr>
+    <tr>
+      <td><code>input_video</code></td>
+      <td><code>single_shot_extension</code>, <code>shot_switching_extension</code></td>
+      <td>✔ sim — <code>{{ "{{prev}}" }}</code>, <code>{{ "{{job:N}}" }}</code> ou caminho fixo</td>
+    </tr>
+    <tr>
+      <td><code>input_image</code></td>
+      <td><code>talking_avatar</code></td>
+      <td>✔ sim — caminho fixo ou referência</td>
+    </tr>
+    <tr>
+      <td><code>input_audio</code></td>
+      <td><code>talking_avatar</code></td>
+      <td>✔ sim — caminho fixo ou referência</td>
+    </tr>
+    <tr>
+      <td><code>ref_imgs</code></td>
+      <td><code>reference_to_video</code></td>
+      <td>⚠ apenas caminhos fixos — não aceita <code>{{ "{{prev}}" }}</code></td>
+    </tr>
+  </table>
+
+  <div class="note warn">
+    <strong>Extension tasks não aceitam imagens de referência.</strong>
+    <code>single_shot_extension</code> e <code>shot_switching_extension</code> só recebem
+    <code>input_video</code> — o campo <code>ref_imgs</code> é ignorado nessas tarefas.
+    Para guiar o estilo visual use o prompt de texto.
   </div>
 
   <div class="code-wrap">
-    <div class="code-header"><span class="lang">JSON</span><span class="fname">uso de referências</span></div>
+    <div class="code-header"><span class="lang">JSON</span><span class="fname">exemplos de referência</span></div>
 <pre><span class="j-punct">[</span>
   <span class="j-punct">{</span>
     <span class="j-key">"label"</span><span class="j-punct">:</span>      <span class="j-str">"Cena 1 — Abertura"</span><span class="j-punct">,</span>
     <span class="j-key">"task_type"</span><span class="j-punct">:</span>  <span class="j-str">"reference_to_video"</span><span class="j-punct">,</span>
+    <span class="j-key">"resolution"</span><span class="j-punct">:</span> <span class="j-str">"540P"</span><span class="j-punct">,</span>
+    <span class="j-key">"duration"</span><span class="j-punct">:</span>   <span class="j-num">5</span><span class="j-punct">,</span>
     <span class="j-key">"seed"</span><span class="j-punct">:</span>       <span class="j-num">42</span><span class="j-punct">,</span>
-    <span class="j-key">"ref_imgs"</span><span class="j-punct">:</span>   <span class="j-punct">[</span><span class="j-str">"uploads/personagem.jpg"</span><span class="j-punct">]</span>
+    <span class="j-key">"offload"</span><span class="j-punct">:</span>    <span class="j-bool">true</span><span class="j-punct">,</span>
+    <span class="j-key">"low_vram"</span><span class="j-punct">:</span>   <span class="j-bool">false</span><span class="j-punct">,</span>
+    <span class="j-key">"ref_imgs"</span><span class="j-punct">:</span>   <span class="j-punct">[</span><span class="j-str">"uploads/personagem.jpg"</span><span class="j-punct">]</span>   <span class="j-comment">← caminho fixo</span>
   <span class="j-punct">},</span>
   <span class="j-punct">{</span>
     <span class="j-key">"label"</span><span class="j-punct">:</span>       <span class="j-str">"Cena 2 — Extensão"</span><span class="j-punct">,</span>
     <span class="j-key">"task_type"</span><span class="j-punct">:</span>   <span class="j-str">"single_shot_extension"</span><span class="j-punct">,</span>
+    <span class="j-key">"resolution"</span><span class="j-punct">:</span>  <span class="j-str">"540P"</span><span class="j-punct">,</span>
+    <span class="j-key">"duration"</span><span class="j-punct">:</span>    <span class="j-num">10</span><span class="j-punct">,</span>
     <span class="j-key">"seed"</span><span class="j-punct">:</span>        <span class="j-num">43</span><span class="j-punct">,</span>
-    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{ "{{prev}}" }}"</span>   <span class="j-comment">← output da Cena 1</span>
+    <span class="j-key">"offload"</span><span class="j-punct">:</span>     <span class="j-bool">false</span><span class="j-punct">,</span>
+    <span class="j-key">"low_vram"</span><span class="j-punct">:</span>    <span class="j-bool">true</span><span class="j-punct">,</span>
+    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{ "{{prev}}" }}"</span>    <span class="j-comment">← output da Cena 1</span>
   <span class="j-punct">},</span>
   <span class="j-punct">{</span>
     <span class="j-key">"label"</span><span class="j-punct">:</span>       <span class="j-str">"Cena 3 — Transição"</span><span class="j-punct">,</span>
     <span class="j-key">"task_type"</span><span class="j-punct">:</span>   <span class="j-str">"shot_switching_extension"</span><span class="j-punct">,</span>
+    <span class="j-key">"resolution"</span><span class="j-punct">:</span>  <span class="j-str">"540P"</span><span class="j-punct">,</span>
+    <span class="j-key">"duration"</span><span class="j-punct">:</span>    <span class="j-num">5</span><span class="j-punct">,</span>
     <span class="j-key">"seed"</span><span class="j-punct">:</span>        <span class="j-num">44</span><span class="j-punct">,</span>
-    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{ "{{prev}}" }}"</span>   <span class="j-comment">← output da Cena 2</span>
+    <span class="j-key">"offload"</span><span class="j-punct">:</span>     <span class="j-bool">false</span><span class="j-punct">,</span>
+    <span class="j-key">"low_vram"</span><span class="j-punct">:</span>    <span class="j-bool">true</span><span class="j-punct">,</span>
+    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{ "{{prev}}" }}"</span>    <span class="j-comment">← output da Cena 2</span>
   <span class="j-punct">},</span>
   <span class="j-punct">{</span>
-    <span class="j-key">"label"</span><span class="j-punct">:</span>       <span class="j-str">"Cena 4 — Extensão da Cena 1"</span><span class="j-punct">,</span>
+    <span class="j-key">"label"</span><span class="j-punct">:</span>       <span class="j-str">"Cena 4 — Volta à Cena 1"</span><span class="j-punct">,</span>
     <span class="j-key">"task_type"</span><span class="j-punct">:</span>   <span class="j-str">"single_shot_extension"</span><span class="j-punct">,</span>
+    <span class="j-key">"resolution"</span><span class="j-punct">:</span>  <span class="j-str">"540P"</span><span class="j-punct">,</span>
+    <span class="j-key">"duration"</span><span class="j-punct">:</span>    <span class="j-num">8</span><span class="j-punct">,</span>
     <span class="j-key">"seed"</span><span class="j-punct">:</span>        <span class="j-num">45</span><span class="j-punct">,</span>
-    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{ "{{job:0}}" }}"</span>  <span class="j-comment">← output da Cena 1 (índice 0)</span>
+    <span class="j-key">"offload"</span><span class="j-punct">:</span>     <span class="j-bool">false</span><span class="j-punct">,</span>
+    <span class="j-key">"low_vram"</span><span class="j-punct">:</span>    <span class="j-bool">true</span><span class="j-punct">,</span>
+    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{ "{{job:0}}" }}"</span>   <span class="j-comment">← output da Cena 1 (índice 0)</span>
   <span class="j-punct">}</span>
 <span class="j-punct">]</span></pre>
   </div>
 
   <div class="note warn">
-    <strong>Importante:</strong> a referência aponta para o índice da cena dentro da fila,
-    começando em 0. <code>{{ "{{prev}}" }}</code> é equivalente a <code>{{ "{{job:N-1}}" }}</code> onde N é
-    o índice da cena atual. Certifique-se de que a cena referenciada será executada antes
-    desta — a fila processa em sequência, de cima para baixo.
+    <strong>Importante:</strong> índices começam em 0 e seguem a ordem da fila.
+    <code>{{ "{{prev}}" }}</code> é equivalente a <code>{{ "{{job:N-1}}" }}</code> onde N é o índice da cena atual.
+    A fila processa em sequência — a cena referenciada deve vir antes desta.
   </div>
 
   <!-- EXEMPLOS -->
