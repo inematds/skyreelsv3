@@ -49,63 +49,163 @@ The demos above showcase videos generated using our SkyReels-V3 unified multimod
 
 ## 🖥️ Local Web UI
 
-SkyReels V3 includes a browser-based interface for generating videos without using the command line.
+SkyReels V3 includes a browser-based interface for generating videos without using the command line. All four task types are supported, including `talking_avatar`.
 
 ### Starting the Web UI
 
 ```bash
-# Activate the virtual environment (if using one)
+# Activate the virtual environment
 source .venv/bin/activate
 
-# Start the web server
+# Start the web server (listens on all interfaces)
 python webui/app.py
-# → opens on http://localhost:7860
+# → http://localhost:7860  (or http://<your-ip>:7860 on LAN)
 ```
 
-### Web UI Features
+### Left Panel — Generation Form
 
-#### Left Panel — Generation Form
 | Field | Description |
 |---|---|
-| **Task Type** | Select one of the 4 generation modes |
+| **Task Type** | `reference_to_video` · `single_shot_extension` · `shot_switching_extension` · `talking_avatar` |
 | **Prompt** | Text description of the desired video |
-| **Reference Images** | Drag & drop or path list (reference_to_video only) |
-| **Input Video** | Path or URL for extension tasks |
-| **Portrait + Audio** | Image and audio for talking_avatar |
-| **Resolution** | 480P / 540P / 720P (task-dependent) |
-| **Duration** | Seconds (ignored for talking_avatar — set by audio length) |
+| **Reference Images** | Path list, comma-separated — 1 to 4 images (`reference_to_video` only) |
+| **Input Video** | Local path or URL for extension tasks |
+| **Portrait Image** | Portrait for `talking_avatar` (jpg / png / gif / bmp) |
+| **Audio File** | Driving audio for `talking_avatar` (mp3 / wav · max 200 s) |
+| **Resolution** | `480P` / `540P` / `720P` — `talking_avatar` supports only `480P` or `720P` |
+| **Duration** | Output length in seconds — ignored for `talking_avatar` (set by audio) |
 | **Seed** | Random seed for reproducibility |
-| **Offload CPU** | Moves models to CPU between passes — reduces VRAM usage |
-| **Low VRAM** | FP8 quantization + block offload — required for talking_avatar on <24 GB GPUs |
+| **Offload CPU** | Moves models to CPU between passes — reduces VRAM |
+| **Low VRAM** | FP8 quantization + block offload — required for `talking_avatar` on GPUs < 24 GB |
 
-Two action buttons at the bottom:
+Action buttons:
 - **Gerar Vídeo** — start generation immediately
-- **+ Fila** — add the current configuration to the generation queue
+- **+ Fila** — add job to the simple queue (Fila tab)
 
-#### Right Panel — Tabs
+### Right Panel — Tabs
 
-**Progresso**
+#### Progresso
 - Real-time log output streamed from `generate_video.py`
 - Progress bar parsed from tqdm output
 - Status badge: Aguardando / Gerando / Concluído / Erro
 
-**Vídeos**
-- Left sidebar: gallery with all generated `.mp4` files
+#### Vídeos
+- Left sidebar: scrollable gallery of all generated `.mp4` files
   - Toggle between **list** (☰) and **grid** (▦) views
-  - Hover over a card to reveal ▶ (open) and 🔒 (lock) buttons
-  - ▶ opens the video in the player on the right
-  - 🔒 marks the card as private (blurred, hidden); click again to unlock
-  - Per-card privacy state persists across browser reloads (localStorage)
-  - **🔒 Ocultar tudo** / **🔓 Revelar tudo** toggle for all cards at once
-- Right area: video player + generation details panel
-  - Shows all generation parameters saved in the `.json` sidecar file
+  - ▶ opens the video in the player · 🔒 marks card as private (blurred)
+  - Privacy state persists across browser reloads (localStorage)
+  - **🔒 Ocultar tudo** / **🔓 Revelar tudo** — bulk toggle
+- Right area: video player + parameters panel (from `.json` sidecar)
 
-**Fila**
-- Queue of pending / running / completed generation jobs
-- **↑ Importar** — load a `.json` or `.md` file with multiple jobs
-- **Limpar** — remove all pending jobs
-- Jobs run automatically one at a time; next job starts when current finishes
-- See `doc/QUEUE_FORMAT.md` for the import file format
+#### Fila (Simple Queue)
+- Ad-hoc queue for one-off jobs added via **+ Fila**
+- Jobs run automatically one at a time
+
+---
+
+## 📋 Named Queues — Batch Episode Production
+
+The **Named Queues** system (`webui/` → tab **Fila**) allows importing a JSON file with dozens of scenes and running them as a named, resumable batch job. Designed for multi-scene episodes where each scene is either a `reference_to_video` shot or a `talking_avatar` dialogue line.
+
+### Queue Actions
+
+| Button | Action |
+|---|---|
+| **↑ Importar** | Load a `.json` file as a new named queue |
+| **▶ Continuar** | Run all `idle` jobs sequentially, skip errors |
+| **↩ Repetir do erro** | Reset `error` jobs and resume from the first failure |
+| **↺ Reiniciar do zero** | Reset all jobs (including `done`) and restart from scene 1 |
+| **🎬 Finalizar** | Concatenate all `done` videos into one final `.mp4` |
+| **🗑** | Delete the queue |
+
+Each scene card shows its status (`idle` / `running` / `done` / `error`) and can be individually run (▶) or edited (✏️). Cards are **expanded by default** on first open and support expand-all (⊞) / collapse-all (⊟) controls.
+
+### Episode JSON Format
+
+Create a `.json` file with an array of scene objects. Mixed task types in a single file are supported:
+
+```json
+[
+  {
+    "label": "C01-A · School hallway — establishing shot",
+    "task_type": "reference_to_video",
+    "prompt": "A modern school hallway on the first day of school...",
+    "resolution": "540P",
+    "duration": 4,
+    "seed": 1001,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": [
+      "uploads/project/scene01.png",
+      "uploads/project/character_a.png",
+      "uploads/project/character_b.png"
+    ]
+  },
+  {
+    "label": "C01-B · Character A — 'Sorry!'",
+    "task_type": "talking_avatar",
+    "prompt": "A teenage girl, composed but slightly embarrassed, speaking a brief apology.",
+    "resolution": "480P",
+    "seed": 1002,
+    "low_vram": true,
+    "input_image": "uploads/project/character_a.png",
+    "input_audio": "uploads/project/audio/c01_line01.mp3"
+  }
+]
+```
+
+**Field reference per task type:**
+
+| Field | `reference_to_video` | `talking_avatar` | `single/shot_switching_extension` |
+|---|---|---|---|
+| `label` | ✅ recommended | ✅ recommended | ✅ recommended |
+| `task_type` | required | required | required |
+| `prompt` | required | required | required |
+| `resolution` | `480P`/`540P`/`720P` | `480P` or `720P` only | `480P`/`540P`/`720P` |
+| `duration` | required (seconds) | — (from audio) | required (seconds) |
+| `seed` | optional | optional | optional |
+| `offload` | optional | optional | optional |
+| `low_vram` | optional | **required** on <24 GB | optional |
+| `ref_imgs` | required (1–4 paths) | — | — |
+| `input_image` | — | required | — |
+| `input_audio` | — | required | — |
+| `input_video` | — | — | required |
+
+> ⚠️ **Important:** `ref_imgs` paths must not contain commas, as the CLI uses comma as a separator.
+
+### Runtime Job Editing
+
+Individual scene parameters can be changed while the queue is paused. Click ✏️ on any `idle` or `error` scene to open the edit modal — changes are applied immediately in memory and saved to disk.
+
+### Editing via API (PATCH)
+
+```bash
+# Change resolution of job 42 in queue 5
+curl -X PATCH http://localhost:7860/nqueues/5/jobs/42 \
+  -H "Content-Type: application/json" \
+  -d '{"resolution": "720P", "seed": 9999}'
+```
+
+Protected fields (cannot be patched): `id`, `nq_id`, `status`, `task_type`, `created_at`, `output_video`, `started_at`, `finished_at`.
+
+### Organizing Project Assets
+
+Recommended folder layout for a multi-episode project:
+
+```
+uploads/
+└── <project>/
+    └── <episode>/
+        ├── scene01.png          # background / establishing shots
+        ├── scene02.png
+        ├── character_a.png      # character portraits (reused across scenes)
+        ├── character_b.png
+        └── audio/
+            ├── ep01_c01_a_line1.mp3
+            └── ep01_c01_b_line1.mp3
+doc/
+└── ep01_primeiro_dia.json       # episode scene list (59 scenes example)
+```
 
 ---
 

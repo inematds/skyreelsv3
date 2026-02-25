@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.10.5</title>
+<title>INEMA SkyReels V3 3.10.7</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -742,6 +742,7 @@
   .nq-scene-card {
     background: #1a1a24; border: 1px solid #2a2a3a;
     border-radius: 10px; overflow: hidden; transition: border-color .2s;
+    flex-shrink: 0;
   }
   .nq-scene-card.status-running { border-color: #5a3aed; }
   .nq-scene-card.status-done    { border-color: #1a4a2a; }
@@ -1143,6 +1144,8 @@
               <button id="nq-restart-btn" class="nq-action-btn danger2" onclick="restartCurrentNq()" title="Reiniciar do zero: apaga tudo e começa do início" style="display:none">↺ Reiniciar do zero</button>
               <button id="nq-finalize-btn" class="nq-action-btn finalize" onclick="finalizeCurrentNq()" title="Concatenar todas as cenas concluídas em um vídeo final" disabled>🎬 Finalizar</button>
               <button class="nq-action-btn danger" onclick="deleteCurrentNq()" title="Excluir esta fila">🗑</button>
+              <button class="nq-action-btn" onclick="toggleAllScenes(true)"  title="Expandir todas as cenas">⊞</button>
+              <button class="nq-action-btn" onclick="toggleAllScenes(false)" title="Colapsar todas as cenas">⊟</button>
             </div>
           </div>
           <div id="nq-scenes" class="nq-scenes"></div>
@@ -1700,6 +1703,7 @@ function buildNqCard(nq) {
     <div class="nq-card-header">
       <span class="nq-card-name">${nq.name}</span>
       <div class="nq-card-actions">
+        <button class="nq-mini-btn" onclick="event.stopPropagation();openNq(${nq.id})" title="Abrir fila">📂</button>
         ${runBtn}
         ${retryBtn}
         <button class="nq-mini-btn del" onclick="event.stopPropagation();deleteNq(${nq.id})"
@@ -1804,70 +1808,130 @@ async function refreshNqDetail(id) {
   }
 
   const scenes = document.getElementById('nq-scenes');
-  const expanded = new Set(
-    Array.from(scenes.querySelectorAll('.nq-scene-card.expanded')).map(c => c.dataset.jobId)
-  );
+  const prevCards = Array.from(scenes.querySelectorAll('.nq-scene-card'));
+  const isFirstLoad = prevCards.length === 0;
+  const expanded = new Set(prevCards.filter(c => c.classList.contains('expanded')).map(c => c.dataset.jobId));
   scenes.innerHTML = '';
-  nq.jobs.forEach(job => {
-    const card = buildSceneCard(id, job);
-    if (expanded.has(String(job.id))) card.classList.add('expanded');
-    scenes.appendChild(card);
-  });
+  let rendered = 0;
+  for (const job of nq.jobs) {
+    try {
+      const card = buildSceneCard(id, job);
+      if (isFirstLoad || expanded.has(String(job.id))) card.classList.add('expanded');
+      scenes.appendChild(card);
+      rendered++;
+    } catch(err) {
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'color:#f88;padding:8px;font-size:.8rem;border:1px solid #f44;margin:4px;border-radius:4px';
+      errDiv.textContent = `Erro job ${job.id} (${job.label}): ${err.message}`;
+      scenes.appendChild(errDiv);
+    }
+  }
+  if (rendered === 0 && nq.jobs.length > 0) {
+    scenes.innerHTML = `<div style="color:#f88;padding:16px">Erro ao renderizar cenas. Verifique o console.</div>`;
+  }
 }
 
 function buildSceneCard(nqId, job) {
-  // Cache job data so onclick attrs don't need to embed JSON
   _jobCache.set(job.id, job);
 
   const card = document.createElement('div');
-  card.className = `nq-scene-card status-${job.status}`;
+  card.className = 'nq-scene-card status-' + job.status;
   card.dataset.jobId = job.id;
 
   const canRun = !['running', 'pending'].includes(job.status);
-  const hasVideo = job.output_video;
+  const canEdit = ['idle', 'error'].includes(job.status);
 
-  const details = [];
-  if (job.prompt)       details.push(`<div class="detail-row"><span class="detail-key">Prompt</span><span class="detail-val prompt-val">${job.prompt}</span></div>`);
-  if (job.ref_imgs)     details.push(`<div class="detail-row"><span class="detail-key">Imagens ref.</span><span class="detail-val">${(Array.isArray(job.ref_imgs) ? job.ref_imgs : [job.ref_imgs]).map(p => p.split('/').pop()).join(', ')}</span></div>`);
-  if (job.input_video)  details.push(`<div class="detail-row"><span class="detail-key">Vídeo entrada</span><span class="detail-val">${job.input_video.split('/').pop()}</span></div>`);
-  if (job.input_image)  details.push(`<div class="detail-row"><span class="detail-key">Imagem retrato</span><span class="detail-val">${job.input_image.split('/').pop()}</span></div>`);
-  if (job.input_audio)  details.push(`<div class="detail-row"><span class="detail-key">Áudio</span><span class="detail-val">${job.input_audio.split('/').pop()}</span></div>`);
-  if (job.output_video) details.push(`<div class="detail-row"><span class="detail-key">Saída</span><span class="detail-val">${job.output_video}</span></div>`);
-
+  // ── Header (pure DOM, no innerHTML) ─────────────────────────
   const header = document.createElement('div');
   header.className = 'nq-scene-header';
   header.addEventListener('click', () => toggleScene(card));
-  header.innerHTML = `
-    <div class="job-status-dot"></div>
-    <div class="nq-scene-info">
-      <div class="job-label">${job.label}</div>
-      <div class="job-meta">
-        <span>${STATUS_LABEL[job.status] || job.status}</span>
-        · ${job.task_type} · ${job.resolution || ''} · seed ${job.seed ?? 42}${job.duration ? ' · ' + job.duration + 's' : ''}
-      </div>
-    </div>
-    ${canRun ? `<button class="nq-mini-btn run" title="Executar esta cena">▶</button>` : ''}
-    ${['idle','error'].includes(job.status) ? `<button class="nq-mini-btn edit" title="Editar cena">✏️</button>` : ''}
-    <span class="nq-scene-expand">▾</span>`;
+
+  const dot = document.createElement('div');
+  dot.className = 'job-status-dot';
+
+  const info = document.createElement('div');
+  info.className = 'nq-scene-info';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'job-label';
+  lbl.textContent = job.label;
+
+  const meta = document.createElement('div');
+  meta.className = 'job-meta';
+  const statusSpan = document.createElement('span');
+  statusSpan.textContent = STATUS_LABEL[job.status] || job.status;
+  meta.appendChild(statusSpan);
+  meta.appendChild(document.createTextNode(
+    ' · ' + job.task_type +
+    ' · ' + (job.resolution || '') +
+    ' · seed ' + (job.seed != null ? job.seed : 42) +
+    (job.duration ? ' · ' + job.duration + 's' : '')
+  ));
+
+  info.appendChild(lbl);
+  info.appendChild(meta);
+
+  header.appendChild(dot);
+  header.appendChild(info);
 
   if (canRun) {
-    header.querySelector('.nq-mini-btn.run').addEventListener('click', e => {
-      e.stopPropagation(); runNqJob(nqId, job.id);
-    });
+    const runBtn = document.createElement('button');
+    runBtn.className = 'nq-mini-btn run';
+    runBtn.title = 'Executar esta cena';
+    runBtn.textContent = '▶';
+    runBtn.addEventListener('click', e => { e.stopPropagation(); runNqJob(nqId, job.id); });
+    header.appendChild(runBtn);
   }
-  if (['idle','error'].includes(job.status)) {
-    header.querySelector('.nq-mini-btn.edit').addEventListener('click', e => {
-      e.stopPropagation(); openEditJobModal(nqId, _jobCache.get(job.id));
-    });
+  if (canEdit) {
+    const editBtn = document.createElement('button');
+    editBtn.className = 'nq-mini-btn edit';
+    editBtn.title = 'Editar cena';
+    editBtn.textContent = '✏️';
+    editBtn.addEventListener('click', e => { e.stopPropagation(); openEditJobModal(nqId, _jobCache.get(job.id)); });
+    header.appendChild(editBtn);
   }
 
+  const expand = document.createElement('span');
+  expand.className = 'nq-scene-expand';
+  expand.textContent = '▾';
+  header.appendChild(expand);
+
+  // ── Body ────────────────────────────────────────────────────
   const body = document.createElement('div');
   body.className = 'nq-scene-body';
-  body.innerHTML = `
-    ${hasVideo
-      ? `<video class="nq-scene-video" src="/video/${job.output_video}" controls></video>`
-      : '<div class="nq-no-video">Vídeo não gerado ainda.</div>'}
-    <div class="nq-scene-details">${details.join('')}</div>`;
+
+  if (job.output_video) {
+    const vid = document.createElement('video');
+    vid.className = 'nq-scene-video';
+    vid.src = '/video/' + job.output_video;
+    vid.controls = true;
+    body.appendChild(vid);
+  } else {
+    const nov = document.createElement('div');
+    nov.className = 'nq-no-video';
+    nov.textContent = 'Vídeo não gerado ainda.';
+    body.appendChild(nov);
+  }
+
+  const det = document.createElement('div');
+  det.className = 'nq-scene-details';
+  const detailRows = [
+    job.prompt       ? ['Prompt',          job.prompt] : null,
+    job.ref_imgs     ? ['Imagens ref.',    (Array.isArray(job.ref_imgs) ? job.ref_imgs : [job.ref_imgs]).map(p => p.split('/').pop()).join(', ')] : null,
+    job.input_video  ? ['Vídeo entrada',   job.input_video.split('/').pop()] : null,
+    job.input_image  ? ['Imagem retrato',  job.input_image.split('/').pop()] : null,
+    job.input_audio  ? ['Áudio',           job.input_audio.split('/').pop()] : null,
+    job.output_video ? ['Saída',           job.output_video] : null,
+  ];
+  detailRows.forEach(row => {
+    if (!row) return;
+    const dr = document.createElement('div'); dr.className = 'detail-row';
+    const dk = document.createElement('span'); dk.className = 'detail-key'; dk.textContent = row[0];
+    const dv = document.createElement('span'); dv.className = 'detail-val'; dv.textContent = row[1];
+    dr.appendChild(dk); dr.appendChild(dv);
+    det.appendChild(dr);
+  });
+  body.appendChild(det);
 
   card.appendChild(header);
   card.appendChild(body);
@@ -1875,6 +1939,13 @@ function buildSceneCard(nqId, job) {
 }
 
 function toggleScene(card) { card.classList.toggle('expanded'); }
+
+function toggleAllScenes(expand) {
+  document.querySelectorAll('.nq-scene-card').forEach(c => {
+    if (expand) c.classList.add('expanded');
+    else c.classList.remove('expanded');
+  });
+}
 
 async function runNq(id) {
   const res = await fetch(`/nqueues/${id}/run`, { method: 'POST' });
