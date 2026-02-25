@@ -22,7 +22,7 @@
     "seed": 1002,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/vana.png",
-    "input_audio": "uploads/audio/c01_valen_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c01_valen_01.mp3"
   },
   {
     "label": "C01-C · Lumi — 'Tudo bem… eu que estava parada no meio.'",
@@ -32,7 +32,7 @@
     "seed": 1003,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/lumi.png",
-    "input_audio": "uploads/audio/c01_lumi_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c01_lumi_01.mp3"
   },
   {
     "label": "C01-D · Valen — 'Primeiro dia?'",
@@ -42,7 +42,7 @@
     "seed": 1004,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/vana.png",
-    "input_audio": "uploads/audio/c01_valen_02.mp3"
+    "input_audio": "uploads/inetusx/eps01/c01_valen_02.mp3"
   },
   {
     "label": "C01-E · Lumi — 'Dá pra perceber, né?'",
@@ -52,7 +52,7 @@
     "seed": 1005,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/lumi.png",
-    "input_audio": "uploads/audio/c01_lumi_02.mp3"
+    "input_audio": "uploads/inetusx/eps01/c01_lumi_02.mp3"
   },
   {
     "label": "C01-F · Corredor — Plano de saída, olhar que fica",
@@ -92,7 +92,7 @@
     "seed": 1012,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/lumi.png",
-    "input_audio": "uploads/audio/c02_lumi_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c02_lumi_01.mp3"
   },
   {
     "label": "C02-C · Valen — 'Quase. Acho que é mais simples do que parece.'",
@@ -102,7 +102,7 @@
     "seed": 1013,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/vana.png",
-    "input_audio": "uploads/audio/c02_valen_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c02_valen_01.mp3"
   },
   {
     "label": "C02-D · Lumi — 'Ou mais complicado.'",
@@ -112,7 +112,7 @@
     "seed": 1014,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/lumi.png",
-    "input_audio": "uploads/audio/c02_lumi_02.mp3"
+    "input_audio": "uploads/inetusx/eps01/c02_lumi_02.mp3"
   },
   {
     "label": "C02-E · Valen — 'Espero que não.'",
@@ -122,7 +122,7 @@
     "seed": 1015,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/vana.png",
-    "input_audio": "uploads/audio/c02_valen_02.mp3"
+    "input_audio": "uploads/inetusx/eps01/c02_valen_02.mp3"
   },
   {
     "label": "C02-F · Sala — Primeiro silêncio cúmplice",
@@ -161,7 +161,7 @@
     "seed": 1022,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/lumi.png",
-    "input_audio": "uploads/audio/c03_lumi_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c03_lumi_01.mp3"
   },
   {
     "label": "C03-C · Maya — 'Sim… eu gosto de desenhar enquanto espero.'",
@@ -171,7 +171,7 @@
     "seed": 1023,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/maya.png",
-    "input_audio": "uploads/audio/c03_maya_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c03_maya_01.mp3"
   },
   {
     "label": "C03-D · Valen — 'É um cachorro-robô?'",
@@ -181,7 +181,7 @@
     "seed": 1024,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/vana.png",
-    "input_audio": "uploads/audio/c03_valen_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c03_valen_01.mp3"
   },
   {
     "label": "C03-E · Maya — 'É. Ele parece abandonado… mas não devia estar.'",
@@ -191,7 +191,7 @@
     "seed": 1025,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/maya.png",
-    "input_audio": "uploads/audio/c03_maya_02.mp3"
+    "input_audio": "uploads/inetusx/eps01/c03_maya_02.mp3"
   },
   {
     "label": "C03-F · Refeitório — Três juntos na fila, vínculo silencioso",
@@ -231,7 +231,7 @@
     "seed": 1032,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/caio.png",
-    "input_audio": "uploads/audio/c04_caio_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c04_caio_01.mp3"
   },
   {
     "label": "C04-C · Maya — 'Não.'",
@@ -241,7 +241,7 @@
     "seed": 1033,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/maya.png",
-    "input_audio": "uploads/audio/c04_maya_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c04_maya_01.mp3"
   },
   {
     "label": "C04-D · Lumi — 'Você já mexeu nesse sistema antes?'",
@@ -251,7 +251,7 @@
     "seed": 1034,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/lumi.png",
-    "input_audio": "uploads/audio/c04_lumi_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c04_lumi_01.mp3"
   },
   {
     "label": "C04-E · Caio — 'Um pouco… ele é mais intuitivo do que parece.'",
@@ -261,7 +261,7 @@
     "seed": 1035,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/caio.png",
-    "input_audio": "uploads/audio/c04_caio_02.mp3"
+    "input_audio": "uploads/inetusx/eps01/c04_caio_02.mp3"
   },
   {
     "label": "C04-F · Sala — Quatro mentes na mesma conversa",
@@ -302,7 +302,7 @@
     "seed": 1042,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/maya.png",
-    "input_audio": "uploads/audio/c05_maya_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c05_maya_01.mp3"
   },
   {
     "label": "C05-C · Valen — 'Pode usar essa.'",
@@ -312,7 +312,7 @@
     "seed": 1043,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/vana.png",
-    "input_audio": "uploads/audio/c05_valen_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c05_valen_01.mp3"
   },
   {
     "label": "C05-D · Maya — 'Sério?'",
@@ -322,7 +322,7 @@
     "seed": 1044,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/maya.png",
-    "input_audio": "uploads/audio/c05_maya_02.mp3"
+    "input_audio": "uploads/inetusx/eps01/c05_maya_02.mp3"
   },
   {
     "label": "C05-E · Valen — 'Depois você me devolve.'",
@@ -332,7 +332,7 @@
     "seed": 1045,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/vana.png",
-    "input_audio": "uploads/audio/c05_valen_02.mp3"
+    "input_audio": "uploads/inetusx/eps01/c05_valen_02.mp3"
   },
   {
     "label": "C05-F · Sala — Maya escreve, Valen olha de volta discretamente",
@@ -387,7 +387,7 @@
     "seed": 1053,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/caio.png",
-    "input_audio": "uploads/audio/c06_caio_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c06_caio_01.mp3"
   },
   {
     "label": "C06-D · Maya — 'Eu tentei não rir.'",
@@ -397,7 +397,7 @@
     "seed": 1054,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/maya.png",
-    "input_audio": "uploads/audio/c06_maya_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c06_maya_01.mp3"
   },
   {
     "label": "C06-E · Valen — 'Falhou miseravelmente.'",
@@ -407,7 +407,7 @@
     "seed": 1055,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/vana.png",
-    "input_audio": "uploads/audio/c06_valen_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c06_valen_01.mp3"
   },
   {
     "label": "C06-F · Sala — Os quatro rindo juntos pela primeira vez",
@@ -449,7 +449,7 @@
     "seed": 1062,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/maya.png",
-    "input_audio": "uploads/audio/c07_maya_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c07_maya_01.mp3"
   },
   {
     "label": "C07-C · Caio — 'Preciso terminar a atividade.'",
@@ -459,7 +459,7 @@
     "seed": 1063,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/caio.png",
-    "input_audio": "uploads/audio/c07_caio_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c07_caio_01.mp3"
   },
   {
     "label": "C07-D · Lumi — 'Eu queria ver os livros digitais novos.'",
@@ -469,7 +469,7 @@
     "seed": 1064,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/lumi.png",
-    "input_audio": "uploads/audio/c07_lumi_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c07_lumi_01.mp3"
   },
   {
     "label": "C07-E · Valen — 'Então vamos juntos.'",
@@ -479,7 +479,7 @@
     "seed": 1065,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/vana.png",
-    "input_audio": "uploads/audio/c07_valen_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c07_valen_01.mp3"
   },
   {
     "label": "C07-F · Corredor — Quatro em linha, equilíbrio inconsciente",
@@ -521,7 +521,7 @@
     "seed": 1072,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/vana.png",
-    "input_audio": "uploads/audio/c08_valen_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c08_valen_01.mp3"
   },
   {
     "label": "C08-C · Caio — 'Facilita bastante.'",
@@ -531,7 +531,7 @@
     "seed": 1073,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/caio.png",
-    "input_audio": "uploads/audio/c08_caio_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c08_caio_01.mp3"
   },
   {
     "label": "C08-D · Maya — 'Melhor do que procurar pela sala inteira.'",
@@ -541,7 +541,7 @@
     "seed": 1074,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/maya.png",
-    "input_audio": "uploads/audio/c08_maya_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c08_maya_01.mp3"
   },
   {
     "label": "C08-E · Sala — Os quatro como grupo, plano fechado",
@@ -583,7 +583,7 @@
     "seed": 1082,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/maya.png",
-    "input_audio": "uploads/audio/c09_maya_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c09_maya_01.mp3"
   },
   {
     "label": "C09-C · Caio — 'A previsão não falava nisso.'",
@@ -593,7 +593,7 @@
     "seed": 1083,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/caio.png",
-    "input_audio": "uploads/audio/c09_caio_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c09_caio_01.mp3"
   },
   {
     "label": "C09-D · Lumi — 'Às vezes a previsão erra.'",
@@ -603,7 +603,7 @@
     "seed": 1084,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/lumi.png",
-    "input_audio": "uploads/audio/c09_lumi_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c09_lumi_01.mp3"
   },
   {
     "label": "C09-E · Valen — 'Melhor esperar juntos.'",
@@ -613,7 +613,7 @@
     "seed": 1085,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/vana.png",
-    "input_audio": "uploads/audio/c09_valen_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c09_valen_01.mp3"
   },
   {
     "label": "C09-F · Marquise — Silêncio confortável, ninguém quer ir",
@@ -655,7 +655,7 @@
     "seed": 1092,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/lumi.png",
-    "input_audio": "uploads/audio/c10_lumi_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c10_lumi_01.mp3"
   },
   {
     "label": "C10-C · Caio — 'Foi mesmo.'",
@@ -665,7 +665,7 @@
     "seed": 1093,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/caio.png",
-    "input_audio": "uploads/audio/c10_caio_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c10_caio_01.mp3"
   },
   {
     "label": "C10-D · Maya — 'Não foi tão assustador quanto eu achei que seria.'",
@@ -675,7 +675,7 @@
     "seed": 1094,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/maya.png",
-    "input_audio": "uploads/audio/c10_maya_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c10_maya_01.mp3"
   },
   {
     "label": "C10-E · Valen — 'A gente sobreviveu ao primeiro dia. Já é um começo.'",
@@ -685,7 +685,7 @@
     "seed": 1095,
     "low_vram": true,
     "input_image": "uploads/inetusx/eps01/vana.png",
-    "input_audio": "uploads/audio/c10_valen_01.mp3"
+    "input_audio": "uploads/inetusx/eps01/c10_valen_01.mp3"
   },
   {
     "label": "C10-F · Portão — Plano final, a pausa antes de ir",

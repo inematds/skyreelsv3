@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.10.4</title>
+<title>INEMA SkyReels V3 3.10.5</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -1675,6 +1675,9 @@ const STATUS_LABEL = {
 
 const NQ_STATUS_LABEL = { idle: 'Pronto', running: 'Executando', done: 'Concluído', error: 'Erro' };
 
+// Map: job.id → job object — avoids embedding JSON in HTML onclick attributes
+const _jobCache = new Map();
+
 let currentNqId = null;
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -1813,6 +1816,9 @@ async function refreshNqDetail(id) {
 }
 
 function buildSceneCard(nqId, job) {
+  // Cache job data so onclick attrs don't need to embed JSON
+  _jobCache.set(job.id, job);
+
   const card = document.createElement('div');
   card.className = `nq-scene-card status-${job.status}`;
   card.dataset.jobId = job.id;
@@ -1821,33 +1827,50 @@ function buildSceneCard(nqId, job) {
   const hasVideo = job.output_video;
 
   const details = [];
-  if (job.prompt)      details.push(`<div class="detail-row"><span class="detail-key">Prompt</span><span class="detail-val prompt-val">${job.prompt}</span></div>`);
-  if (job.ref_imgs)    details.push(`<div class="detail-row"><span class="detail-key">Imagens ref.</span><span class="detail-val">${(Array.isArray(job.ref_imgs) ? job.ref_imgs : [job.ref_imgs]).map(p => p.split('/').pop()).join(', ')}</span></div>`);
-  if (job.input_video) details.push(`<div class="detail-row"><span class="detail-key">Vídeo entrada</span><span class="detail-val">${job.input_video.split('/').pop()}</span></div>`);
-  if (job.input_image) details.push(`<div class="detail-row"><span class="detail-key">Imagem retrato</span><span class="detail-val">${job.input_image.split('/').pop()}</span></div>`);
-  if (job.input_audio) details.push(`<div class="detail-row"><span class="detail-key">Áudio</span><span class="detail-val">${job.input_audio.split('/').pop()}</span></div>`);
+  if (job.prompt)       details.push(`<div class="detail-row"><span class="detail-key">Prompt</span><span class="detail-val prompt-val">${job.prompt}</span></div>`);
+  if (job.ref_imgs)     details.push(`<div class="detail-row"><span class="detail-key">Imagens ref.</span><span class="detail-val">${(Array.isArray(job.ref_imgs) ? job.ref_imgs : [job.ref_imgs]).map(p => p.split('/').pop()).join(', ')}</span></div>`);
+  if (job.input_video)  details.push(`<div class="detail-row"><span class="detail-key">Vídeo entrada</span><span class="detail-val">${job.input_video.split('/').pop()}</span></div>`);
+  if (job.input_image)  details.push(`<div class="detail-row"><span class="detail-key">Imagem retrato</span><span class="detail-val">${job.input_image.split('/').pop()}</span></div>`);
+  if (job.input_audio)  details.push(`<div class="detail-row"><span class="detail-key">Áudio</span><span class="detail-val">${job.input_audio.split('/').pop()}</span></div>`);
   if (job.output_video) details.push(`<div class="detail-row"><span class="detail-key">Saída</span><span class="detail-val">${job.output_video}</span></div>`);
 
-  card.innerHTML = `
-    <div class="nq-scene-header" onclick="toggleScene(this.parentElement)">
-      <div class="job-status-dot"></div>
-      <div class="nq-scene-info">
-        <div class="job-label">${job.label}</div>
-        <div class="job-meta">
-          <span>${STATUS_LABEL[job.status] || job.status}</span>
-          · ${job.task_type} · ${job.resolution || ''} · seed ${job.seed ?? 42}${job.duration ? ' · ' + job.duration + 's' : ''}
-        </div>
+  const header = document.createElement('div');
+  header.className = 'nq-scene-header';
+  header.addEventListener('click', () => toggleScene(card));
+  header.innerHTML = `
+    <div class="job-status-dot"></div>
+    <div class="nq-scene-info">
+      <div class="job-label">${job.label}</div>
+      <div class="job-meta">
+        <span>${STATUS_LABEL[job.status] || job.status}</span>
+        · ${job.task_type} · ${job.resolution || ''} · seed ${job.seed ?? 42}${job.duration ? ' · ' + job.duration + 's' : ''}
       </div>
-      ${canRun ? `<button class="nq-mini-btn run" onclick="event.stopPropagation();runNqJob(${nqId}, ${job.id})" title="Executar esta cena">▶</button>` : ''}
-      ${['idle','error'].includes(job.status) ? `<button class="nq-mini-btn edit" title="Editar cena" onclick="event.stopPropagation();openEditJobModal(${nqId}, ${JSON.stringify(job).replace(/"/g,'&quot;')})">✏️</button>` : ''}
-      <span class="nq-scene-expand">▾</span>
     </div>
-    <div class="nq-scene-body">
-      ${hasVideo
-        ? `<video class="nq-scene-video" src="/video/${job.output_video}" controls></video>`
-        : '<div class="nq-no-video">Vídeo não gerado ainda.</div>'}
-      <div class="nq-scene-details">${details.join('')}</div>
-    </div>`;
+    ${canRun ? `<button class="nq-mini-btn run" title="Executar esta cena">▶</button>` : ''}
+    ${['idle','error'].includes(job.status) ? `<button class="nq-mini-btn edit" title="Editar cena">✏️</button>` : ''}
+    <span class="nq-scene-expand">▾</span>`;
+
+  if (canRun) {
+    header.querySelector('.nq-mini-btn.run').addEventListener('click', e => {
+      e.stopPropagation(); runNqJob(nqId, job.id);
+    });
+  }
+  if (['idle','error'].includes(job.status)) {
+    header.querySelector('.nq-mini-btn.edit').addEventListener('click', e => {
+      e.stopPropagation(); openEditJobModal(nqId, _jobCache.get(job.id));
+    });
+  }
+
+  const body = document.createElement('div');
+  body.className = 'nq-scene-body';
+  body.innerHTML = `
+    ${hasVideo
+      ? `<video class="nq-scene-video" src="/video/${job.output_video}" controls></video>`
+      : '<div class="nq-no-video">Vídeo não gerado ainda.</div>'}
+    <div class="nq-scene-details">${details.join('')}</div>`;
+
+  card.appendChild(header);
+  card.appendChild(body);
   return card;
 }
 

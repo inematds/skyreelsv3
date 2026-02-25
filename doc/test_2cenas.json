@@ -1,0 +1,27 @@
+[
+  {
+    "label": "TESTE-01 · Cena Estabelecimento",
+    "task_type": "reference_to_video",
+    "prompt": "A modern school hallway on the first day of school. Bright LED lights reflect off polished floors. Two teenage girls almost collide. Anime-inspired soft shading, wide establishing shot, warm ambient light.",
+    "resolution": "540P",
+    "duration": 4,
+    "seed": 9001,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": [
+      "uploads/inetusx/eps01/ChatGPT Image 25 de fev. de 2026, 00_51_49.png",
+      "uploads/inetusx/eps01/vana.png",
+      "uploads/inetusx/eps01/lumi.png"
+    ]
+  },
+  {
+    "label": "TESTE-02 · Valen — 'Foi mal.'",
+    "task_type": "talking_avatar",
+    "prompt": "A teenage girl, composed but slightly embarrassed, speaking a brief apology, direct gaze, school hallway background. Close-up shot.",
+    "resolution": "480P",
+    "seed": 9002,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/vana.png",
+    "input_audio": "uploads/inetusx/eps01/c01_valen_01.mp3"
+  }
+]
