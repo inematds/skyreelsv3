@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.10.3</title>
+<title>INEMA SkyReels V3 3.10.4</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -827,12 +827,26 @@
   .modal-checks label { flex-direction: row; align-items: center; gap: 6px; color: #ccc; }
   .nq-mini-btn.edit { background: #1a2a1a; color: #6fcf6f; border-color: #2a4a2a; }
   .nq-mini-btn.edit:hover { background: #2a3a2a; }
+
+  /* Finalized video panel */
+  .nq-finalized-panel {
+    background: #141a14; border: 1px solid #2a4a2a; border-radius: 8px;
+    padding: 12px 14px; margin: 0 14px 10px;
+  }
+  .nq-finalized-header {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: .85rem; font-weight: 600; color: #6fcf6f; margin-bottom: 4px;
+  }
+  .nq-finalized-header button {
+    background: none; border: none; color: #888; font-size: 1rem; cursor: pointer; line-height: 1;
+  }
+  .nq-finalized-header button:hover { color: #fff; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="10 recursos adicionados">10</span>.<span class="fix" title="3 correções">3</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="10 recursos adicionados">10</span>.<span class="fix" title="4 correções">4</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -1127,7 +1141,7 @@
               <button id="nq-run-btn"     class="nq-action-btn run"     onclick="runCurrentNq()"     title="Continuar: executar cenas idle, pula erros">▶ Continuar</button>
               <button id="nq-retry-btn"  class="nq-action-btn reset"   onclick="retryCurrentNq()"   title="Repetir do erro: reseta erros e continua de onde parou" style="display:none">↩ Repetir do erro</button>
               <button id="nq-restart-btn" class="nq-action-btn danger2" onclick="restartCurrentNq()" title="Reiniciar do zero: apaga tudo e começa do início" style="display:none">↺ Reiniciar do zero</button>
-              <button class="nq-action-btn finalize" onclick="finalizeCurrentNq()" title="Em breve: montar vídeo final (ffmpeg)" disabled>🎬 Finalizar</button>
+              <button id="nq-finalize-btn" class="nq-action-btn finalize" onclick="finalizeCurrentNq()" title="Concatenar todas as cenas concluídas em um vídeo final" disabled>🎬 Finalizar</button>
               <button class="nq-action-btn danger" onclick="deleteCurrentNq()" title="Excluir esta fila">🗑</button>
             </div>
           </div>
@@ -1778,6 +1792,13 @@ async function refreshNqDetail(id) {
     restartBtn.style.display = hasDone ? '' : 'none';
     restartBtn.disabled = isRunning;
   }
+  const finalizeBtn = document.getElementById('nq-finalize-btn');
+  if (finalizeBtn) {
+    finalizeBtn.disabled = !hasDone || isRunning;
+    finalizeBtn.title = hasDone
+      ? `Concatenar ${done} cena(s) concluída(s) em um vídeo final`
+      : 'Nenhuma cena concluída ainda';
+  }
 
   const scenes = document.getElementById('nq-scenes');
   const expanded = new Set(
@@ -1903,7 +1924,43 @@ async function deleteNq(id) {
 async function deleteCurrentNq() { if (currentNqId) deleteNq(currentNqId); }
 
 async function finalizeCurrentNq() {
-  alert('🎬 Funcionalidade em desenvolvimento — o vídeo final será montado via ffmpeg em breve.');
+  if (!currentNqId) return;
+  const btn = document.getElementById('nq-finalize-btn');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Concatenando...';
+  try {
+    const res = await fetch(`/nqueues/${currentNqId}/finalize`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || 'Erro ao finalizar'); return; }
+    showFinalizedVideo(data.output_video, data.scene_count);
+  } catch(e) {
+    alert('Erro: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
+function showFinalizedVideo(path, sceneCount) {
+  const existing = document.getElementById('nq-finalized-panel');
+  if (existing) existing.remove();
+  const panel = document.createElement('div');
+  panel.id = 'nq-finalized-panel';
+  panel.className = 'nq-finalized-panel';
+  panel.innerHTML = `
+    <div class="nq-finalized-header">
+      <span>🎬 Vídeo final — ${sceneCount} cena(s) concatenada(s)</span>
+      <button onclick="this.closest('#nq-finalized-panel').remove()">✕</button>
+    </div>
+    <video src="/video/${path}" controls style="width:100%;border-radius:6px;margin-top:8px"></video>
+    <div style="margin-top:8px;font-size:.8rem;color:#888">${path}</div>
+  `;
+  document.getElementById('nq-detail-view').insertBefore(
+    panel,
+    document.getElementById('nq-scenes')
+  );
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function updateNqProgressInfo(scene) {

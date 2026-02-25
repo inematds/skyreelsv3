@@ -972,7 +972,55 @@ def restart_nq_route(nq_id):
 
 @app.route("/nqueues/<int:nq_id>/finalize", methods=["POST"])
 def finalize_nq_route(nq_id):
-    return jsonify({"error": "Em desenvolvimento — ffmpeg concat ainda não implementado"}), 501
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return jsonify({"error": "Fila não encontrada"}), 404
+        videos = [
+            PROJECT_ROOT / j["output_video"]
+            for j in nq["jobs"]
+            if j.get("status") == "done" and j.get("output_video")
+        ]
+        nq_name = nq["name"]
+
+    if not videos:
+        return jsonify({"error": "Nenhuma cena concluída para finalizar"}), 400
+
+    # Check all source files exist
+    missing = [str(v) for v in videos if not v.exists()]
+    if missing:
+        return jsonify({"error": f"Arquivo(s) não encontrado(s): {', '.join(missing)}"}), 400
+
+    out_dir = PROJECT_ROOT / "result" / "finalized"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    ts = time.strftime("%Y-%m-%d_%H-%M-%S")
+    safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in nq_name)
+    out_path = out_dir / f"{safe_name}_{ts}.mp4"
+
+    # Build ffmpeg concat list
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        for v in videos:
+            f.write(f"file '{v}'\n")
+        list_path = f.name
+
+    try:
+        cmd = [
+            "ffmpeg", "-y",
+            "-f", "concat", "-safe", "0",
+            "-i", list_path,
+            "-c", "copy",
+            str(out_path)
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        if result.returncode != 0:
+            return jsonify({"error": f"ffmpeg falhou: {result.stderr[-500:]}"}), 500
+    finally:
+        import os as _os
+        _os.unlink(list_path)
+
+    rel_path = str(out_path.relative_to(PROJECT_ROOT))
+    return jsonify({"ok": True, "output_video": rel_path, "scene_count": len(videos)})
 
 
 _load_queues()
