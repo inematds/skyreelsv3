@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.10.3 — Ajuda da Fila</title>
+<title>INEMA SkyReels V3 3.10.4 — Ajuda da Fila</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -250,7 +250,7 @@
 <div class="page-header">
   <a href="/">← Voltar</a>
   <h1>Ajuda — Fila de Geração</h1>
-  <span>INEMA SkyReels V3 3.10.3</span>
+  <span>INEMA SkyReels V3 3.10.4</span>
 </div>
 
 <div class="content">
@@ -264,6 +264,7 @@
       <li><a href="#formato-md">Formato Markdown</a></li>
       <li><a href="#campos">Campos por tarefa</a></li>
       <li><a href="#limites">Limites e regras</a></li>
+      <li><a href="#prompts">Prompts e imagens de referência</a></li>
       <li><a href="#caminhos">Caminhos de arquivo</a></li>
       <li><a href="#referencias">Referências entre cenas</a></li>
       <li><a href="#exemplos">Exemplos prontos</a></li>
@@ -518,14 +519,109 @@
     anterior sem precisar preparar imagens adicionais.
   </div>
 
-  <h3>Prefixos para shot_switching_extension</h3>
+  <!-- PROMPTS E IMAGENS DE REFERÊNCIA -->
+  <h2 id="prompts">Prompts e imagens de referência</h2>
+
+  <h3>A imagem de referência é uma guia, não uma cópia</h3>
+  <p>
+    Quando você passa imagens em <code>ref_imgs</code>, o modelo aprende a <strong>identidade visual</strong>
+    do sujeito (rosto, cor, forma) e tenta mantê-la nos frames gerados — mas não copia pixels.
+    O resultado é sempre uma geração nova com movimento, iluminação e composição definidos pelo prompt.
+  </p>
+
+  <table>
+    <tr><th>Aspecto</th><th>Comportamento</th></tr>
+    <tr>
+      <td><strong>Identidade</strong> (rosto, cor, roupa)</td>
+      <td>Alta fidelidade — o modelo tenta preservar</td>
+    </tr>
+    <tr>
+      <td><strong>Postura / expressão</strong></td>
+      <td>Varia conforme o movimento gerado e o prompt</td>
+    </tr>
+    <tr>
+      <td><strong>Iluminação / fundo</strong></td>
+      <td>Adapta-se ao contexto da cena descrita no prompt</td>
+    </tr>
+    <tr>
+      <td><strong>Composição / enquadramento</strong></td>
+      <td>Controlada pelo prompt, não pela imagem</td>
+    </tr>
+    <tr>
+      <td><strong>Pixels exatos</strong></td>
+      <td>Nunca — é geração, não compositing ou copy-paste</td>
+    </tr>
+  </table>
+
+  <div class="note">
+    <strong>Mais imagens = mais consistência.</strong>
+    Você pode passar até 4 imagens de referência. Imagens do mesmo personagem em ângulos
+    diferentes (frente, perfil, corpo) ajudam o modelo a manter consistência em cenas com movimento.
+    A métrica interna de <em>Reference Consistency</em> do modelo é 0,67 (escala 0–1) — alta, mas
+    não perfeita, pois o objetivo é gerar movimento natural, não congelar a imagem.
+  </div>
+
+  <div class="note warn">
+    <strong>Prompt vs imagem:</strong> se o prompt contradiz a referência (ex: imagem de cabelo preto
+    mas prompt diz "blonde hair"), o <strong>prompt tende a ganhar</strong>. Use o prompt para descrever
+    a cena e a ação; deixe a identidade do personagem para a imagem de referência.
+  </div>
+
+  <h3>Como escrever prompts por tarefa</h3>
+
+  <table>
+    <tr>
+      <th>Tarefa</th>
+      <th>O que colocar no prompt</th>
+      <th>Exemplo</th>
+    </tr>
+    <tr>
+      <td><code>reference_to_video</code></td>
+      <td>Descreva a cena, ação e câmera. Não precisa re-descrever o personagem (ele vem da imagem).</td>
+      <td><em>"A woman walks through a sunlit forest, cinematic wide shot."</em></td>
+    </tr>
+    <tr>
+      <td><code>single_shot_extension</code></td>
+      <td>Descreva o que acontece <strong>a seguir</strong> na mesma cena. O modelo já tem o contexto do vídeo anterior.</td>
+      <td><em>"She stops to look at a deer in the distance, slow motion."</em></td>
+    </tr>
+    <tr>
+      <td><code>shot_switching_extension</code></td>
+      <td>Comece com <strong>prefixo de corte</strong>, depois descreva a nova perspectiva. O modelo herda aparência e iluminação do vídeo anterior.</td>
+      <td><em>"[ZOOM_IN_CUT] Close-up of the woman's face, determined expression."</em></td>
+    </tr>
+    <tr>
+      <td><code>talking_avatar</code></td>
+      <td>Descreva postura, expressão e movimento de câmera. O áudio sincroniza o lábio automaticamente — não precisa transcrever a fala.</td>
+      <td><em>"A woman giving a speech. Confident, poised. Use a static shot."</em></td>
+    </tr>
+  </table>
+
+  <h3>Prefixos obrigatórios para shot_switching_extension</h3>
+  <p>O prompt <strong>deve começar</strong> com um destes prefixos, exatamente como escrito:</p>
   <table>
     <tr><th>Prefixo</th><th>Efeito</th></tr>
-    <tr><td><code>[ZOOM_IN_CUT]</code></td><td>Câmera aproxima após o corte</td></tr>
-    <tr><td><code>[ZOOM_OUT_CUT]</code></td><td>Câmera afasta após o corte</td></tr>
-    <tr><td><code>[STATIC_CUT]</code></td><td>Corte simples, câmera estática</td></tr>
-    <tr><td><code>[PAN_LEFT_CUT]</code></td><td>Panorâmica para a esquerda</td></tr>
-    <tr><td><code>[PAN_RIGHT_CUT]</code></td><td>Panorâmica para a direita</td></tr>
+    <tr><td><code>[ZOOM_IN_CUT]</code></td><td>Câmera aproxima após o corte (plano fechado)</td></tr>
+    <tr><td><code>[ZOOM_OUT_CUT]</code></td><td>Câmera afasta após o corte (plano aberto)</td></tr>
+    <tr><td><code>[STATIC_CUT]</code></td><td>Corte simples, câmera estática no novo ângulo</td></tr>
+    <tr><td><code>[PAN_LEFT_CUT]</code></td><td>Panorâmica para a esquerda após o corte</td></tr>
+    <tr><td><code>[PAN_RIGHT_CUT]</code></td><td>Panorâmica para a direita após o corte</td></tr>
+  </table>
+
+  <div class="note">
+    <strong>Dica:</strong> o próprio README do projeto recomenda usar um LLM (ex: ChatGPT, Claude)
+    para redigir e otimizar prompts para <code>shot_switching_extension</code>, garantindo direção
+    cinematográfica clara e precisa.
+  </div>
+
+  <h3>Links de documentação oficial</h3>
+  <table>
+    <tr><th>Recurso</th><th>Link</th></tr>
+    <tr><td>Technical Report (artigo científico)</td><td><a href="https://arxiv.org/abs/2601.17323" target="_blank" style="color:#7c3aed">arxiv.org/abs/2601.17323</a></td></tr>
+    <tr><td>HuggingFace — Reference to Video</td><td><a href="https://huggingface.co/Skywork/SkyReels-V3-R2V-14B" target="_blank" style="color:#7c3aed">Skywork/SkyReels-V3-R2V-14B</a></td></tr>
+    <tr><td>HuggingFace — Video Extension</td><td><a href="https://huggingface.co/Skywork/SkyReels-V3-V2V-14B" target="_blank" style="color:#7c3aed">Skywork/SkyReels-V3-V2V-14B</a></td></tr>
+    <tr><td>HuggingFace — Talking Avatar</td><td><a href="https://huggingface.co/Skywork/SkyReels-V3-A2V-19B" target="_blank" style="color:#7c3aed">Skywork/SkyReels-V3-A2V-19B</a></td></tr>
+    <tr><td>Playground online</td><td><a href="https://huggingface.co/spaces/Skywork/SkyReels-V3" target="_blank" style="color:#7c3aed">huggingface.co/spaces/Skywork/SkyReels-V3</a></td></tr>
   </table>
 
   <!-- CAMINHOS -->
