@@ -1,133 +1,142 @@
 <p align="center">
-  <img src="assets/logo2.png" alt="SkyReels Logo" width="50%">
+  <img src="assets/logo2.png" alt="SkyReels Logo" width="40%">
 </p>
 
-<h1 align="center">SkyReels V3: Multimodal Video Generation Model</h1> 
+<h1 align="center">SkyReels V3 — INEMA Web UI</h1>
 
 <p align="center">
-👋 <a href="https://huggingface.co/spaces/Skywork/SkyReels-V3" target="_blank">Playground</a> . 🔧 <a href="https://www.apifree.ai/explore" target="_blank">API Platform</a> · 🤗 <a href="https://huggingface.co/collections/Skywork/skyreels-v3" target="_blank">Hugging Face</a> · 🤖 <a href="https://www.modelscope.cn/collections/Skywork/SkyReels-V3" target="_blank">ModelScope</a> · 📑 <a href="https://arxiv.org/abs/2601.17323">Technical Report</a>
+  Fork do <a href="https://github.com/SkyworkAI/SkyReels-V3">SkyworkAI/SkyReels-V3</a> com Web UI completa para produção de episódios em batch.
+</p>
 
 ---
-Welcome to the **SkyReels V3** repository! This is the official release of our flagship video generation model, built upon a unified **multimodal in-context learning framework**. SkyReels V3 natively supports three core generative capabilities: **1) multi-subject video generation from reference images**, **2) video generation guided by audio**, and **3) video-to-video generation**.
 
-## 🔥🔥🔥 News!!
-* Jan 29, 2026: 🎉 We launched the API for the SkyReels-V3 models on the [apifree.ai](https://www.apifree.ai/explore).
-* Jan 29, 2026: 🎉 We release the inference code and model weights of [SkyReels-V3](https://github.com/SkyworkAI/SkyReels-V3).
-* Jun 1, 2025: 🎉 We published the technical report, [SkyReels-Audio: Omni Audio-Conditioned Talking Portraits in Video Diffusion Transformers](https://arxiv.org/pdf/2506.00830).
-* May 16, 2025: 🔥 We release the inference code for [video extension](#ve) and [start/end frame control](#se) in diffusion forcing model.
-* Apr 24, 2025: 🔥 We release the 720P models, [SkyReels-V2-DF-14B-720P](https://huggingface.co/Skywork/SkyReels-V2-DF-14B-720P) and [SkyReels-V2-I2V-14B-720P](https://huggingface.co/Skywork/SkyReels-V2-I2V-14B-720P). The former facilitates infinite-length autoregressive video generation, and the latter focuses on Image2Video synthesis.
-* Apr 21, 2025: 👋 We release the inference code and model weights of [SkyReels-V2](https://huggingface.co/collections/Skywork/skyreels-v2-6801b1b93df627d441d0d0d9) Series Models and the video captioning model [SkyCaptioner-V1](https://huggingface.co/Skywork/SkyCaptioner-V1) .
-* Apr 3, 2025: 🔥 We also release [SkyReels-A2](https://github.com/SkyworkAI/SkyReels-A2). This is an open-sourced controllable video generation framework capable of assembling arbitrary visual elements.
-* Feb 18, 2025: 🔥 we released [SkyReels-A1](https://github.com/SkyworkAI/SkyReels-A1). This is an open-sourced and effective framework for portrait image animation.
-* Feb 18, 2025: 🔥 We released [SkyReels-V1](https://github.com/SkyworkAI/SkyReels-V1). This is the first and most advanced open-source human-centric video foundation model.
+## O que é este projeto
 
-## 🎥 Demos
-<table>
-  <tr>
-    <td align="center" width="33%">
-      <a href="https://www.skyreels.ai/videos/ReferencetoVideo/1.mp4">
-        <img src="https://skyreels-api.oss-cn-hongkong.aliyuncs.com/examples/ref_to_video.gif" width="100%" alt="Reference to Video">
-      </a>
-      <br><b>Reference to Video</b>
-    </td>
-    <td align="center" width="33%">
-      <a href="https://www.skyreels.ai/videos/VideoExtension/1.mp4">
-        <img src="https://skyreels-api.oss-cn-hongkong.aliyuncs.com/examples/video_ext.gif" width="100%" alt="Video Extension">
-      </a>
-      <br><b>Video Extension</b>
-    </td>
-    <td align="center" width="33%">
-      <a href="https://www.skyreels.ai/videos/TalkingAvatar/1.mp4">
-        <img src="https://skyreels-api.oss-cn-hongkong.aliyuncs.com/examples/talking_avatar.gif" width="100%" alt="Talking Avatar">
-      </a>
-      <br><b>Talking Avatar</b>
-    </td>
-  </tr>
-</table>
+Este repositório é um fork do modelo de geração de vídeo **SkyReels V3**, com uma interface Web (Web UI) construída sobre ele para produção de vídeos em escala — especialmente séries animadas com múltiplos personagens e cenas.
 
-The demos above showcase videos generated using our SkyReels-V3 unified multimodal in-context learning framework.
+### Funcionalidades adicionadas neste fork
 
-## 🖥️ Local Web UI
+- **Web UI completa** — geração individual ou em fila, sem linha de comando
+- **Named Queues** — filas nomeadas com dezenas de cenas, controle por cena, retomada após erro
+- **Suporte a `talking_avatar` na UI** — imagem de personagem + áudio MP3 → vídeo falante
+- **Importação de episódio via JSON** — uma cena por objeto, suporte a tipos mistos
+- **Edição de cenas em runtime** — altere prompt, seed, resolução sem reiniciar a fila
+- **Finalização automática** — concatenação das cenas concluídas em um vídeo final via ffmpeg
+- **Galeria de vídeos** — visualização de todos os vídeos gerados com player e privacidade por card
 
-SkyReels V3 includes a browser-based interface for generating videos without using the command line. All four task types are supported, including `talking_avatar`.
+---
 
-### Starting the Web UI
+## Modelos suportados (SkyReels V3)
+
+| Task | Modelo | HuggingFace |
+|---|---|---|
+| `reference_to_video` | 14B | [SkyReels-V3-R2V-14B](https://huggingface.co/Skywork/SkyReels-V3-R2V-14B) |
+| `single_shot_extension` | 14B | [SkyReels-V3-V2V-14B](https://huggingface.co/Skywork/SkyReels-V3-V2V-14B) |
+| `shot_switching_extension` | 14B | [SkyReels-V3-V2V-14B](https://huggingface.co/Skywork/SkyReels-V3-V2V-14B) |
+| `talking_avatar` | 19B | [SkyReels-V3-A2V-19B](https://huggingface.co/Skywork/SkyReels-V3-A2V-19B) |
+
+---
+
+## Instalação
 
 ```bash
-# Activate the virtual environment
+git clone https://github.com/inematds/skyreelsv3
+cd skyreelsv3
+
+python3.12 -m venv .venv
 source .venv/bin/activate
 
-# Start the web server (listens on all interfaces)
-python webui/app.py
-# → http://localhost:7860  (or http://<your-ip>:7860 on LAN)
+pip install -r requirements.txt
+
+# Opcional mas recomendado
+pip install flash-attn --no-build-isolation  # atenção flash (hardware compatível)
+pip install xfuser                           # multi-GPU
+pip install torchao                          # FP8 / Low VRAM mode
 ```
 
-### Left Panel — Generation Form
-
-| Field | Description |
-|---|---|
-| **Task Type** | `reference_to_video` · `single_shot_extension` · `shot_switching_extension` · `talking_avatar` |
-| **Prompt** | Text description of the desired video |
-| **Reference Images** | Path list, comma-separated — 1 to 4 images (`reference_to_video` only) |
-| **Input Video** | Local path or URL for extension tasks |
-| **Portrait Image** | Portrait for `talking_avatar` (jpg / png / gif / bmp) |
-| **Audio File** | Driving audio for `talking_avatar` (mp3 / wav · max 200 s) |
-| **Resolution** | `480P` / `540P` / `720P` — `talking_avatar` supports only `480P` or `720P` |
-| **Duration** | Output length in seconds — ignored for `talking_avatar` (set by audio) |
-| **Seed** | Random seed for reproducibility |
-| **Offload CPU** | Moves models to CPU between passes — reduces VRAM |
-| **Low VRAM** | FP8 quantization + block offload — required for `talking_avatar` on GPUs < 24 GB |
-
-Action buttons:
-- **Gerar Vídeo** — start generation immediately
-- **+ Fila** — add job to the simple queue (Fila tab)
-
-### Right Panel — Tabs
-
-#### Progresso
-- Real-time log output streamed from `generate_video.py`
-- Progress bar parsed from tqdm output
-- Status badge: Aguardando / Gerando / Concluído / Erro
-
-#### Vídeos
-- Left sidebar: scrollable gallery of all generated `.mp4` files
-  - Toggle between **list** (☰) and **grid** (▦) views
-  - ▶ opens the video in the player · 🔒 marks card as private (blurred)
-  - Privacy state persists across browser reloads (localStorage)
-  - **🔒 Ocultar tudo** / **🔓 Revelar tudo** — bulk toggle
-- Right area: video player + parameters panel (from `.json` sidecar)
-
-#### Fila (Simple Queue)
-- Ad-hoc queue for one-off jobs added via **+ Fila**
-- Jobs run automatically one at a time
+Os modelos são baixados automaticamente do HuggingFace na primeira execução.
 
 ---
 
-## 📋 Named Queues — Batch Episode Production
+## Rodando a Web UI
 
-The **Named Queues** system (`webui/` → tab **Fila**) allows importing a JSON file with dozens of scenes and running them as a named, resumable batch job. Designed for multi-scene episodes where each scene is either a `reference_to_video` shot or a `talking_avatar` dialogue line.
+```bash
+source .venv/bin/activate
+python webui/app.py
+# → http://localhost:7860
+```
 
-### Queue Actions
+Acesse de qualquer dispositivo na rede local via `http://<ip-do-servidor>:7860`.
 
-| Button | Action |
+---
+
+## Web UI — Painel de Geração
+
+### Campos do formulário
+
+| Campo | Descrição |
 |---|---|
-| **↑ Importar** | Load a `.json` file as a new named queue |
-| **▶ Continuar** | Run all `idle` jobs sequentially, skip errors |
-| **↩ Repetir do erro** | Reset `error` jobs and resume from the first failure |
-| **↺ Reiniciar do zero** | Reset all jobs (including `done`) and restart from scene 1 |
-| **🎬 Finalizar** | Concatenate all `done` videos into one final `.mp4` |
-| **🗑** | Delete the queue |
+| **Task Type** | `reference_to_video` · `single_shot_extension` · `shot_switching_extension` · `talking_avatar` |
+| **Prompt** | Descrição textual do vídeo desejado |
+| **Reference Images** | Caminhos separados por vírgula — 1 a 4 imagens (`reference_to_video`) |
+| **Input Video** | Caminho local ou URL para tasks de extensão |
+| **Portrait Image** | Imagem de retrato para `talking_avatar` (jpg / png / gif / bmp) |
+| **Audio File** | Áudio de condução para `talking_avatar` (mp3 / wav · máx 200 s) |
+| **Resolution** | `480P` / `540P` / `720P` — `talking_avatar` só aceita `480P` ou `720P` |
+| **Duration** | Segundos de saída — ignorado em `talking_avatar` (definido pelo áudio) |
+| **Seed** | Semente para reprodutibilidade |
+| **Offload CPU** | Move modelos para CPU entre passes — reduz VRAM |
+| **Low VRAM** | Quantização FP8 + block offload — necessário para `talking_avatar` em GPUs < 24 GB |
 
-Each scene card shows its status (`idle` / `running` / `done` / `error`) and can be individually run (▶) or edited (✏️). Cards are **expanded by default** on first open and support expand-all (⊞) / collapse-all (⊟) controls.
+### Botões de ação
 
-### Episode JSON Format
+- **Gerar Vídeo** — inicia geração imediata
+- **+ Fila** — adiciona à fila simples (tab Fila)
 
-Create a `.json` file with an array of scene objects. Mixed task types in a single file are supported:
+---
+
+## Web UI — Named Queues (Produção em Batch)
+
+A aba **Fila** suporta filas nomeadas com múltiplas cenas. Ideal para produção de episódios com dezenas de takes.
+
+### Ações por fila
+
+| Botão | Ação |
+|---|---|
+| **↑ Importar** | Carrega um arquivo `.json` como nova fila nomeada |
+| **▶ Continuar** | Executa todas as cenas `idle` em sequência, pula erros |
+| **↩ Repetir do erro** | Reseta cenas com erro e retoma daquele ponto |
+| **↺ Reiniciar do zero** | Reseta todas (incluindo `done`) e começa do início |
+| **🎬 Finalizar** | Concatena todos os vídeos `done` em um `.mp4` final via ffmpeg |
+| **🗑** | Exclui a fila |
+
+Cada card de cena exibe status, tipo, resolução e seed. Ao abrir a fila as cenas aparecem expandidas. Controles ⊞ (expandir todas) / ⊟ (colapsar todas) disponíveis.
+
+### Edição de cena em runtime
+
+Clique em ✏️ em qualquer cena com status `idle` ou `error` para editar prompt, seed, resolução, arquivos de referência e outros campos — sem precisar reiniciar o servidor.
+
+### API REST (PATCH)
+
+```bash
+# Alterar parâmetros de uma cena específica
+curl -X PATCH http://localhost:7860/nqueues/<fila_id>/jobs/<job_id> \
+  -H "Content-Type: application/json" \
+  -d '{"resolution": "720P", "seed": 9999, "prompt": "novo prompt"}'
+```
+
+Campos protegidos (não alteráveis): `id`, `nq_id`, `status`, `task_type`, `created_at`, `output_video`.
+
+---
+
+## Formato JSON de Episódio
+
+Importe um arquivo `.json` com um array de cenas para criar uma fila nomeada. Tipos de task podem ser misturados no mesmo arquivo.
 
 ```json
 [
   {
-    "label": "C01-A · School hallway — establishing shot",
+    "label": "C01-A · Corredor — Estabelecimento",
     "task_type": "reference_to_video",
     "prompt": "A modern school hallway on the first day of school...",
     "resolution": "540P",
@@ -136,357 +145,114 @@ Create a `.json` file with an array of scene objects. Mixed task types in a sing
     "offload": true,
     "low_vram": false,
     "ref_imgs": [
-      "uploads/project/scene01.png",
-      "uploads/project/character_a.png",
-      "uploads/project/character_b.png"
+      "uploads/projeto/cena01.png",
+      "uploads/projeto/personagem_a.png",
+      "uploads/projeto/personagem_b.png"
     ]
   },
   {
-    "label": "C01-B · Character A — 'Sorry!'",
+    "label": "C01-B · Personagem A — 'Foi mal!'",
     "task_type": "talking_avatar",
     "prompt": "A teenage girl, composed but slightly embarrassed, speaking a brief apology.",
     "resolution": "480P",
     "seed": 1002,
     "low_vram": true,
-    "input_image": "uploads/project/character_a.png",
-    "input_audio": "uploads/project/audio/c01_line01.mp3"
+    "input_image": "uploads/projeto/personagem_a.png",
+    "input_audio": "uploads/projeto/audio/c01_a_linha1.mp3"
   }
 ]
 ```
 
-**Field reference per task type:**
+### Campos por tipo de task
 
-| Field | `reference_to_video` | `talking_avatar` | `single/shot_switching_extension` |
+| Campo | `reference_to_video` | `talking_avatar` | extensão |
 |---|---|---|---|
-| `label` | ✅ recommended | ✅ recommended | ✅ recommended |
-| `task_type` | required | required | required |
-| `prompt` | required | required | required |
-| `resolution` | `480P`/`540P`/`720P` | `480P` or `720P` only | `480P`/`540P`/`720P` |
-| `duration` | required (seconds) | — (from audio) | required (seconds) |
-| `seed` | optional | optional | optional |
-| `offload` | optional | optional | optional |
-| `low_vram` | optional | **required** on <24 GB | optional |
-| `ref_imgs` | required (1–4 paths) | — | — |
-| `input_image` | — | required | — |
-| `input_audio` | — | required | — |
-| `input_video` | — | — | required |
+| `label` | recomendado | recomendado | recomendado |
+| `task_type` | obrigatório | obrigatório | obrigatório |
+| `prompt` | obrigatório | obrigatório | obrigatório |
+| `resolution` | `480P`/`540P`/`720P` | **`480P` ou `720P`** | `480P`/`540P`/`720P` |
+| `duration` | obrigatório (segundos) | — (definido pelo áudio) | obrigatório |
+| `seed` | opcional | opcional | opcional |
+| `offload` | opcional | opcional | opcional |
+| `low_vram` | opcional | **obrigatório** em < 24 GB | opcional |
+| `ref_imgs` | obrigatório (1–4 caminhos) | — | — |
+| `input_image` | — | obrigatório | — |
+| `input_audio` | — | obrigatório | — |
+| `input_video` | — | — | obrigatório |
 
-> ⚠️ **Important:** `ref_imgs` paths must not contain commas, as the CLI uses comma as a separator.
+> ⚠️ **Atenção:** caminhos em `ref_imgs` não podem conter vírgulas — a CLI usa vírgula como separador.
 
-### Runtime Job Editing
+---
 
-Individual scene parameters can be changed while the queue is paused. Click ✏️ on any `idle` or `error` scene to open the edit modal — changes are applied immediately in memory and saved to disk.
-
-### Editing via API (PATCH)
-
-```bash
-# Change resolution of job 42 in queue 5
-curl -X PATCH http://localhost:7860/nqueues/5/jobs/42 \
-  -H "Content-Type: application/json" \
-  -d '{"resolution": "720P", "seed": 9999}'
-```
-
-Protected fields (cannot be patched): `id`, `nq_id`, `status`, `task_type`, `created_at`, `output_video`, `started_at`, `finished_at`.
-
-### Organizing Project Assets
-
-Recommended folder layout for a multi-episode project:
+## Organização de Assets
 
 ```
 uploads/
-└── <project>/
-    └── <episode>/
-        ├── scene01.png          # background / establishing shots
-        ├── scene02.png
-        ├── character_a.png      # character portraits (reused across scenes)
-        ├── character_b.png
-        └── audio/
-            ├── ep01_c01_a_line1.mp3
-            └── ep01_c01_b_line1.mp3
+└── <projeto>/
+    └── <episodio>/
+        ├── cena01.png          # cenários / planos de estabelecimento
+        ├── cena02.png
+        ├── personagem_a.png    # retratos de personagens (reutilizados entre cenas)
+        ├── personagem_b.png
+        └── c01_a_linha1.mp3    # áudios (um por fala)
+
 doc/
-└── ep01_primeiro_dia.json       # episode scene list (59 scenes example)
+└── ep01_primeiro_dia.json      # exemplo: 59 cenas (21 r2v + 38 talking_avatar)
 ```
 
 ---
 
-## 🚀 Quickstart
+## Modos de Memória
 
-### ⚙️ Installation
-
-```shell
-# Clone the repository
-git clone https://github.com/SkyworkAI/SkyReels-V3
-cd SkyReels-V3
-
-# Create and activate virtual environment (recommended)
-python3.12 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies (Recommended: Python 3.12+, CUDA 12.8+)
-pip install -r requirements.txt
-```
-
-#### Additional dependencies
-
-```bash
-# Required for flash attention (optional but recommended on supported hardware)
-pip install flash-attn --no-build-isolation
-
-# Required for multi-GPU inference
-pip install xfuser
-
-# Required for Low VRAM mode (FP8 quantization)
-pip install torchao
-```
-
-### 📥 Model Download
-
-Models are available on Hugging Face and ModelScope:
-
-| Model Type | Variant | Links |
-| :--- | :--- | :--- |
-| **Reference to Video** | 14B-720P | [🤗 Hugging Face](https://huggingface.co/Skywork/SkyReels-V3-R2V-14B) / [🤖 ModelScope](https://www.modelscope.cn/models/Skywork/SkyReels-V3-R2V-14B) |
-| **Video Extension** | 14B-720P | [🤗 Hugging Face](https://huggingface.co/Skywork/SkyReels-V3-V2V-14B) / [🤖 ModelScope](https://www.modelscope.cn/models/Skywork/SkyReels-V3-V2V-14B) |
-| **Talking Avatar** | 19B-720P | [🤗 Hugging Face](https://huggingface.co/Skywork/SkyReels-V3-A2V-19B) / [🤖 ModelScope](https://www.modelscope.cn/models/Skywork/SkyReels-V3-A2V-19B) |
-
-> **Note:** By default, the script automatically downloads models from Hugging Face. To use a local path, specify it via the `--model_id` flag.
-
----
-
-### 🎬 Inference Examples
-
-#### 1. Reference to Video
-Reference-to-Video is a model that synthesizes coherent video sequences from 1 to 4 reference images and a text prompt. It excels at maintaining strong identity fidelity and narrative consistency for characters, objects, and backgrounds.
-
-- **Single-GPU Inference:**
-  ```bash
-  python3 generate_video.py --task_type reference_to_video --ref_imgs "https://skyreels-api.oss-accelerate.aliyuncs.com/examples/subject_reference/0_1.png,https://skyreels-api.oss-accelerate.aliyuncs.com/examples/subject_reference/0_2.png" --prompt "In a dimly lit, cluttered occult club room adorned with shelves full of books, skulls, and mysterious dolls, two young Asian girls are talking. One girl has vibrant teal pigtails with bangs, wearing a white collared polo shirt, while the other has a sleek black bob with bangs, also in a white polo shirt, conversing under the hum of fluorescent lights, a high-quality and detailed cinematic shot." --duration 5 --offload
-  ```
-- **Multi-GPU Inference (xDiT USP):**
-  ```bash
-  torchrun --nproc_per_node=4 generate_video.py --task_type reference_to_video --ref_imgs "https://skyreels-api.oss-accelerate.aliyuncs.com/examples/subject_reference/0_1.png,https://skyreels-api.oss-accelerate.aliyuncs.com/examples/subject_reference/0_2.png" --prompt "In a dimly lit, cluttered occult club room adorned with shelves full of books, skulls, and mysterious dolls, two young Asian girls are talking. One girl has vibrant teal pigtails with bangs, wearing a white collared polo shirt, while the other has a sleek black bob with bangs, also in a white polo shirt, conversing under the hum of fluorescent lights, a high-quality and detailed cinematic shot." --duration 5 --offload --use_usp
-  ```
-
-> 💡 **Notes:**
-> * The `--task_type` parameter must be set to `reference_to_video`.
-> * The `--ref_imgs` parameter accepts 1 to 4 reference images. When providing multiple images, please separate their paths or URLs with commas.
-> * The recommended output specification for this model is a 5-second video at 720p and 24 fps.
-
-#### 2. Video Extension
-Extends existing videos while preserving motion continuity, scene coherence, and subject identity.
-
-##### A. Single-shot Video Extension (5s to 30s)
-- **Single-GPU Inference:**
-  ```bash
-  python3 generate_video.py --task_type single_shot_extension --input_video https://skyreels-api.oss-accelerate.aliyuncs.com/examples/video_extension/test.mp4 --prompt "A man is making his way forward slowly, leaning on a white cane to prop himself up." --duration 5 --offload
-  ```
-- **Multi-GPU Inference (xDiT USP):**
-  ```bash
-  torchrun --nproc_per_node=4 generate_video.py --task_type single_shot_extension --input_video https://skyreels-api.oss-accelerate.aliyuncs.com/examples/video_extension/test.mp4 --prompt "A man is making his way forward slowly, leaning on a white cane to prop himself up." --duration 5 --offload --use_usp
-  ```
-
-> 💡 **Notes:**
-> * The `--task_type` parameter must be set to `single_shot_extension`.
-> * The `--input_video` parameter specifies the source video to be extended. Since the **single_shot_extension** model supports extensions of 5 to 30 seconds, the `--duration` parameter accepts an integer value within this range.
-
-##### B. Shot Switching Video Extension (Cinematic Transitions)
-Supports transitions like "Cut-In", "Cut-Out", "Shot/Reverse Shot", etc. (Limited to 5s).
-- **Single-GPU Inference:**
-  ```bash
-  python3 generate_video.py --task_type shot_switching_extension --input_video https://skyreels-api.oss-accelerate.aliyuncs.com/examples/video_extension/test.mp4 --prompt "[ZOOM_IN_CUT] The scene cuts from a medium shot of a visually impaired man walking on a path in a park. The shot then cut in to a close-up of the man's face and upper torso. The visually impaired Black man is shown from the chest up, wearing dark sunglasses, a grey turtleneck scarf, and a light olive green jacket. His head is held straight, looking forward towards the camera, continuing his walk. The lighting is natural and bright. The background is a soft blur of green trees and foliage from the park." --offload
-  ```
-- **Multi-GPU Inference (xDiT USP):**
-  ```bash
-  torchrun --nproc_per_node=4 generate_video.py --task_type shot_switching_extension --input_video https://skyreels-api.oss-accelerate.aliyuncs.com/examples/video_extension/test.mp4 --prompt "[ZOOM_IN_CUT] The scene cuts from a medium shot of a visually impaired man walking on a path in a park. The shot then cut in to a close-up of the man's face and upper torso. The visually impaired Black man is shown from the chest up, wearing dark sunglasses, a grey turtleneck scarf, and a light olive green jacket. His head is held straight, looking forward towards the camera, continuing his walk. The lighting is natural and bright. The background is a soft blur of green trees and foliage from the park." --offload --use_usp
-  ```
-
-> 💡 **Notes:**
-> * The `--task_type` parameter must be set to `shot_switching_extension`.
-> * The `--input_video` parameter specifies the source video to be extended, and the `--duration` parameter is therefore limited to a maximum of 5 seconds.
-> * To effectively utilize the supported cinematography types ("Cut-In", "Cut-Out", "Shot/Reverse Shot", "Multi-Angle", "Cut Away"), you can use a Large Language Model (LLM) to craft and optimize your generation prompts, ensuring clear and precise creative direction.
-
-#### 3. Talking Avatar
-Generates lifelike talking avatars from a single portrait and an audio clip (up to 200s).
-
-- **Single-GPU Inference:**
-  ```bash
-  python3 generate_video.py --task_type talking_avatar --prompt "A woman is giving a speech. She is confident, poised, and joyful. Use a static shot." --seed 42 --offload --input_image "https://skyreels-api.oss-accelerate.aliyuncs.com/examples/talking_avatar_video/woman.JPEG" --input_audio "https://skyreels-api.oss-accelerate.aliyuncs.com/examples/talking_avatar_video/single_actor/woman_speech.mp3"
-  ```
-- **Multi-GPU Inference (xDiT USP):**
-  ```bash
-  torchrun --nproc_per_node=4 generate_video.py --task_type talking_avatar --prompt "A woman is giving a speech. She is confident, poised, and joyful. Use a static shot." --seed 42 --use_usp --offload --input_image "https://skyreels-api.oss-accelerate.aliyuncs.com/examples/talking_avatar_video/woman.JPEG" --input_audio "https://skyreels-api.oss-accelerate.aliyuncs.com/examples/talking_avatar_video/single_actor/woman_speech.mp3"
-  ```
-
-> 💡 **Notes:**
-> * The `--task_type` parameter must be set to `talking_avatar`.
-> * The `--input_image` parameter specifies the first-frame image for talking avatar generation (URL or local path). Supported formats: `jpg/jpeg`, `png`, `gif`, `bmp`.
-> * The `--input_audio` parameter specifies the driving audio (URL or local path). Currently supports one audio track. Supported formats: `mp3`, `wav`. Audio duration must be `<= 200 seconds`.
-
----
-
-### 📉 Memory Optimization (Low VRAM)
-For GPUs with lower VRAM (e.g., under 24GB), use these options:
-- Add the `--low_vram` flag to enable FP8 weight-only quantization and block offload.
-- Lower the output `--resolution` (default is `720P`; try `540P` or `480P`).
-
-Example:
-```bash
-export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True" && python3 generate_video.py --low_vram --resolution 540P ...
-```
-
-
----
-
-## ⚙️ Task Reference
-
-### Task Types Summary
-
-| Task | Model | VRAM | Duration | Output |
-|---|---|---|---|---|
-| `reference_to_video` | 14B | ~20 GB (offload) / ~49 GB (full) | 1–30 s | 24 fps |
-| `single_shot_extension` | 14B | ~20 GB (offload) | 5–30 s | 24 fps |
-| `shot_switching_extension` | 14B | ~20 GB (offload) | max 5 s | 24 fps |
-| `talking_avatar` | 19B | ~19 GB (low_vram) / ~38 GB (full) | audio length (max 200 s) | 25 fps |
-
-### All CLI Flags
-
-```
---task_type        reference_to_video | single_shot_extension |
-                   shot_switching_extension | talking_avatar
---model_id         HuggingFace ID or local path (auto-detected if omitted)
---prompt           Text prompt describing the video
---resolution       480P | 540P | 720P  (default: 720P)
---duration         Output duration in seconds (ignored for talking_avatar)
---seed             Random seed (required when using --use_usp)
---offload          CPU offload for non-active models
---low_vram         FP8 quantization + block offload (recommended for <24 GB VRAM)
---use_usp          Multi-GPU inference via xDiT USP (torchrun required)
---ref_imgs         Comma-separated image paths/URLs (reference_to_video)
---input_video      Video path/URL (extension tasks)
---input_image      Portrait image path/URL (talking_avatar)
---input_audio      Audio file path/URL — mp3/wav/m4a/mp4/mov (talking_avatar)
-```
-
-### Output Location
-
-Videos are saved to `result/<task_type>/<seed>_<timestamp>.mp4`.
-For `talking_avatar`, a second file `<seed>_<timestamp>_with_audio.mp4` is also saved with the audio merged.
-The web UI saves a `<seed>_<timestamp>.json` sidecar with all generation parameters.
-
-### Memory Modes
-
-| Mode | Flag | VRAM usage | When to use |
+| Modo | Flag | VRAM aprox. | Quando usar |
 |---|---|---|---|
-| Full | _(none)_ | ~49 GB (14B) / ~38 GB (19B) | Multiple high-end GPUs |
-| Offload | `--offload` | ~20 GB (14B) | Single GPU ≥20 GB |
-| Low VRAM | `--low_vram` | ~19 GB (19B), ~12 GB (14B) | Single GPU <24 GB |
+| Completo | _(nenhuma)_ | ~49 GB (14B) / ~38 GB (19B) | Multi-GPU de alto nível |
+| Offload | `--offload` | ~20 GB (14B) | GPU única ≥ 20 GB |
+| Low VRAM | `--low_vram` | ~12 GB (14B) / ~19 GB (19B) | GPU única < 24 GB |
 
-For low VRAM also set:
+Para Low VRAM, defina também:
+
 ```bash
 export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 ```
 
-### Shot Switching Prompt Prefixes
+### Notas sobre `talking_avatar` em Low VRAM
 
-For `shot_switching_extension`, start the prompt with one of:
-
-| Prefix | Effect |
-|---|---|
-| `[ZOOM_IN_CUT]` | Camera zooms in after cut |
-| `[ZOOM_OUT_CUT]` | Camera zooms out after cut |
-| `[STATIC_CUT]` | Simple cut, static camera |
-| `[PAN_LEFT_CUT]` | Pan to the left after cut |
-| `[PAN_RIGHT_CUT]` | Pan to the right after cut |
+- Usar sempre `--low_vram` (quantização FP8 + block offload)
+- Somente `480P` e `720P` são suportados (não `540P`)
+- Tempo estimado: ~50 s/step × 4 steps × N chunks (~3 chunks para 5 s de vídeo)
 
 ---
 
-## Introduction of SkyReels-V3
+## CLI — Referência rápida
 
-### Reference to Video
-SkyReels-V3 Multi-Reference Video Generation Model is a new-generation video synthesis system independently developed by SkyReels. The model enables users to input 1 to 4 reference images—including character portraits, object images, and background scenes—and generates coherent video sequences aligned with textual instructions, ensuring logical compositional relationships and narrative progression. With robust capabilities in dynamic scene generation, the model is widely applicable across various domains such as video production, social media entertainment, live-stream commerce, and product demonstration.
+```bash
+python3 generate_video.py \
+  --task_type reference_to_video \
+  --ref_imgs "img1.png,img2.png" \
+  --prompt "descrição do vídeo" \
+  --resolution 540P \
+  --duration 5 \
+  --seed 42 \
+  --offload
+```
 
+```bash
+python3 generate_video.py \
+  --task_type talking_avatar \
+  --input_image personagem.png \
+  --input_audio fala.mp3 \
+  --resolution 480P \
+  --seed 42 \
+  --low_vram
+```
 
-> Key Features :
-> * Supports fusion of up to 4 reference images, including character, object, and background references.
-> * Exceptional subject consistency and composition coherence, with industry-leading motion generation quality.
-> * Multiple aspect ratios: 1:1, 3:4, 4:3, 16:9, 9:16.
+Saída salva em `result/<task_type>/<seed>_<timestamp>.mp4`.
+Para `talking_avatar`, também é gerado `<seed>_<timestamp>_with_audio.mp4` com o áudio mixado.
 
-#### Model Overview
-The model achieves high subject and background consistency while accurately responding to user instructions. To enhance its capability of preserving reference image content, the SkyReels team developed a comprehensive data processing pipeline. This pipeline employs a cross-frame pairing strategy to select reference frames from continuous video sequences and utilizes image editing models to extract subject images, simultaneously accomplishing background completion and semantic rewriting—effectively avoiding the "copy-paste" effect.
+---
 
-During the training phase, the SkyReels team introduced an image-video hybrid training mechanism and supported multi-resolution joint training, significantly improving the model's generalization performance. Evolving from the SkyReels V2 to the V3 version, the model has reached the level of industry-leading closed-source SOTA (state-of-the-art) models across multiple evaluation metrics, demonstrating top-tier comprehensive generation capabilities in the field.
+## Créditos
 
-#### 📊 Performance Comparison
-
-| Model | Reference Consistency ↑ | Instruction Following ↑ | Visual Quality ↑ |
-|-------|-------------------------|-------------------------|------------------|
-| Vidu Q2 | 0.5961 | 27.84 | 0.7877 |
-| Kling 1.6 | 0.6630 | 29.23 | 0.8034 |
-| PixVerse V5 | 0.6542 | 29.34 | 0.7976 |
-| **SkyReels V3** | **0.6698** | **27.22** | **0.8119** |
-
-### Video Extension
-
-SkyReels-V3 Video Extension Model is a new-generation video generation system independently developed by SkyReels. The model allows users to input an existing video segment and extend it with coherent, logically consistent subsequent scenes based on textual instructions. It is widely applicable in scenarios such as video production, short-form series creation, live commerce, and product demonstration.
-
-> Key Features :
-> * Dual Extension Modes: Supports both single-shot continuation and multi-shot switching (with 5 transition types), operable via manual selection or automatic detection.
-> * Superior Visual Quality: Excellent aesthetic composition, robust motion quality, and seamless continuity preservation.
-> * Outstanding Style Adherence: Strictly follows input visual styles (realistic, cinematic, or specialized aesthetics) with exceptional compatibility.
-> * High-Definition Output: Ensures premium content quality, supporting 720P resolution.
-> * Flexible Duration Control: Adjustable output length between 5 to 30 seconds for sing-shot video extension.
-> * Customizable Aspect Ratios: Supports multiple ratios including 1:1, 3:4, 4:3, 16:9, and 9:16.
-
-#### Model Overview
-The SkyReels-V3 Video Extension Engine deeply integrates spatiotemporal consistency modeling with large-scale video understanding, breaking through the frame-level limitations of traditional video generation to achieve a qualitative leap from "visual continuation" to "narrative continuation." As the industry's first engine supporting intelligent shot switching during video extension, SkyReels-V3 not only achieves top-tier temporal coherence but also extends generation capacity to minute-level durations through an innovative history enhancement mechanism, ensuring depth and stability in long-form video storytelling. 
-
-The engine accurately parses scene semantics, motion trajectories, and emotional context from the original video, while intelligently planning the composition, character behavior, and cinematography of the extended content. It supports both seamless single-shot continuation and multi-type shot switching—including professional techniques such as Cut-In, Cut-Out, Reverse Shot, Multi-Angle, and Cut Away—automatically generating extended clips with strong narrative logic and visual coherence. This empowers visual language with cinematic dynamism and tension, marking a true generational shift from frame interpolation to plot creation.
-
-Technical Innovations:
-- Unified multi-segment positional encoding and hybrid hierarchical data training enable precise motion prediction and smooth transitions in complex scenes.
-- The architecture robustly handles challenges such as rapid motion, multi-person interactions, and abrupt scene changes, strictly ensuring physical plausibility and emotional consistency.
-- In intelligent shot switching, the system dynamically plans cut rhythms and viewpoint variations based on video semantics and user prompts, generating freely lengthened, professionally shot-extended content within a unified style.
-
-With outstanding generalization capabilities, SkyReels-V3 achieves state-of-the-art (SOTA) performance on core metrics including single-shot and multi-shot extension. It is widely adaptable to diverse scenarios such as live-action filmmaking, short-series industrial production, game cinematics, and security footage enhancement. The generated content delivers high-definition visuals, sharp details, and natural motion fluency, offering professional creators a "what-you-see-is-what-you-think" extension experience and redefining the boundaries of video generation.
-
-### Talking Avatar
-
-Create with just one image and audio clip.
-
-> Key Features :
-> * Superior visual quality and precise lip sync. Generate 720p HD videos at 24 fps for smooth and clear results. Supports multiple languages to ensure lip movements match the audio, enhancing authenticity.
-> * Multi-style support. Compatible with real-life, cartoon, animal, and stylized characters—offering creative flexibility for brand ambassadors or virtual IPs.
-> * Long-form video generation. Produce minute-long coherent videos for detailed explanations, news reports, training courses, and more.
-> * Multi-character scenes. Optimized for group interactions, allowing role assignments to support dialogues, interviews, and other dynamic content.
-
-#### Model Overview
-
-Powered by advanced multimodal understanding techniques, SkyReels Avatars don’t just “hear sound”—they truly understand your content. By analyzing voice, image, and emotional cues, they generate expressions, movements, and camera language that naturally align with your intent.
-Built on a scalable diffusion Transformer architecture and trained with audio-visual alignment strategies, our technology ensures highly accurate lip sync. Whether it’s Chinese, English, Korean, singing, or fast-paced dialogue—the lip movements match the pronunciation for a realistic audiovisual experience.
-
-Using a keyframe-constrained generation framework, the model first structures key content before smoothly connecting transitions. This ensures consistent character appearance and fluid motion, even in long videos. Generate high-quality minute-long videos in one go—ideal for explanations, broadcasts, storytelling, and more.
-From real people and anime characters to pets and artwork—any image can be turned into a lifelike digital avatar.
-
-In internal evaluations against mainstream avatar models, SkyReels model excel across multiple dimensions—overall quality, lip sync, and expressiveness—achieving a significantly higher overall rating.
-
-#### 📊 Performance Comparison
-
-| Model | Audio-Visual Sync ↑ | Visual Quality ↑ | Charactr Consistency ↑ |
-|-------|-------------------------|-------------------------|------------------|
-| OmniHuman 1.5 | **8.25** | 4.60 | **0.81** |
-| KlingAvatar | 8.01 | 4.55 | 0.78 |
-| HunyuanAvatar | 6.72 | 4.50 | 0.74 |
-| **SkyReels V3** | 8.18 | **4.60** | 0.80 |
-
-## Acknowledgements
-We would like to thank the contributors of <a href="https://github.com/Wan-Video/Wan2.1">Wan 2.1</a>, <a href="https://github.com/MeiGen-AI/MultiTalk">MultiTalk</a>, <a href="https://github.com/xdit-project/xDiT">XDit</a> and <a href="https://github.com/huggingface/diffusers">diffusers</a> repositories, for their open research and contributions.
-
-## Github Star History
-
-<a href="https://star-history.com/#SkyworkAI/SkyReels-V3&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=SkyworkAI/SkyReels-V3&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=SkyworkAI/SkyReels-V3&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=SkyworkAI/SkyReels-V3&type=Date" />
- </picture>
-</a>
+Baseado em [SkyReels V3](https://github.com/SkyworkAI/SkyReels-V3) da [Skywork AI](https://skywork.ai).
+Agradecimentos aos projetos: [Wan 2.1](https://github.com/Wan-Video/Wan2.1) · [MultiTalk](https://github.com/MeiGen-AI/MultiTalk) · [xDiT](https://github.com/xdit-project/xDiT) · [diffusers](https://github.com/huggingface/diffusers).
