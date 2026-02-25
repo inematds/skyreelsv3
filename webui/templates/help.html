@@ -317,7 +317,7 @@
     <span class="j-key">"duration"</span><span class="j-punct">:</span>    <span class="j-num">10</span><span class="j-punct">,</span>
     <span class="j-key">"seed"</span><span class="j-punct">:</span>        <span class="j-num">43</span><span class="j-punct">,</span>
     <span class="j-key">"offload"</span><span class="j-punct">:</span>     <span class="j-bool">true</span><span class="j-punct">,</span>
-    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{prev}}"</span>
+    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{ "{{prev}}" }}"</span>
   <span class="j-punct">},</span>
   <span class="j-punct">{</span>
     <span class="j-key">"label"</span><span class="j-punct">:</span>       <span class="j-str">"Cena 3 — Avatar narrador"</span><span class="j-punct">,</span>
@@ -512,12 +512,12 @@
       <th>Quando usar</th>
     </tr>
     <tr>
-      <td><code>{{prev}}</code></td>
+      <td><code>{{ "{{prev}}" }}</code></td>
       <td>output da cena imediatamente anterior (índice − 1)</td>
       <td>caso mais comum — extensão da cena de cima</td>
     </tr>
     <tr>
-      <td><code>{{job:N}}</code></td>
+      <td><code>{{ "{{job:N}}" }}</code></td>
       <td>output da cena no índice N (base 0)</td>
       <td>quando a cena de origem não é a anterior direta</td>
     </tr>
@@ -543,26 +543,26 @@
     <span class="j-key">"label"</span><span class="j-punct">:</span>       <span class="j-str">"Cena 2 — Extensão"</span><span class="j-punct">,</span>
     <span class="j-key">"task_type"</span><span class="j-punct">:</span>   <span class="j-str">"single_shot_extension"</span><span class="j-punct">,</span>
     <span class="j-key">"seed"</span><span class="j-punct">:</span>        <span class="j-num">43</span><span class="j-punct">,</span>
-    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{prev}}"</span>   <span class="j-comment">← output da Cena 1</span>
+    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{ "{{prev}}" }}"</span>   <span class="j-comment">← output da Cena 1</span>
   <span class="j-punct">},</span>
   <span class="j-punct">{</span>
     <span class="j-key">"label"</span><span class="j-punct">:</span>       <span class="j-str">"Cena 3 — Transição"</span><span class="j-punct">,</span>
     <span class="j-key">"task_type"</span><span class="j-punct">:</span>   <span class="j-str">"shot_switching_extension"</span><span class="j-punct">,</span>
     <span class="j-key">"seed"</span><span class="j-punct">:</span>        <span class="j-num">44</span><span class="j-punct">,</span>
-    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{prev}}"</span>   <span class="j-comment">← output da Cena 2</span>
+    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{ "{{prev}}" }}"</span>   <span class="j-comment">← output da Cena 2</span>
   <span class="j-punct">},</span>
   <span class="j-punct">{</span>
     <span class="j-key">"label"</span><span class="j-punct">:</span>       <span class="j-str">"Cena 4 — Extensão da Cena 1"</span><span class="j-punct">,</span>
     <span class="j-key">"task_type"</span><span class="j-punct">:</span>   <span class="j-str">"single_shot_extension"</span><span class="j-punct">,</span>
     <span class="j-key">"seed"</span><span class="j-punct">:</span>        <span class="j-num">45</span><span class="j-punct">,</span>
-    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{job:0}}"</span>  <span class="j-comment">← output da Cena 1 (índice 0)</span>
+    <span class="j-key">"input_video"</span><span class="j-punct">:</span> <span class="j-str">"{{ "{{job:0}}" }}"</span>  <span class="j-comment">← output da Cena 1 (índice 0)</span>
   <span class="j-punct">}</span>
 <span class="j-punct">]</span></pre>
   </div>
 
   <div class="note warn">
     <strong>Importante:</strong> a referência aponta para o índice da cena dentro da fila,
-    começando em 0. <code>{{prev}}</code> é equivalente a <code>{{job:N-1}}</code> onde N é
+    começando em 0. <code>{{ "{{prev}}" }}</code> é equivalente a <code>{{ "{{job:N-1}}" }}</code> onde N é
     o índice da cena atual. Certifique-se de que a cena referenciada será executada antes
     desta — a fila processa em sequência, de cima para baixo.
   </div>
