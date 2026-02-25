@@ -474,6 +474,50 @@
     </tr>
   </table>
 
+  <h3>Diferença entre as extensões</h3>
+
+  <table>
+    <tr>
+      <th></th>
+      <th><code>single_shot_extension</code></th>
+      <th><code>shot_switching_extension</code></th>
+    </tr>
+    <tr>
+      <td><strong>O que faz</strong></td>
+      <td>Continua a cena de forma fluida — a câmera segue gravando o mesmo plano</td>
+      <td>Simula um corte de câmera — muda de perspectiva como em filme</td>
+    </tr>
+    <tr>
+      <td><strong>Contexto do input</strong></td>
+      <td>Usa os últimos frames para continuar o movimento e a narrativa</td>
+      <td>Usa os últimos frames para herdar aparência e iluminação no novo ângulo</td>
+    </tr>
+    <tr>
+      <td><strong>Duração</strong></td>
+      <td>5–30 s</td>
+      <td>máx 5 s</td>
+    </tr>
+    <tr>
+      <td><strong>Prompt</strong></td>
+      <td>Descreve o que acontece a seguir na cena</td>
+      <td>Deve começar com prefixo de corte: <code>[ZOOM_IN_CUT]</code> etc.</td>
+    </tr>
+    <tr>
+      <td><strong>ref_imgs</strong></td>
+      <td>Não aceita — só <code>input_video</code></td>
+      <td>Não aceita — só <code>input_video</code></td>
+    </tr>
+  </table>
+
+  <div class="note">
+    <strong>Quando preferir <code>reference_to_video</code> no lugar de <code>shot_switching_extension</code>:</strong>
+    se você quer mudar de plano mas tem imagens de referência do personagem/cenário,
+    <code>reference_to_video</code> dá mais controle visual, não tem limite de 5 s e é mais
+    estável em hardware com pouca VRAM. O <code>shot_switching_extension</code> vale a pena
+    quando você quer que o novo plano herde automaticamente a aparência exata do clip
+    anterior sem precisar preparar imagens adicionais.
+  </div>
+
   <h3>Prefixos para shot_switching_extension</h3>
   <table>
     <tr><th>Prefixo</th><th>Efeito</th></tr>
