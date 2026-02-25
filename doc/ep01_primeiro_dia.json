@@ -1,0 +1,483 @@
+[
+  {
+    "label": "C01-A · Corredor — Estabelecimento",
+    "task_type": "reference_to_video",
+    "prompt": "A modern school hallway on the first day of school. Bright LED lights reflect off polished floors. Digital schedule screens line the walls. One student stands studying an interactive map on her tablet while another walks confidently toward her. They almost collide. Anime-inspired soft shading, wide establishing shot, warm ambient light.",
+    "resolution": "540P", "duration": 4, "seed": 1001,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena1.png", "uploads/valen.png", "uploads/lumi.png"]
+  },
+  {
+    "label": "C01-B · Valen — 'Foi mal.'",
+    "task_type": "talking_avatar",
+    "prompt": "A teenage girl, composed but slightly embarrassed, speaking a brief apology, direct gaze, school hallway background. Close-up shot.",
+    "resolution": "480P", "seed": 1002, "low_vram": true,
+    "input_image": "uploads/valen.png",
+    "input_audio": "uploads/audio/c01_valen_01.mp3"
+  },
+  {
+    "label": "C01-C · Lumi — 'Tudo bem… eu que estava parada no meio.'",
+    "task_type": "talking_avatar",
+    "prompt": "A teenage girl with a gentle, relieved expression, speaking softly, slightly flustered but calm. Close-up shot, school hallway background.",
+    "resolution": "480P", "seed": 1003, "low_vram": true,
+    "input_image": "uploads/lumi.png",
+    "input_audio": "uploads/audio/c01_lumi_01.mp3"
+  },
+  {
+    "label": "C01-D · Valen — 'Primeiro dia?'",
+    "task_type": "talking_avatar",
+    "prompt": "A teenage girl asking a curious, slightly amused question, direct gaze, subtle confident smirk. Close-up shot.",
+    "resolution": "480P", "seed": 1004, "low_vram": true,
+    "input_image": "uploads/valen.png",
+    "input_audio": "uploads/audio/c01_valen_02.mp3"
+  },
+  {
+    "label": "C01-E · Lumi — 'Dá pra perceber, né?'",
+    "task_type": "talking_avatar",
+    "prompt": "A teenage girl responding with a shy, self-aware smile, slightly embarrassed but finding some humor in the situation. Close-up shot.",
+    "resolution": "480P", "seed": 1005, "low_vram": true,
+    "input_image": "uploads/lumi.png",
+    "input_audio": "uploads/audio/c01_lumi_02.mp3"
+  },
+  {
+    "label": "C01-F · Corredor — Plano de saída, olhar que fica",
+    "task_type": "reference_to_video",
+    "prompt": "Two girls walking in opposite directions down a modern school hallway. Each glances back briefly before disappearing into the crowd. A quiet moment of curiosity and recognition. Medium shot, soft warm light.",
+    "resolution": "540P", "duration": 4, "seed": 1006,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena1.png", "uploads/valen.png", "uploads/lumi.png"]
+  },
+
+  {
+    "label": "C02-A · Sala — Lumi hesita, senta ao lado de Valen",
+    "task_type": "reference_to_video",
+    "prompt": "A modern digital classroom, most seats already taken. A girl pauses at the door scanning the room, then sits next to a student near the back who does not look up. Awkward silence of two strangers sharing space. Soft blue ambient glow from screens. Medium wide shot.",
+    "resolution": "540P", "duration": 4, "seed": 1011,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena2.png", "uploads/valen.png", "uploads/lumi.png"]
+  },
+  {
+    "label": "C02-B · Lumi — 'Você já entendeu essa parte?'",
+    "task_type": "talking_avatar",
+    "prompt": "A student leaning slightly toward the person beside her, whispering, curious and cautious expression, blue classroom lighting. Close-up.",
+    "resolution": "480P", "seed": 1012, "low_vram": true,
+    "input_image": "uploads/lumi.png",
+    "input_audio": "uploads/audio/c02_lumi_01.mp3"
+  },
+  {
+    "label": "C02-C · Valen — 'Quase. Acho que é mais simples do que parece.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student responding thoughtfully, arms slightly crossed, measured tone, not quite opening up yet. Close-up, classroom background.",
+    "resolution": "480P", "seed": 1013, "low_vram": true,
+    "input_image": "uploads/valen.png",
+    "input_audio": "uploads/audio/c02_valen_01.mp3"
+  },
+  {
+    "label": "C02-D · Lumi — 'Ou mais complicado.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student responding with dry subtle humor, slight raise of an eyebrow, almost smiling.",
+    "resolution": "480P", "seed": 1014, "low_vram": true,
+    "input_image": "uploads/lumi.png",
+    "input_audio": "uploads/audio/c02_lumi_02.mp3"
+  },
+  {
+    "label": "C02-E · Valen — 'Espero que não.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student responding quietly, a flicker of vulnerability behind the composed expression, looking back at her screen.",
+    "resolution": "480P", "seed": 1015, "low_vram": true,
+    "input_image": "uploads/valen.png",
+    "input_audio": "uploads/audio/c02_valen_02.mp3"
+  },
+  {
+    "label": "C02-F · Sala — Primeiro silêncio cúmplice",
+    "task_type": "reference_to_video",
+    "prompt": "Two students sitting side by side at a desk, both looking at their screens, subtly aware of each other. A quiet first connection. Blue digital glow, medium shot.",
+    "resolution": "540P", "duration": 3, "seed": 1016,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena2.png", "uploads/valen.png", "uploads/lumi.png"]
+  },
+
+  {
+    "label": "C03-A · Refeitório — Maya desenhando na fila",
+    "task_type": "reference_to_video",
+    "prompt": "A modern school cafeteria with digital menu panels overhead. A girl stands in the lunch line completely absorbed in sketching on her tablet, oblivious to the movement around her. Warm overhead light. Medium shot.",
+    "resolution": "540P", "duration": 4, "seed": 1021,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena3.png", "uploads/maya.png"]
+  },
+  {
+    "label": "C03-B · Lumi — 'Você desenhou isso agora?'",
+    "task_type": "talking_avatar",
+    "prompt": "A girl leaning in, genuinely surprised and curious, eyes moving between the drawing and the artist. Warm cafeteria background.",
+    "resolution": "480P", "seed": 1022, "low_vram": true,
+    "input_image": "uploads/lumi.png",
+    "input_audio": "uploads/audio/c03_lumi_01.mp3"
+  },
+  {
+    "label": "C03-C · Maya — 'Sim… eu gosto de desenhar enquanto espero.'",
+    "task_type": "talking_avatar",
+    "prompt": "A girl looking up from her drawing, slightly startled but gentle, holding her tablet close, soft voice.",
+    "resolution": "480P", "seed": 1023, "low_vram": true,
+    "input_image": "uploads/maya.png",
+    "input_audio": "uploads/audio/c03_maya_01.mp3"
+  },
+  {
+    "label": "C03-D · Valen — 'É um cachorro-robô?'",
+    "task_type": "talking_avatar",
+    "prompt": "A student speaking from behind, deadpan expression, pretending not to be interested but clearly looking at the drawing. Dry curiosity.",
+    "resolution": "480P", "seed": 1024, "low_vram": true,
+    "input_image": "uploads/valen.png",
+    "input_audio": "uploads/audio/c03_valen_01.mp3"
+  },
+  {
+    "label": "C03-E · Maya — 'É. Ele parece abandonado… mas não devia estar.'",
+    "task_type": "talking_avatar",
+    "prompt": "A girl speaking quietly, looking down at her drawing with a contemplative, gently melancholy expression. A genuine thought, not just small talk.",
+    "resolution": "480P", "seed": 1025, "low_vram": true,
+    "input_image": "uploads/maya.png",
+    "input_audio": "uploads/audio/c03_maya_02.mp3"
+  },
+  {
+    "label": "C03-F · Refeitório — Três juntos na fila, vínculo silencioso",
+    "task_type": "reference_to_video",
+    "prompt": "Three students standing together in a cafeteria line, one showing the others a drawing on her tablet. An unexpected small connection. Warm overhead light, medium shot.",
+    "resolution": "540P", "duration": 3, "seed": 1026,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena3.png", "uploads/lumi.png", "uploads/maya.png", "uploads/valen.png"]
+  },
+
+  {
+    "label": "C04-A · Sala — Caio entra, analisa a sala, vê o lugar livre",
+    "task_type": "reference_to_video",
+    "prompt": "A boy enters a busy digital classroom, pausing briefly at the entrance, scanning the room with quiet methodical eyes. He spots one available seat next to a small cluster of students. He walks toward it without hurry. Cool classroom lighting, medium shot.",
+    "resolution": "540P", "duration": 4, "seed": 1031,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena4.png", "uploads/caio.png"]
+  },
+  {
+    "label": "C04-B · Caio — 'Está ocupado?'",
+    "task_type": "talking_avatar",
+    "prompt": "A student asking calmly, polite and direct, neutral expression, slightly formal posture. No excess emotion.",
+    "resolution": "480P", "seed": 1032, "low_vram": true,
+    "input_image": "uploads/caio.png",
+    "input_audio": "uploads/audio/c04_caio_01.mp3"
+  },
+  {
+    "label": "C04-C · Maya — 'Não.'",
+    "task_type": "talking_avatar",
+    "prompt": "A girl answering simply, brief and neutral, barely looking up from her tablet. One word, no fuss.",
+    "resolution": "480P", "seed": 1033, "low_vram": true,
+    "input_image": "uploads/maya.png",
+    "input_audio": "uploads/audio/c04_maya_01.mp3"
+  },
+  {
+    "label": "C04-D · Lumi — 'Você já mexeu nesse sistema antes?'",
+    "task_type": "talking_avatar",
+    "prompt": "A student turning toward the newcomer with genuine curiosity, open and friendly expression, slightly eager.",
+    "resolution": "480P", "seed": 1034, "low_vram": true,
+    "input_image": "uploads/lumi.png",
+    "input_audio": "uploads/audio/c04_lumi_01.mp3"
+  },
+  {
+    "label": "C04-E · Caio — 'Um pouco… ele é mais intuitivo do que parece.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student responding thoughtfully, gesturing slightly toward a screen, matter-of-fact tone, naturally joining the conversation.",
+    "resolution": "480P", "seed": 1035, "low_vram": true,
+    "input_image": "uploads/caio.png",
+    "input_audio": "uploads/audio/c04_caio_02.mp3"
+  },
+  {
+    "label": "C04-F · Sala — Quatro mentes na mesma conversa",
+    "task_type": "reference_to_video",
+    "prompt": "Four students around a shared workspace, each looking at screens, all engaged in the same conversation naturally. First moment as an accidental group. Cool blue classroom light, medium wide shot.",
+    "resolution": "540P", "duration": 3, "seed": 1036,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena4.png", "uploads/caio.png", "uploads/lumi.png", "uploads/maya.png"]
+  },
+
+  {
+    "label": "C05-A · Sala — Maya tenta escrever com o dedo, Valen observa",
+    "task_type": "reference_to_video",
+    "prompt": "A student trying unsuccessfully to write on a digital tablet with her fingertip, frustrated and improvising. Another student nearby notices silently. Warm classroom light, close-medium shot.",
+    "resolution": "540P", "duration": 3, "seed": 1041,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena5.png", "uploads/maya.png", "uploads/valen.png"]
+  },
+  {
+    "label": "C05-B · Maya — 'Acho que esqueci minha caneta…'",
+    "task_type": "talking_avatar",
+    "prompt": "A student muttering to herself, slightly embarrassed, looking down at her tablet, voice trailing off.",
+    "resolution": "480P", "seed": 1042, "low_vram": true,
+    "input_image": "uploads/maya.png",
+    "input_audio": "uploads/audio/c05_maya_01.mp3"
+  },
+  {
+    "label": "C05-C · Valen — 'Pode usar essa.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student holding out a stylus pen, calm and direct, no big gesture, matter-of-fact kindness without making it a moment.",
+    "resolution": "480P", "seed": 1043, "low_vram": true,
+    "input_image": "uploads/valen.png",
+    "input_audio": "uploads/audio/c05_valen_01.mp3"
+  },
+  {
+    "label": "C05-D · Maya — 'Sério?'",
+    "task_type": "talking_avatar",
+    "prompt": "A student looking up genuinely surprised, eyes warm, touched more than she expected by the small gesture.",
+    "resolution": "480P", "seed": 1044, "low_vram": true,
+    "input_image": "uploads/maya.png",
+    "input_audio": "uploads/audio/c05_maya_02.mp3"
+  },
+  {
+    "label": "C05-E · Valen — 'Depois você me devolve.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student saying this with a slight smirk, already looking back at her own screen, deflecting the warmth but clearly meaning it kindly.",
+    "resolution": "480P", "seed": 1045, "low_vram": true,
+    "input_image": "uploads/valen.png",
+    "input_audio": "uploads/audio/c05_valen_02.mp3"
+  },
+  {
+    "label": "C05-F · Sala — Maya escreve, Valen olha de volta discretamente",
+    "task_type": "reference_to_video",
+    "prompt": "Two students at a desk. One writes with a borrowed stylus, focused. The other glances at her briefly then returns to her own screen. A quiet new bond. Warm classroom light, medium shot.",
+    "resolution": "540P", "duration": 3, "seed": 1046,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena5.png", "uploads/valen.png", "uploads/maya.png"]
+  },
+
+  {
+    "label": "C06-A · Sala — Professor erra, silêncio estranho na sala",
+    "task_type": "reference_to_video",
+    "prompt": "A classroom scene. A teacher at the front mispronounces a complex technical term, creating an awkward pause. Students exchange glances. Wide shot from behind the four students, their reactions visible. Classroom lighting.",
+    "resolution": "540P", "duration": 4, "seed": 1051,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena6.png", "uploads/valen.png", "uploads/lumi.png", "uploads/caio.png"]
+  },
+  {
+    "label": "C06-B · Lumi — segurando o riso",
+    "task_type": "reference_to_video",
+    "prompt": "A girl pressing her hand over her mouth, eyes bright with suppressed laughter, shoulders shaking slightly. She is fighting it and losing. Close-up, soft classroom background.",
+    "resolution": "540P", "duration": 2, "seed": 1052,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena6.png", "uploads/lumi.png"]
+  },
+  {
+    "label": "C06-C · Caio — 'Você ouviu isso também, né?'",
+    "task_type": "talking_avatar",
+    "prompt": "A student leaning in quietly, trying to keep a straight face, eyes slightly wide, whispering conspiratorially.",
+    "resolution": "480P", "seed": 1053, "low_vram": true,
+    "input_image": "uploads/caio.png",
+    "input_audio": "uploads/audio/c06_caio_01.mp3"
+  },
+  {
+    "label": "C06-D · Maya — 'Eu tentei não rir.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student responding in a hushed voice, already losing the battle with laughter, shoulders slightly raised, suppressed giggle.",
+    "resolution": "480P", "seed": 1054, "low_vram": true,
+    "input_image": "uploads/maya.png",
+    "input_audio": "uploads/audio/c06_maya_01.mp3"
+  },
+  {
+    "label": "C06-E · Valen — 'Falhou miseravelmente.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student delivering this with a deadpan face that slowly cracks into a genuine smile. Dry humor, warm eyes.",
+    "resolution": "480P", "seed": 1055, "low_vram": true,
+    "input_image": "uploads/valen.png",
+    "input_audio": "uploads/audio/c06_valen_01.mp3"
+  },
+  {
+    "label": "C06-F · Sala — Os quatro rindo juntos pela primeira vez",
+    "task_type": "reference_to_video",
+    "prompt": "Four students in the back of a classroom sharing a quiet laugh, covering their mouths, leaning toward each other. A genuine shared moment. The silence between them is no longer strange. Warm classroom light, medium shot.",
+    "resolution": "540P", "duration": 4, "seed": 1056,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/valen.png", "uploads/lumi.png", "uploads/caio.png", "uploads/maya.png"]
+  },
+
+  {
+    "label": "C07-A · Corredor — Os quatro caminham juntos sem combinar",
+    "task_type": "reference_to_video",
+    "prompt": "Four students walking side by side in a school hallway after class, unhurried, no one walking ahead. A natural unspoken formation. Wide shot, warm corridor light, afternoon feel.",
+    "resolution": "540P", "duration": 4, "seed": 1061,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena7.png", "uploads/valen.png", "uploads/lumi.png", "uploads/caio.png"]
+  },
+  {
+    "label": "C07-B · Maya — 'Vocês também vão pra biblioteca?'",
+    "task_type": "talking_avatar",
+    "prompt": "A student looking at the others while walking, slightly hopeful expression, open and inviting.",
+    "resolution": "480P", "seed": 1062, "low_vram": true,
+    "input_image": "uploads/maya.png",
+    "input_audio": "uploads/audio/c07_maya_01.mp3"
+  },
+  {
+    "label": "C07-C · Caio — 'Preciso terminar a atividade.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student answering directly, factual tone, still walking, slightly nods toward the direction ahead.",
+    "resolution": "480P", "seed": 1063, "low_vram": true,
+    "input_image": "uploads/caio.png",
+    "input_audio": "uploads/audio/c07_caio_01.mp3"
+  },
+  {
+    "label": "C07-D · Lumi — 'Eu queria ver os livros digitais novos.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student responding with quiet enthusiasm, eyes lighting up slightly, honest and unpretentious.",
+    "resolution": "480P", "seed": 1064, "low_vram": true,
+    "input_image": "uploads/lumi.png",
+    "input_audio": "uploads/audio/c07_lumi_01.mp3"
+  },
+  {
+    "label": "C07-E · Valen — 'Então vamos juntos.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student saying this simply, no drama, no special emphasis. Like it was already decided. Slight tilt of the head forward.",
+    "resolution": "480P", "seed": 1065, "low_vram": true,
+    "input_image": "uploads/valen.png",
+    "input_audio": "uploads/audio/c07_valen_01.mp3"
+  },
+  {
+    "label": "C07-F · Corredor — Quatro em linha, equilíbrio inconsciente",
+    "task_type": "reference_to_video",
+    "prompt": "Four students walking side by side toward the library entrance, no one leading. Equal line, unhurried pace. A subtle visual balance. Warm hallway light, wide shot.",
+    "resolution": "540P", "duration": 4, "seed": 1066,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/valen.png", "uploads/lumi.png", "uploads/maya.png", "uploads/caio.png"]
+  },
+
+  {
+    "label": "C08-A · Sala — Professora anuncia grupos, caos começa",
+    "task_type": "reference_to_video",
+    "prompt": "A classroom erupts into movement as students scramble to form groups. The four students are already near each other, slightly apart from the chaos. They exchange quiet glances. Medium wide shot, classroom lighting.",
+    "resolution": "540P", "duration": 4, "seed": 1071,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena8.png", "uploads/valen.png", "uploads/lumi.png", "uploads/caio.png"]
+  },
+  {
+    "label": "C08-B · Valen — 'Já somos quatro.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student speaking the obvious truth calmly. The word 'somos' carries quiet weight. First time she includes the others in a sentence. Slight lift of the eyebrow.",
+    "resolution": "480P", "seed": 1072, "low_vram": true,
+    "input_image": "uploads/valen.png",
+    "input_audio": "uploads/audio/c08_valen_01.mp3"
+  },
+  {
+    "label": "C08-C · Caio — 'Facilita bastante.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student responding practically, understated agreement, small satisfied nod. No excess.",
+    "resolution": "480P", "seed": 1073, "low_vram": true,
+    "input_image": "uploads/caio.png",
+    "input_audio": "uploads/audio/c08_caio_01.mp3"
+  },
+  {
+    "label": "C08-D · Maya — 'Melhor do que procurar pela sala inteira.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student smiling genuinely, glancing at the chaotic classroom around them. A warm, spontaneous reaction.",
+    "resolution": "480P", "seed": 1074, "low_vram": true,
+    "input_image": "uploads/maya.png",
+    "input_audio": "uploads/audio/c08_maya_01.mp3"
+  },
+  {
+    "label": "C08-E · Sala — Os quatro como grupo, plano fechado",
+    "task_type": "reference_to_video",
+    "prompt": "Four students settled at a shared workspace, calm and together while the rest of the classroom scrambles. They belong here. Medium close shot, soft focus on background chaos.",
+    "resolution": "540P", "duration": 3, "seed": 1075,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/valen.png", "uploads/lumi.png", "uploads/maya.png", "uploads/caio.png"]
+  },
+
+  {
+    "label": "C09-A · Marquise — Chuva começa, eles param",
+    "task_type": "reference_to_video",
+    "prompt": "Four students stopped under a school entrance overhang as heavy rain begins. The city street outside glistens. Digital signs reflect in puddles. A comfortable, unhurried silence. Wide shot, cool blue-grey light.",
+    "resolution": "540P", "duration": 4, "seed": 1081,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena9.png", "uploads/valen.png", "uploads/lumi.png", "uploads/caio.png"]
+  },
+  {
+    "label": "C09-B · Maya — 'Eu gosto do som da chuva.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student speaking softly, watching the rain fall outside, a quiet smile, peaceful and genuine.",
+    "resolution": "480P", "seed": 1082, "low_vram": true,
+    "input_image": "uploads/maya.png",
+    "input_audio": "uploads/audio/c09_maya_01.mp3"
+  },
+  {
+    "label": "C09-C · Caio — 'A previsão não falava nisso.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student responding factually, glancing at his phone then at the sky, calm and completely unbothered.",
+    "resolution": "480P", "seed": 1083, "low_vram": true,
+    "input_image": "uploads/caio.png",
+    "input_audio": "uploads/audio/c09_caio_01.mp3"
+  },
+  {
+    "label": "C09-D · Lumi — 'Às vezes a previsão erra.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student responding gently, eyes following reflections on the wet street, thoughtful and unhurried.",
+    "resolution": "480P", "seed": 1084, "low_vram": true,
+    "input_image": "uploads/lumi.png",
+    "input_audio": "uploads/audio/c09_lumi_01.mp3"
+  },
+  {
+    "label": "C09-E · Valen — 'Melhor esperar juntos.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student speaking simply, looking straight ahead at the rain. A rare, quiet warmth behind the usual composure.",
+    "resolution": "480P", "seed": 1085, "low_vram": true,
+    "input_image": "uploads/valen.png",
+    "input_audio": "uploads/audio/c09_valen_01.mp3"
+  },
+  {
+    "label": "C09-F · Marquise — Silêncio confortável, ninguém quer ir",
+    "task_type": "reference_to_video",
+    "prompt": "Four students standing shoulder to shoulder under a rain shelter, watching the rain. No one moves. City lights begin to glow in the wet evening. Cinematic medium shot, quiet mood.",
+    "resolution": "540P", "duration": 5, "seed": 1086,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/valen.png", "uploads/lumi.png", "uploads/maya.png", "uploads/caio.png"]
+  },
+
+  {
+    "label": "C10-A · Portão — Chuva diminui, último momento do dia",
+    "task_type": "reference_to_video",
+    "prompt": "School gate at dusk. The rain fades to a light drizzle. Four students walk toward the exit together, the school day finally ending. Warm street lights glowing softly. Wide shot, golden-hour tones.",
+    "resolution": "540P", "duration": 4, "seed": 1091,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/cena10.png", "uploads/valen.png", "uploads/lumi.png", "uploads/caio.png"]
+  },
+  {
+    "label": "C10-B · Lumi — 'Foi um dia legal.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student speaking genuinely, soft and honest, looking at the others with warm, open eyes.",
+    "resolution": "480P", "seed": 1092, "low_vram": true,
+    "input_image": "uploads/lumi.png",
+    "input_audio": "uploads/audio/c10_lumi_01.mp3"
+  },
+  {
+    "label": "C10-C · Caio — 'Foi mesmo.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student agreeing simply, no extra words, sincere nod, looking ahead. Two words that mean it.",
+    "resolution": "480P", "seed": 1093, "low_vram": true,
+    "input_image": "uploads/caio.png",
+    "input_audio": "uploads/audio/c10_caio_01.mp3"
+  },
+  {
+    "label": "C10-D · Maya — 'Não foi tão assustador quanto eu achei que seria.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student speaking with quiet relief and genuine surprise at herself, slight laugh in her voice, looking at her companions.",
+    "resolution": "480P", "seed": 1094, "low_vram": true,
+    "input_image": "uploads/maya.png",
+    "input_audio": "uploads/audio/c10_maya_01.mp3"
+  },
+  {
+    "label": "C10-E · Valen — 'A gente sobreviveu ao primeiro dia. Já é um começo.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student speaking with dry warmth, a real smile finally breaking through. The word 'a gente' belongs to all four of them now.",
+    "resolution": "480P", "seed": 1095, "low_vram": true,
+    "input_image": "uploads/valen.png",
+    "input_audio": "uploads/audio/c10_valen_01.mp3"
+  },
+  {
+    "label": "C10-F · Portão — Plano final, a pausa antes de ir",
+    "task_type": "reference_to_video",
+    "prompt": "Four students at the school gate at dusk. No one rushes. A long quiet beat as the city glows behind them. Final wide cinematic shot, warm soft focus, golden light.",
+    "resolution": "540P", "duration": 6, "seed": 1096,
+    "offload": true, "low_vram": false,
+    "ref_imgs": ["uploads/valen.png", "uploads/lumi.png", "uploads/maya.png", "uploads/caio.png"]
+  }
+]

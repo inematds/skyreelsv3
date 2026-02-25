@@ -773,7 +773,7 @@
         </div>
       </div>
       <div class="example-actions">
-        <button class="btn-copy" id="copy-btn-1" onclick="copyExample('exemplo_roteiro')">⎘ Copiar</button>
+        <button class="btn-copy" id="copy-btn-exemplo_roteiro" onclick="copyExample('exemplo_roteiro')">⎘ Copiar</button>
         <a class="btn-dl" href="/doc/download/exemplo_roteiro.json" download="exemplo_roteiro.json">↓ Baixar</a>
       </div>
     </div>
@@ -805,7 +805,7 @@
         </div>
       </div>
       <div class="example-actions">
-        <button class="btn-copy" id="copy-btn-2" onclick="copyExample('exemplo_10_cenas')">⎘ Copiar</button>
+        <button class="btn-copy" id="copy-btn-exemplo_10_cenas" onclick="copyExample('exemplo_10_cenas')">⎘ Copiar</button>
         <a class="btn-dl" href="/doc/download/exemplo_10_cenas.json" download="exemplo_10_cenas.json">↓ Baixar</a>
       </div>
     </div>
@@ -830,12 +830,54 @@
     </div>
   </div>
 
+  <!-- Exemplo 3 -->
+  <div class="example-card">
+    <div class="example-card-header">
+      <div class="example-icon">🎭</div>
+      <div class="example-info">
+        <div class="example-title">Episódio — "Primeiro Dia" (59 jobs · 4 personagens)</div>
+        <div class="example-desc">
+          10 cenas completas com diálogos entre Valen, Lumi, Maya e Caio.
+          Cada cena tem plano de estabelecimento + falas (talking_avatar) + plano de fechamento.
+          Requer imagens de retrato dos 4 personagens, imagens de cena (cena1–cena10) e 38 arquivos de áudio.
+        </div>
+      </div>
+      <div class="example-actions">
+        <button class="btn-copy" id="copy-btn-ep01_primeiro_dia" onclick="copyExample('ep01_primeiro_dia')">⎘ Copiar</button>
+        <a class="btn-dl" href="/doc/download/ep01_primeiro_dia.json" download="ep01_primeiro_dia.json">↓ Baixar</a>
+      </div>
+    </div>
+    <div class="example-scenes">
+      <span class="scene-badge badge-r2v">C01-A · reference_to_video</span>
+      <span class="scene-badge badge-av">C01-B,C,D,E · talking_avatar ×4</span>
+      <span class="scene-badge badge-r2v">C01-F · reference_to_video</span>
+      <span style="font-size:.7rem;color:#555;padding:3px 8px">… padrão se repete nas 10 cenas</span>
+      <span class="scene-badge badge-av">38 × talking_avatar</span>
+      <span class="scene-badge badge-r2v">21 × reference_to_video</span>
+    </div>
+    <div class="note" style="margin:0;border-radius:0;border-left:none;border-top:1px solid #1a1a28">
+      <strong>Imagens necessárias:</strong>
+      <code>uploads/valen.png</code> <code>uploads/lumi.png</code> <code>uploads/maya.png</code> <code>uploads/caio.png</code>
+      · <code>uploads/cena1.png</code> … <code>uploads/cena10.png</code><br>
+      <strong>Áudios necessários (38):</strong>
+      <code>uploads/audio/c01_valen_01.mp3</code> … <code>uploads/audio/c10_valen_01.mp3</code>
+      — um arquivo por fala, nomeados como <code>c{cena}_{personagem}_{número}.mp3</code>
+    </div>
+    <div class="code-wrap" style="border:none;border-radius:0;margin:0">
+      <div class="code-header">
+        <span class="lang">JSON</span>
+        <span class="fname">ep01_primeiro_dia.json</span>
+      </div>
+      <pre id="code-ep01_primeiro_dia"></pre>
+    </div>
+  </div>
+
 </div><!-- /content -->
 
 <script>
 // Load and display example JSON files
 async function loadExamples() {
-  for (const name of ['exemplo_roteiro', 'exemplo_10_cenas']) {
+  for (const name of ['exemplo_roteiro', 'exemplo_10_cenas', 'ep01_primeiro_dia']) {
     try {
       const res = await fetch(`/doc/${name}.json`);
       const text = await res.text();
@@ -851,7 +893,7 @@ async function copyExample(name) {
     const res = await fetch(`/doc/${name}.json`);
     const text = await res.text();
     await navigator.clipboard.writeText(text);
-    const btn = document.getElementById(`copy-btn-${name === 'exemplo_roteiro' ? 1 : 2}`);
+    const btn = document.getElementById(`copy-btn-${name}`);
     btn.textContent = '✔ Copiado';
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = '⎘ Copiar'; btn.classList.remove('copied'); }, 2000);
