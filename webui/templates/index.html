@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.35.12</title>
+<title>INEMA SkyReels V3 3.36.12</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -967,7 +967,7 @@
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="35 recursos adicionados">35</span>.<span class="fix" title="12 correções">12</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="36 recursos adicionados">36</span>.<span class="fix" title="12 correções">12</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -2912,6 +2912,10 @@ async function openEpisodeDetail(nqId, projectName) {
             <div class="proj-config-label">Voice ID — ElevenLabs (voz do personagem desta cena)</div>
             <input class="proj-config-input" id="ej-voice-${nqId}-${j.id}" value="${esc(j.voice_id||'')}" placeholder="ex: FIEA0c5UHH9JnvWaQrXS (Valen)">
           </div>
+          <div style="margin-bottom:8px">
+            <div class="proj-config-label">Trilha de fundo — audio_bg (path do arquivo de música do projeto)</div>
+            <input class="proj-config-input" id="ej-audiobg-${nqId}-${j.id}" value="${esc(j.audio_bg||'')}" placeholder="ex: projetos/INETUSX/audios/tema.mp3 (ou vazio)">
+          </div>
           <div style="margin-bottom:10px">
             <div class="proj-config-label">Imagens de referência (paths separados por vírgula)</div>
             <input class="proj-config-input" id="ej-refs-${nqId}-${j.id}" value="${esc(refs)}" placeholder="uploads/foto.jpg, uploads/bg.png">
@@ -2962,6 +2966,8 @@ async function saveEpJob(nqId, jobId, hasImgPrompt, hasAudioText) {
   if (hasAudioText) payload.audio_text   = g(`ej-audio-${nqId}-${jobId}`)    || '';
   const voiceVal = g(`ej-voice-${nqId}-${jobId}`);
   if (voiceVal !== null) payload.voice_id = voiceVal.trim();
+  const bgVal = g(`ej-audiobg-${nqId}-${jobId}`);
+  if (bgVal !== null) payload.audio_bg = bgVal.trim();
 
   const res = await fetch(`/nqueues/${nqId}/jobs/${jobId}`, {
     method: 'PATCH', headers: {'Content-Type':'application/json'},

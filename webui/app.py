@@ -94,7 +94,14 @@ REGRAS OBRIGATÓRIAS — preencha TODOS os campos:
    - NÃO invente voice_ids — use SOMENTE os que estão explicitamente nos docs do projeto
    - Exemplo: "FIEA0c5UHH9JnvWaQrXS" (Valen), "vibfi5nlk3hs8Mtvf9Oy" (Lumi), etc.
 
-6. CONSISTÊNCIA NARRATIVA:
+6. TRILHA DE FUNDO (campo "audio_bg"):
+   - Path para arquivo de música/trilha do projeto (pasta audios/ do projeto)
+   - Mixada a 28% do volume sobre a narração/diálogo (ou sozinha se audio_text vazio)
+   - Use para: cenas épicas, panorâmicas, momentos de tensão, transições sem diálogo
+   - Se não há trilha disponível ou a cena não precisa, use string vazia: ""
+   - Exemplo: "projetos/INETUSX/audios/tema_principal.mp3"
+
+7. CONSISTÊNCIA NARRATIVA:
    - Use os documentos do projeto como base de conhecimento absoluta para personagens, universo e vozes
    - Distribua imagens de referência coerentemente (personagem correto em cada cena)
    - Adapte duração conforme intensidade narrativa (~{duration}s como base)
@@ -603,11 +610,14 @@ def run_generation(cmd, env_extra=None, metadata=None, job=None):
                     job["output_video"] = generation_state["last_video"]
                     # Auto-mix audio (reference_to_video/extension geram vídeo silencioso)
                     if job.get("task_type") != "talking_avatar":
-                        input_audio = job.get("input_audio", "")
-                        if input_audio:
-                            audio_path = PROJECT_ROOT / input_audio
-                            if audio_path.exists():
-                                _mix_audio_into_video(last_video, audio_path)
+                        sp_str = job.get("input_audio", "")
+                        bg_str = job.get("audio_bg", "")
+                        sp = (PROJECT_ROOT / sp_str) if sp_str else None
+                        bg = (PROJECT_ROOT / bg_str) if bg_str else None
+                        sp = sp if (sp and sp.exists()) else None
+                        bg = bg if (bg and bg.exists()) else None
+                        if sp or bg:
+                            _mix_audio_scene(last_video, speech_path=sp, bg_path=bg)
                 # Save metadata JSON alongside the video
                 if metadata:
                     metadata["generated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -1256,7 +1266,11 @@ def patch_nq_job(nq_id, job_id):
         for k, v in data.items():
             if k not in PROTECTED:
                 job[k] = v
-        if was_done:
+        # Campos de áudio/voz não invalidam o vídeo gerado — não resetar o job
+        AUDIO_ONLY = {"audio_bg", "audio_text", "voice_id", "input_audio"}
+        edits = set(k for k in data if k not in PROTECTED)
+        audio_only_edit = bool(edits) and edits.issubset(AUDIO_ONLY)
+        if was_done and not audio_only_edit:
             job["status"] = "idle"
             job["output_video"] = ""
             job["started_at"] = ""
@@ -1401,21 +1415,48 @@ def _video_info(path):
     return has_aud, duration
 
 
-def _mix_audio_into_video(video_path: Path, audio_path: Path) -> bool:
-    """Mixes audio into a silent video, replacing the original in-place. Returns True on success."""
+def _mix_audio_scene(video_path: Path, speech_path: Path = None,
+                     bg_path: Path = None, bg_volume: float = 0.28) -> bool:
+    """Mixes speech and/or background audio into a video, replacing it in-place.
+    - speech_path: narração/diálogo (volume 100%)
+    - bg_path: trilha de fundo (volume bg_volume, padrão 28%)
+    - Usa -map 0:v para sempre descartar o áudio existente no vídeo.
+    """
+    if not speech_path and not bg_path:
+        return False
     tmp = video_path.with_name(video_path.stem + "_mixed_tmp.mp4")
     try:
-        r = subprocess.run(
-            ["ffmpeg", "-y",
-             "-i", str(video_path),
-             "-i", str(audio_path),
-             "-map", "0:v", "-map", "1:a",
-             "-c:v", "copy", "-c:a", "aac", "-ar", "44100", "-ac", "2",
-             "-shortest", str(tmp)],
-            capture_output=True, text=True, timeout=120
-        )
+        cmd = ["ffmpeg", "-y", "-i", str(video_path)]
+        if speech_path:
+            cmd += ["-i", str(speech_path)]
+        if bg_path:
+            cmd += ["-i", str(bg_path)]
+
+        if speech_path and bg_path:
+            si, bi = 1, 2
+            fc = (
+                f"[{si}:a]aresample=44100,volume=1.0[speech];"
+                f"[{bi}:a]aresample=44100,volume={bg_volume}[bg];"
+                f"[speech][bg]amix=inputs=2:dropout_transition=0[a]"
+            )
+            cmd += ["-filter_complex", fc,
+                    "-map", "0:v", "-map", "[a]",
+                    "-c:v", "copy", "-c:a", "aac", "-ar", "44100", "-ac", "2",
+                    "-shortest", str(tmp)]
+        elif speech_path:
+            cmd += ["-map", "0:v", "-map", "1:a",
+                    "-c:v", "copy", "-c:a", "aac", "-ar", "44100", "-ac", "2",
+                    "-shortest", str(tmp)]
+        else:  # bg only
+            fc = f"[1:a]aresample=44100,volume={bg_volume}[a]"
+            cmd += ["-filter_complex", fc,
+                    "-map", "0:v", "-map", "[a]",
+                    "-c:v", "copy", "-c:a", "aac", "-ar", "44100", "-ac", "2",
+                    "-shortest", str(tmp)]
+
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         if r.returncode == 0 and tmp.exists():
-            tmp.replace(video_path)  # atomic rename — replaces original
+            tmp.replace(video_path)
             return True
         if tmp.exists():
             tmp.unlink()
@@ -1424,6 +1465,11 @@ def _mix_audio_into_video(video_path: Path, audio_path: Path) -> bool:
         if tmp.exists():
             tmp.unlink()
         return False
+
+
+# Backwards-compat alias
+def _mix_audio_into_video(video_path: Path, audio_path: Path) -> bool:
+    return _mix_audio_scene(video_path, speech_path=audio_path)
 
 
 @app.route("/nqueues/<int:nq_id>/finalize", methods=["POST"])
@@ -1529,7 +1575,11 @@ def finalize_nq_route(nq_id):
 
 @app.route("/nqueues/<int:nq_id>/mix-audio", methods=["POST"])
 def nq_mix_audio(nq_id):
-    """Mixes input_audio into each done scene video that still has no audio track."""
+    """Mixes input_audio and/or audio_bg into done scene videos.
+    - Skips jobs with no audio sources.
+    - Always re-mixes if audio_bg is set (discards existing audio track via -map 0:v).
+    - Skips jobs whose video already has audio when only input_audio is set (no bg change).
+    """
     with nq_lock:
         nq = next((q for q in named_queues if q["id"] == nq_id), None)
         if nq is None:
@@ -1538,28 +1588,34 @@ def nq_mix_audio(nq_id):
 
     mixed, skipped, errors = 0, 0, []
     for job in jobs:
-        if job.get("status") != "done":
+        if job.get("status") != "done" or job.get("task_type") == "talking_avatar":
             skipped += 1
             continue
         output_video = job.get("output_video", "")
-        input_audio  = job.get("input_audio", "")
-        if not output_video or not input_audio or job.get("task_type") == "talking_avatar":
+        sp_str = job.get("input_audio", "")
+        bg_str = job.get("audio_bg", "")
+        if not output_video or (not sp_str and not bg_str):
             skipped += 1
             continue
         vpath = PROJECT_ROOT / output_video
-        apath = PROJECT_ROOT / input_audio
         if not vpath.exists():
             errors.append(f"{job.get('label','?')}: vídeo não encontrado")
             continue
-        if not apath.exists():
-            errors.append(f"{job.get('label','?')}: áudio não encontrado")
+        sp = (PROJECT_ROOT / sp_str) if sp_str else None
+        bg = (PROJECT_ROOT / bg_str) if bg_str else None
+        sp = sp if (sp and sp.exists()) else None
+        bg = bg if (bg and bg.exists()) else None
+        if not sp and not bg:
+            errors.append(f"{job.get('label','?')}: arquivo(s) de áudio não encontrado(s)")
             continue
-        # Skip if video already has an audio track
-        has_aud, _ = _video_info(vpath)
-        if has_aud:
-            skipped += 1
-            continue
-        ok = _mix_audio_into_video(vpath, apath)
+        # Se só tem speech e o vídeo já tem áudio: pula (já mixado)
+        # Se tem audio_bg: sempre re-mixa (pode ter mudado a trilha)
+        if not bg:
+            has_aud, _ = _video_info(vpath)
+            if has_aud:
+                skipped += 1
+                continue
+        ok = _mix_audio_scene(vpath, speech_path=sp, bg_path=bg)
         if ok:
             mixed += 1
         else:
@@ -1791,6 +1847,7 @@ def generate_episode_prompts(name):
         f'  "image_prompt": "Flux/fal.ai image prompt in English — characters, environment, art style, colors...",\n'
         f'  "audio_text": "Narração ou diálogos em português para esta cena (ou string vazia se silenciosa)",\n'
         f'  "voice_id": "ElevenLabs voice_id do personagem que fala nesta cena (extraia dos docs do projeto; vazio se narração genérica)",\n'
+        f'  "audio_bg": "path para trilha de fundo do projeto (projetos/<nome>/audios/<arquivo>.mp3) ou string vazia",\n'
         f'  "resolution": "{resolution}",\n'
         f'  "duration": <duração em segundos mais adequada para esta cena>,\n'
         f'  "seed": <número entre 1000 e 9999>,\n'
