@@ -1625,6 +1625,23 @@ def nq_mix_audio(nq_id):
     return jsonify({"ok": True, "mixed": mixed, "skipped": skipped, "errors": errors})
 
 
+@app.route("/nqueues/<int:nq_id>/set-audio-bg", methods=["POST"])
+def nq_set_audio_bg(nq_id):
+    """Define audio_bg em todos os jobs da fila (ou limpa se audio_bg vazio)."""
+    data = request.get_json(force=True)
+    audio_bg = data.get("audio_bg", "").strip()
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return jsonify({"error": "Fila não encontrada"}), 404
+        updated = 0
+        for job in nq["jobs"]:
+            job["audio_bg"] = audio_bg
+            updated += 1
+    _save_queues()
+    return jsonify({"ok": True, "updated": updated, "audio_bg": audio_bg})
+
+
 # ─── Config global ───────────────────────────────────────────
 
 @app.route("/config", methods=["GET"])

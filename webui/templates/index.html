@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.36.13</title>
+<title>INEMA SkyReels V3 3.37.13</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -967,7 +967,7 @@
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="36 recursos adicionados">36</span>.<span class="fix" title="13 correções">13</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="37 recursos adicionados">37</span>.<span class="fix" title="13 correções">13</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -1268,6 +1268,7 @@
               <button id="nq-run-btn"     class="nq-action-btn run"     onclick="runCurrentNq()"     title="Continuar: executar cenas idle, pula erros">▶ Continuar</button>
               <button id="nq-retry-btn"  class="nq-action-btn reset"   onclick="retryCurrentNq()"   title="Repetir do erro: reseta erros e continua de onde parou" style="display:none">↩ Repetir do erro</button>
               <button id="nq-restart-btn" class="nq-action-btn danger2" onclick="restartCurrentNq()" title="Reiniciar do zero: apaga tudo e começa do início" style="display:none">↺ Reiniciar do zero</button>
+              <button id="nq-set-bg-btn" class="nq-action-btn" onclick="toggleSetAudioBgPanel()" title="Definir trilha de fundo para todas as cenas" style="border-color:#a855f7;color:#d8b4fe">🎵 Trilha</button>
               <button id="nq-mix-audio-btn" class="nq-action-btn" onclick="mixAudioCurrentNq()" title="Mixar áudio nos vídeos silenciosos (aplica input_audio de cada cena via ffmpeg)" style="border-color:#22c55e;color:#86efac">🔊 Mix Áudio</button>
               <button id="nq-finalize-btn" class="nq-action-btn finalize" onclick="finalizeCurrentNq()" title="Concatenar todas as cenas concluídas em um vídeo final" disabled>🎬 Finalizar</button>
               <button class="nq-action-btn danger" onclick="deleteCurrentNq()" title="Excluir esta fila">🗑</button>
@@ -1277,6 +1278,16 @@
               <button class="nq-action-btn" id="nq-zip-btn"   onclick="downloadNqZip(false)" title="Baixar ZIP dos vídeos gerados">⬇ ZIP</button>
               <button class="nq-action-btn" id="nq-zip2-btn"  onclick="downloadNqZip(true)"  title="Baixar ZIP com vídeos + origens (imagens, áudio)">⬇ ZIP+origens</button>
             </div>
+          </div>
+          <!-- Panel: definir trilha de fundo para todas as cenas -->
+          <div id="nq-set-bg-panel" style="display:none;padding:10px 14px;background:#0d0d18;border:1px solid #3730a3;border-radius:6px;margin-bottom:10px;gap:8px;flex-wrap:wrap;align-items:center" class="nq-detail-actions">
+            <span style="font-size:.8rem;color:#c4b5fd;white-space:nowrap">🎵 Trilha de fundo para todas as cenas:</span>
+            <select id="nq-bg-select" class="proj-config-input" style="flex:1;min-width:220px;font-size:.8rem" onchange="document.getElementById('nq-bg-input').value=this.value">
+              <option value="">— selecionar arquivo —</option>
+            </select>
+            <input id="nq-bg-input" class="proj-config-input" style="flex:1;min-width:200px;font-size:.8rem" placeholder="ou cole o path manualmente">
+            <button class="nq-action-btn run" onclick="applyAudioBgToAll()" style="white-space:nowrap">✓ Aplicar</button>
+            <button class="nq-action-btn" onclick="applyAudioBgToAll(true)" style="white-space:nowrap;color:#f87171;border-color:#4a2020" title="Remove audio_bg de todas as cenas">✕ Limpar</button>
           </div>
           <div id="nq-scenes" class="nq-scenes"></div>
         </div>
@@ -2226,6 +2237,62 @@ function exportNqJson() {
   a.href = `/nqueues/${currentNqId}/export-json`;
   a.download = '';
   a.click();
+}
+
+async function toggleSetAudioBgPanel() {
+  if (!currentNqId) return;
+  const panel = document.getElementById('nq-set-bg-panel');
+  const open  = panel.style.display === 'none';
+  panel.style.display = open ? 'flex' : 'none';
+  if (!open) return;
+
+  // Carregar áudios disponíveis do projeto vinculado
+  const select = document.getElementById('nq-bg-select');
+  select.innerHTML = '<option value="">— selecionar arquivo —</option>';
+  try {
+    const res = await fetch(`/nqueues/${currentNqId}`);
+    const nq  = await res.json();
+    const proj = nq.project;
+    if (proj) {
+      const pr = await fetch(`/projects/${encodeURIComponent(proj)}`);
+      const pd = await pr.json();
+      const audios = (pd.files || []).filter(f => f.subfolder === 'audios');
+      audios.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.path;
+        opt.textContent = f.name;
+        select.appendChild(opt);
+      });
+    }
+  } catch(e) { /* sem projeto ou erro — fica só o input manual */ }
+}
+
+async function applyAudioBgToAll(clear = false) {
+  if (!currentNqId) return;
+  const path = clear ? '' : (document.getElementById('nq-bg-input').value.trim() ||
+                              document.getElementById('nq-bg-select').value.trim());
+  if (!clear && !path) { alert('Selecione um arquivo ou cole o path da trilha.'); return; }
+
+  const btn = document.querySelector('#nq-set-bg-panel button.run');
+  const origText = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const res  = await fetch(`/nqueues/${currentNqId}/set-audio-bg`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ audio_bg: path })
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || 'Erro'); return; }
+    const msg = clear
+      ? `✓ audio_bg removido de ${data.updated} cenas.`
+      : `✓ Trilha "${path.split('/').pop()}" aplicada em ${data.updated} cenas.\n\nClique em 🔊 Mix Áudio para mixar nos vídeos já gerados.`;
+    alert(msg);
+    document.getElementById('nq-set-bg-panel').style.display = 'none';
+  } catch(e) {
+    alert('Erro: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
+  }
 }
 
 function downloadNqZip(includeSources) {
