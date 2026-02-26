@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.36.12</title>
+<title>INEMA SkyReels V3 3.36.13</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -967,7 +967,7 @@
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="36 recursos adicionados">36</span>.<span class="fix" title="12 correções">12</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="36 recursos adicionados">36</span>.<span class="fix" title="13 correções">13</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -1862,9 +1862,12 @@ function buildNqCard(nq) {
   const retryBtn = hasErrorJobs && nq.status !== 'running'
     ? `<button class="nq-mini-btn" style="color:#f59e0b;border-color:#b45309" onclick="event.stopPropagation();retryNq(${nq.id})" title="Repetir do erro">↩</button>`
     : '';
+  const epBadge = nq.ep_code
+    ? `<span style="font-size:.65rem;font-weight:700;color:#818cf8;background:#1e1b4b;border:1px solid #3730a3;border-radius:3px;padding:1px 5px;flex-shrink:0">${nq.ep_code}</span>`
+    : '';
   div.innerHTML = `
     <div class="nq-card-header">
-      <span class="nq-card-name">${nq.name}</span>
+      ${epBadge}<span class="nq-card-name">${nq.name}</span>
       <div class="nq-card-actions">
         <button class="nq-mini-btn" onclick="event.stopPropagation();openNq(${nq.id})" title="Abrir fila">📂</button>
         ${runBtn}
@@ -1947,8 +1950,15 @@ async function refreshNqDetail(id) {
   if (!res.ok) { showNqList(); return; }
   const nq = await res.json();
 
-  document.getElementById('queue-view-title').textContent = nq.name;
-  document.getElementById('nq-detail-name').textContent = nq.name;
+  const epLabel = nq.ep_code ? `[${nq.ep_code}] ` : '';
+  document.getElementById('queue-view-title').textContent = epLabel + nq.name;
+  // Header: badge + nome
+  const nameEl = document.getElementById('nq-detail-name');
+  if (nq.ep_code) {
+    nameEl.innerHTML = `<span style="font-size:.7rem;font-weight:700;color:#818cf8;background:#1e1b4b;border:1px solid #3730a3;border-radius:3px;padding:2px 7px;margin-right:6px;vertical-align:middle">${nq.ep_code}</span>${nq.name}`;
+  } else {
+    nameEl.textContent = nq.name;
+  }
   const done = nq.jobs.filter(j => j.status === 'done').length;
   document.getElementById('nq-detail-status').textContent =
     `${done}/${nq.jobs.length} cenas · ${NQ_STATUS_LABEL[nq.status] || nq.status}`;

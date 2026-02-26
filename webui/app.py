@@ -1091,6 +1091,7 @@ def get_named_queues():
             "id": nq["id"],
             "name": nq["name"],
             "project": nq.get("project", ""),
+            "ep_code": nq.get("ep_code", ""),
             "status": nq["status"],
             "job_count": len(nq["jobs"]),
             "done_count": sum(1 for j in nq["jobs"] if j["status"] == "done"),
