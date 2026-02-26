@@ -2,6 +2,7 @@ import io
 import os
 import re
 import sys
+import uuid
 import subprocess
 import threading
 import queue
@@ -144,10 +145,21 @@ job_queue = []          # list of job dicts (all statuses)
 job_queue_lock = threading.Lock()
 _job_id_counter = 0
 
+# ---- Episode AI Generation (background) ----
+# {job_id: {status: pending|done|error, jobs: [], saved_doc: str, error: str, project: str}}
+_ep_gen_state: dict = {}
+_ep_gen_by_project: dict = {}   # {proj_name: job_id}  — último job por projeto
+_ep_gen_lock = threading.Lock()
+
 # ---- Named Queues ----
 named_queues = []
 nq_lock = threading.Lock()
 _nq_id_counter = 0
+
+# ---- Background episode generation ----
+_ep_gen_state: dict = {}       # job_id -> {status, jobs, saved_doc, ep_title, error, raw}
+_ep_gen_by_project: dict = {}  # project_name -> job_id (latest)
+_ep_gen_lock = threading.Lock()
 
 
 def _next_nq_id():
@@ -1657,7 +1669,8 @@ def generate_episode_prompts(name):
 
     # Salvar descrição em docs/ antes de gerar
     saved_doc = None
-    proj_dir = PROJECTS_DIR / name
+    doc_path  = None
+    proj_dir  = PROJECTS_DIR / name
     if proj_dir.exists() and description:
         docs_dir = proj_dir / "docs"
         docs_dir.mkdir(exist_ok=True)
@@ -1681,7 +1694,7 @@ def generate_episode_prompts(name):
             if f.is_file():
                 all_audios.append(f.name)
         for f in sorted((proj_dir / "docs").iterdir()) if (proj_dir / "docs").exists() else []:
-            if f.is_file() and f.suffix in (".md", ".txt") and f != (doc_path if saved_doc else None):
+            if f.is_file() and f.suffix in (".md", ".txt") and f != doc_path:
                 try:
                     all_docs_content.append(f"--- {f.name} ---\n{f.read_text(encoding='utf-8', errors='ignore')[:2000]}")
                 except Exception:
@@ -1724,27 +1737,56 @@ def generate_episode_prompts(name):
         json_template=json_template,
     )
 
-    _env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
-    result = None
-    try:
-        result = subprocess.run(
-            ["/home/nmaldaner/.local/bin/claude", "-p", prompt],
-            capture_output=True, text=True, timeout=360, env=_env
-        )
-        raw = result.stdout.strip()
-        if raw.startswith("```"):
-            raw = re.sub(r"^```[a-z]*\n?", "", raw)
-            raw = re.sub(r"\n?```$", "", raw)
-        jobs = json.loads(raw)
-        if not isinstance(jobs, list):
-            raise ValueError("Resposta não é um array")
-        return jsonify({"ok": True, "jobs": jobs, "saved_doc": saved_doc})
-    except Exception as e:
-        return jsonify({
-            "error": str(e),
-            "raw": result.stdout[:500] if result else "",
-            "saved_doc": saved_doc
-        }), 500
+    # Iniciar geração em background — retorna job_id imediatamente
+    job_id = uuid.uuid4().hex[:8]
+    with _ep_gen_lock:
+        _ep_gen_state[job_id] = {
+            "status": "running",
+            "jobs": [],
+            "saved_doc": saved_doc,
+            "ep_title": doc_title,
+            "error": None,
+            "raw": "",
+        }
+        _ep_gen_by_project[name] = job_id
+
+    def _run():
+        _env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+        proc = None
+        try:
+            proc = subprocess.run(
+                ["/home/nmaldaner/.local/bin/claude", "-p", prompt],
+                capture_output=True, text=True, timeout=360, env=_env
+            )
+            raw = proc.stdout.strip()
+            if raw.startswith("```"):
+                raw = re.sub(r"^```[a-z]*\n?", "", raw)
+                raw = re.sub(r"\n?```$", "", raw)
+            jobs = json.loads(raw)
+            if not isinstance(jobs, list):
+                raise ValueError("Resposta não é um array")
+            with _ep_gen_lock:
+                if job_id in _ep_gen_state:
+                    _ep_gen_state[job_id]["status"] = "done"
+                    _ep_gen_state[job_id]["jobs"]   = jobs
+        except Exception as e:
+            with _ep_gen_lock:
+                if job_id in _ep_gen_state:
+                    _ep_gen_state[job_id]["status"] = "error"
+                    _ep_gen_state[job_id]["error"]  = str(e)
+                    _ep_gen_state[job_id]["raw"]    = proc.stdout[:500] if proc else ""
+
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"job_id": job_id, "saved_doc": saved_doc})
+
+
+@app.route("/projects/<name>/generate-episode-status/<job_id>")
+def generate_episode_status(name, job_id):
+    with _ep_gen_lock:
+        state = dict(_ep_gen_state.get(job_id, {}))
+    if not state:
+        return jsonify({"error": "não encontrado"}), 404
+    return jsonify(state)
 
 
 @app.route("/projects/<name>/regenerate-scene", methods=["POST"])

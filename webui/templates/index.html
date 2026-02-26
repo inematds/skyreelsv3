@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.33.12</title>
+<title>INEMA SkyReels V3 3.34.12</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -967,7 +967,7 @@
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="33 recursos adicionados">33</span>.<span class="fix" title="12 correções">12</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="34 recursos adicionados">34</span>.<span class="fix" title="12 correções">12</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -3142,6 +3142,9 @@ async function saveGlobalConfig() {
 // ── Gen Episode Modal ────────────────────────────────────────
 
 let _genEpisodeProject = null;
+let _genEpisodeTitle   = null;
+let _genJobId          = null;
+let _genPollTimer      = null;
 let _genJobs = [];
 let _projConfig = {};
 
@@ -3176,9 +3179,17 @@ async function openGenEpisodeModal(projName) {
     document.getElementById('gen-ep-modal').style.display = 'flex';
     return;
   }
+  // Resume in-progress background generation for the same project
+  if (_genEpisodeProject === projName && _genJobId) {
+    document.getElementById('gen-ep-modal').style.display = 'flex';
+    _startGenPoll(projName, _genJobId);
+    return;
+  }
 
   _genEpisodeProject = projName;
-  _genJobs = [];
+  _genEpisodeTitle   = null;
+  _genJobId          = null;
+  _genJobs           = [];
 
   // Load global config, project files and upload list in parallel
   const [cfgRes, projRes, uplRes] = await Promise.all([
@@ -3335,6 +3346,9 @@ function toggleGenImgSelectAll(select) {
 }
 
 function closeGenEpisodeModal() {
+  // Não cancela o poll — geração continua em background
+  if (_genPollTimer) clearInterval(_genPollTimer);
+  _genPollTimer = null;
   document.getElementById('gen-ep-modal').style.display = 'none';
 }
 
@@ -3370,7 +3384,11 @@ async function resetSysPrompt() {
 }
 
 function resetGenEpisodeModal() {
-  _genJobs = [];
+  if (_genPollTimer) { clearInterval(_genPollTimer); _genPollTimer = null; }
+  _genJobs          = [];
+  _genJobId         = null;
+  _genEpisodeTitle  = null;
+  _clearGenStatusMsg();
   _showGenStep(1);
   if (window._genEpImages?.length) renderGenImgView(document.getElementById('gen-img-container')?.dataset.view || 'visual');
 }
@@ -3410,13 +3428,15 @@ async function generateEpisodePrompts() {
   const doc_title = (document.getElementById('gen-ep-title')?.value || '').trim();
   if (!doc_title) { alert('Informe o t\xEDtulo do epis\xF3dio'); return; }
 
+  _genEpisodeTitle = doc_title;
+
   // Imagens selecionadas — se nenhuma marcada, envia [] e o backend usa todas do projeto
   const allImgBoxes = Array.from(document.querySelectorAll('input[name="gen-ref-img"]'));
   const checkedImgs = allImgBoxes.filter(c => c.checked).map(c => c.value);
   const payload = {
     description,
     doc_title,
-    task_type:  'reference_to_video',
+    task_type:  document.getElementById('gen-ep-task')?.value || 'reference_to_video',
     resolution: document.getElementById('gen-ep-res').value,
     duration:   parseInt(document.getElementById('gen-ep-dur').value) || 5,
     ref_imgs:   checkedImgs,
@@ -3433,24 +3453,80 @@ async function generateEpisodePrompts() {
     });
     const data = await res.json();
     if (!res.ok) {
-      const msg = data.error || 'Falha na gera\xE7\xE3o';
-      const friendly = msg.includes('timed out') ? '\u23F1 Timeout: o Claude demorou demais para responder. Tente com menos cenas ou um conceito mais curto.\n\nDetalhe: ' + msg : msg;
-      alert(friendly + (data.raw ? '\n\n' + data.raw : ''));
+      const msg = data.error || 'Falha ao iniciar gera\xE7\xE3o';
+      alert(msg);
+      spinner.classList.remove('active');
+      genBtn.disabled = false;
       return;
     }
-    _genJobs = data.jobs;
-    renderGenPreview();
-    _showGenStep(2);
-    if (data.saved_doc) {
-      const info = document.createElement('div');
-      info.style.cssText = 'font-size:.75rem;color:#6fcf6f;padding:4px 0 0';
-      info.textContent = '\u2713 Descri\xE7\xE3o salva em ' + data.saved_doc;
-      document.getElementById('gen-ep-scene-list').before(info);
-    }
-  } finally {
+    _genJobId = data.job_id;
+    // Mostra mensagem de background e inicia polling
+    _setGenStatusMsg('\u23F3 Gerando cenas com IA em background\u2026 voc\xEA pode fechar o modal e voltar depois.');
+    _startGenPoll(_genEpisodeProject, _genJobId);
+  } catch (e) {
+    alert('Erro de conex\xE3o: ' + e.message);
     spinner.classList.remove('active');
     genBtn.disabled = false;
   }
+}
+
+function _setGenStatusMsg(msg) {
+  let el = document.getElementById('gen-ep-status-msg');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'gen-ep-status-msg';
+    el.style.cssText = 'font-size:.78rem;color:#a78bfa;padding:6px 0;text-align:center';
+    const footer = document.getElementById('gen-ep-step1-footer');
+    if (footer) footer.before(el);
+  }
+  el.textContent = msg;
+}
+
+function _clearGenStatusMsg() {
+  const el = document.getElementById('gen-ep-status-msg');
+  if (el) el.remove();
+}
+
+function _startGenPoll(projName, jobId) {
+  if (_genPollTimer) clearInterval(_genPollTimer);
+  const spinner = document.getElementById('gen-ep-spinner');
+  const genBtn  = document.getElementById('gen-ep-gen-btn');
+  if (spinner) spinner.classList.add('active');
+  if (genBtn)  genBtn.disabled = true;
+
+  _genPollTimer = setInterval(async () => {
+    try {
+      const res  = await fetch(`/projects/${encodeURIComponent(projName)}/generate-episode-status/${jobId}`);
+      const data = await res.json();
+      if (data.status === 'done') {
+        clearInterval(_genPollTimer); _genPollTimer = null;
+        if (spinner) spinner.classList.remove('active');
+        if (genBtn)  genBtn.disabled = false;
+        _clearGenStatusMsg();
+        _genJobs = data.jobs;
+        renderGenPreview();
+        _showGenStep(2);
+        if (data.saved_doc) {
+          const info = document.createElement('div');
+          info.style.cssText = 'font-size:.75rem;color:#6fcf6f;padding:4px 0 0';
+          info.textContent = '\u2713 Descri\xE7\xE3o salva em ' + data.saved_doc;
+          const sl = document.getElementById('gen-ep-scene-list');
+          if (sl) sl.before(info);
+        }
+      } else if (data.status === 'error') {
+        clearInterval(_genPollTimer); _genPollTimer = null;
+        if (spinner) spinner.classList.remove('active');
+        if (genBtn)  genBtn.disabled = false;
+        _clearGenStatusMsg();
+        const msg = data.error || 'Falha na gera\xE7\xE3o';
+        const friendly = msg.includes('timed out')
+          ? '\u23F1 Timeout: o Claude demorou demais. Tente com um conceito mais curto.\n\nDetalhe: ' + msg
+          : msg;
+        alert(friendly + (data.raw ? '\n\n' + data.raw : ''));
+      }
+      // status === 'running' → continua polling
+    } catch (e) { /* rede falhou, tenta de novo no próximo tick */ }
+  }, 3000);
 }
 
 function renderGenPreview() {
@@ -3582,12 +3658,10 @@ async function genEpisodeAudio() {
 }
 
 async function createEpisodeFromGen() {
-  const defaultName = `Ep \u2014 ${_genEpisodeProject} \u2014 ${new Date().toLocaleDateString('pt-BR')}`;
-  const name = prompt('Nome do epis\xF3dio:', defaultName);
-  if (name === null) return;
+  const name = _genEpisodeTitle || `Ep \u2014 ${_genEpisodeProject} \u2014 ${new Date().toLocaleDateString('pt-BR')}`;
   const res = await fetch('/nqueues', {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ name: name || defaultName, project: _genEpisodeProject, jobs: _genJobs })
+    body: JSON.stringify({ name, project: _genEpisodeProject, jobs: _genJobs })
   });
   const data = await res.json();
   if (!res.ok) { alert(data.error || 'Erro ao criar epis\xF3dio'); return; }
