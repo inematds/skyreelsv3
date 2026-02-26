@@ -82,7 +82,8 @@ REGRAS OBRIGATÓRIAS — preencha TODOS os campos:
 4. IMAGENS DE REFERÊNCIA (campo "ref_imgs"):
    - Use os paths EXATOS das imagens listadas nos recursos acima
    - Priorize imagens dos personagens que aparecem NA cena
-   - Máximo 4 imagens por cena para reference_to_video
+   - MÁXIMO 4 imagens por cena — NUNCA coloque mais de 4 (limite técnico do pipeline)
+   - Prefira: 1 imagem do personagem principal + 1 do ambiente (2–3 no total é ideal)
    - Exemplo: ["uploads/valen.png", "uploads/escola.png"]
 
 5. VOZ DO PERSONAGEM (campo "voice_id"):
@@ -1709,7 +1710,7 @@ def generate_episode_prompts(name):
         f'  "seed": <número entre 1000 e 9999>,\n'
         f'  "offload": false,\n'
         f'  "low_vram": false,\n'
-        f'  "ref_imgs": ["uploads/personagem1.jpg", "uploads/ambiente.png"]\n'
+        f'  "ref_imgs": ["uploads/personagem1.jpg", "uploads/ambiente.png"]  // MÁXIMO 4 — use 2-3 idealmente\n'
         f'}}'
     )
 
