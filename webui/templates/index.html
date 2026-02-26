@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.41.17</title>
+<title>INEMA SkyReels V3 3.42.18</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -1006,7 +1006,7 @@
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="41 recursos adicionados">41</span>.<span class="fix" title="17 correções">17</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="42 recursos adicionados">42</span>.<span class="fix" title="18 correções">18</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -1939,6 +1939,7 @@ function buildNqCard(nq) {
     <div class="nq-card-progress-bg">
       <div class="nq-card-progress-fill" style="width:${pct}%"></div>
     </div>`;
+  div.dataset.listKey = `${nq.status}|${nq.done_count}|${nq.error_count}|${nq.remaining_minutes}`;
   div.addEventListener('click', () => openNq(nq.id));
   return div;
 }
@@ -1973,12 +1974,41 @@ async function refreshNamedQueues() {
   }
   const res = await fetch('/nqueues');
   const queues = await res.json();
-  list.innerHTML = '';
+
   if (queues.length === 0) {
     list.innerHTML = '<div class="queue-empty">Nenhuma fila criada.<br>Use <strong>+ Fila</strong> ou <strong>↑ Importar</strong> para começar.</div>';
     return;
   }
-  queues.forEach(nq => list.appendChild(buildNqCard(nq)));
+
+  // Atualização incremental: só reconstrói o card se os dados mudaram
+  const existing = new Map(
+    Array.from(list.querySelectorAll('.nq-card[id]'))
+      .map(el => [parseInt(el.id.replace('nq-card-', '')), el])
+  );
+  const seen = new Set();
+
+  queues.forEach((nq, idx) => {
+    seen.add(nq.id);
+    const prev = existing.get(nq.id);
+    // Chave de comparação: o que pode mudar visualmente no card da lista
+    const key = `${nq.status}|${nq.done_count}|${nq.error_count}|${nq.remaining_minutes}`;
+    if (!prev) {
+      list.appendChild(buildNqCard(nq));
+    } else {
+      if (prev.dataset.listKey !== key) {
+        prev.dataset.listKey = key;
+        const fresh = buildNqCard(nq);
+        fresh.dataset.listKey = key;
+        list.replaceChild(fresh, prev);
+      }
+      // garante a ordem correta
+      const children = Array.from(list.children);
+      if (children.indexOf(prev) !== idx) list.appendChild(prev);
+    }
+  });
+
+  // Remove cards de filas que não existem mais
+  existing.forEach((el, id) => { if (!seen.has(id)) el.remove(); });
 }
 
 async function openNq(id) {
@@ -2104,7 +2134,7 @@ async function refreshNqDetail(id) {
       if (!existing) {
         // Card novo — cria e insere na posição correta
         const card = buildSceneCard(id, job);
-        if (isFirstLoad) card.classList.add('expanded');
+        // Não expandir automaticamente — usuário abre clicando
         scenes.appendChild(card);
       } else if (_jobChanged(cached, job)) {
         // Dados mudaram — reconstrói preservando expanded + quickview
@@ -3122,10 +3152,10 @@ function buildEpisodeCard(ep, projectName) {
   const safeName     = ep.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   const safeProjName = (projectName||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   const code = ep.ep_code ? `<span style="font-size:.68rem;color:#6366f1;background:#1a1a3a;border:1px solid #3a3a6a;border-radius:4px;padding:1px 6px;margin-right:4px;flex-shrink:0">${ep.ep_code}</span>` : '';
-  return `<div class="proj-ep-card">
+  return `<div class="proj-ep-card" style="cursor:pointer" onclick="openEpisodeDetail(${ep.id},'${safeProjName}')">
     ${code}<span class="proj-ep-name" title="${ep.name}">${ep.name}</span>
     <span class="proj-ep-status" style="color:${clr}">${txt}</span>
-    <div class="proj-ep-actions">
+    <div class="proj-ep-actions" onclick="event.stopPropagation()">
       <button class="proj-ep-btn" onclick="openEpisodeDetail(${ep.id},'${safeProjName}')" title="Ver cenas">\uD83D\uDCC4 Abrir</button>
       <button class="proj-ep-btn" onclick="confirmRemoveEpisode(${ep.id},'${safeName}','${safeProjName}',${ep.running})" style="border-color:#4a2020;color:#f87171" title="Remover">\uD83D\uDDD1</button>
     </div>
