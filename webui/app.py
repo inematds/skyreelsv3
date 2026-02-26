@@ -367,10 +367,11 @@ def build_cmd_from_job(job):
     # Task-specific params
     if task_type == "reference_to_video":
         ref_imgs = job.get("ref_imgs", [])
-        if isinstance(ref_imgs, list):
-            ref_imgs = ",".join(ref_imgs)
+        if isinstance(ref_imgs, str):
+            ref_imgs = [r.strip() for r in ref_imgs.split(",") if r.strip()]
+        ref_imgs = ref_imgs[:4]  # pipeline limita a 4 imagens (MAX_ALLOWED_REF_IMG_LENGTH)
         if ref_imgs:
-            cmd += ["--ref_imgs", ref_imgs]
+            cmd += ["--ref_imgs", ",".join(ref_imgs)]
 
     if task_type in ("single_shot_extension", "shot_switching_extension"):
         input_video = job.get("input_video", "")
