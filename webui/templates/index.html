@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.40.17</title>
+<title>INEMA SkyReels V3 3.41.17</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -1006,7 +1006,7 @@
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="40 recursos adicionados">40</span>.<span class="fix" title="17 correções">17</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="41 recursos adicionados">41</span>.<span class="fix" title="17 correções">17</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -1888,6 +1888,8 @@ const NQ_STATUS_LABEL = { idle: 'Pronto', running: 'Executando', done: 'Concluí
 const _jobCache = new Map();
 
 let currentNqId = null;
+let _nqDetailWasRunning = false;  // controla frequência do polling do detail
+let _lastNqDetailRefresh = 0;     // timestamp do último refreshNqDetail
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function fmtMinutes(m) {
@@ -1958,7 +1960,15 @@ async function refreshNamedQueues() {
 
   const list = document.getElementById('nq-list-view');
   if (!list || list.style.display === 'none') {
-    if (currentNqId !== null) refreshNqDetail(currentNqId);
+    if (currentNqId !== null) {
+      const now = Date.now();
+      // Polling rápido (3s) apenas quando a fila está rodando; caso contrário, 20s
+      const interval = _nqDetailWasRunning ? 3000 : 20000;
+      if (now - _lastNqDetailRefresh >= interval) {
+        _lastNqDetailRefresh = now;
+        refreshNqDetail(currentNqId);
+      }
+    }
     return;
   }
   const res = await fetch('/nqueues');
@@ -1973,6 +1983,7 @@ async function refreshNamedQueues() {
 
 async function openNq(id) {
   currentNqId = id;
+  _lastNqDetailRefresh = 0;  // força refresh imediato ao abrir
   document.getElementById('nq-list-view').style.display = 'none';
   const dv = document.getElementById('nq-detail-view');
   dv.style.display = 'flex';
@@ -2060,25 +2071,72 @@ async function refreshNqDetail(id) {
       : 'Nenhuma cena concluída ainda';
   }
 
+  // Atualiza flag de polling
+  _nqDetailWasRunning = nq.status === 'running';
+  _lastNqDetailRefresh = Date.now();
+
+  // ── Atualização incremental dos cards ───────────────────────
+  // Só reconstrói o card se os dados do job realmente mudaram.
   const scenes = document.getElementById('nq-scenes');
-  const prevCards = Array.from(scenes.querySelectorAll('.nq-scene-card'));
-  const isFirstLoad = prevCards.length === 0;
-  const expanded = new Set(prevCards.filter(c => c.classList.contains('expanded')).map(c => c.dataset.jobId));
-  scenes.innerHTML = '';
+  const isFirstLoad = scenes.querySelectorAll('.nq-scene-card').length === 0;
+
+  // Mapa dos cards existentes por jobId
+  const existingCards = new Map(
+    Array.from(scenes.querySelectorAll('.nq-scene-card'))
+      .map(c => [parseInt(c.dataset.jobId), c])
+  );
+
+  function _jobChanged(prev, next) {
+    if (!prev) return true;
+    return prev.status       !== next.status
+        || prev.output_video !== next.output_video
+        || prev.input_audio  !== next.input_audio
+        || prev.duration     !== next.duration
+        || JSON.stringify(prev.ref_imgs) !== JSON.stringify(next.ref_imgs);
+  }
+
   let rendered = 0;
-  for (const job of nq.jobs) {
+  for (let i = 0; i < nq.jobs.length; i++) {
+    const job = nq.jobs[i];
+    const existing = existingCards.get(job.id);
+    const cached   = _jobCache.get(job.id);
     try {
-      const card = buildSceneCard(id, job);
-      if (isFirstLoad || expanded.has(String(job.id))) card.classList.add('expanded');
-      scenes.appendChild(card);
+      if (!existing) {
+        // Card novo — cria e insere na posição correta
+        const card = buildSceneCard(id, job);
+        if (isFirstLoad) card.classList.add('expanded');
+        scenes.appendChild(card);
+      } else if (_jobChanged(cached, job)) {
+        // Dados mudaram — reconstrói preservando expanded + quickview
+        const wasExpanded = existing.classList.contains('expanded');
+        const activeQv    = existing.querySelector('.nq-quickview.visible')?.dataset?.active || null;
+        const newCard = buildSceneCard(id, job);
+        if (wasExpanded) newCard.classList.add('expanded');
+        scenes.replaceChild(newCard, existing);
+        // Reabrir quickview se estava aberto
+        if (activeQv) {
+          const qvPanel = newCard.querySelector('.nq-quickview');
+          const qvBtn   = newCard.querySelector(`.nq-qbtn[title="${
+            activeQv==='video'?'Ver vídeo':activeQv==='imgs'?'Ver imagens':activeQv==='audio'?'Ouvir áudio':'Ver textos'
+          }"]`);
+          if (qvPanel && qvBtn) qvBtn.click();
+        }
+      }
+      // Caso contrário: card inalterado — não toca em nada
+      existingCards.delete(job.id);
       rendered++;
     } catch(err) {
       const errDiv = document.createElement('div');
       errDiv.style.cssText = 'color:#f88;padding:8px;font-size:.8rem;border:1px solid #f44;margin:4px;border-radius:4px';
       errDiv.textContent = `Erro job ${job.id} (${job.label}): ${err.message}`;
-      scenes.appendChild(errDiv);
+      if (existing) scenes.replaceChild(errDiv, existing);
+      else scenes.appendChild(errDiv);
+      existingCards.delete(job.id);
     }
   }
+  // Remove cards de jobs que não existem mais
+  existingCards.forEach(card => card.remove());
+
   if (rendered === 0 && nq.jobs.length > 0) {
     scenes.innerHTML = `<div style="color:#f88;padding:16px">Erro ao renderizar cenas. Verifique o console.</div>`;
   }
