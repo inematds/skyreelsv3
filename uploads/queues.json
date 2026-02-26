@@ -1958,10 +1958,10 @@
         "id": 296,
         "nq_id": 17,
         "nq_job_index": 0,
-        "status": "idle",
+        "status": "done",
         "label": "Cena 01 — A Gaiola Vazia",
         "created_at": "2026-02-26 12:38:26",
-        "output_video": "",
+        "output_video": "result/reference_to_video/2301_2026-02-26_14-33-27.mp4",
         "audio_text": "Maya entra no laboratório de manhã, vai direto até a gaiola e para de repente. Com voz assustada ela diz: Espera... espera, espera, espera. A gaiola está aberta. O Faísca sumiu! Alguém viu o Faísca?",
         "duration": 5,
         "image_prompt": "anime style illustration, 2030 futuristic school laboratory interior, empty small animal cage with open door on lab bench, scattered wood shavings, bright LED overhead lighting, detailed scientific equipment background, dramatic close-up composition, vibrant colors",
@@ -1977,7 +1977,9 @@
         "seed": 2301,
         "task_type": "reference_to_video",
         "voice_id": "I8DgbTbTo03jkAylmgv2",
-        "input_audio": "projetos/INETUSX/episodios/EP005/audios/Cena_01_A_Gaiola_Vazia.mp3"
+        "input_audio": "projetos/INETUSX/episodios/EP005/audios/Cena_01_A_Gaiola_Vazia.mp3",
+        "started_at": "2026-02-26 14:16:54",
+        "finished_at": "2026-02-26 14:33:31"
       },
       {
         "id": 297,

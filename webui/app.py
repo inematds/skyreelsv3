@@ -1812,6 +1812,49 @@ def reset_system_prompt():
     return jsonify({"ok": True, "prompt": DEFAULT_SYSTEM_PROMPT})
 
 
+def _build_phase1_prompt(description: str, image_paths: list, docs_content: list) -> str:
+    """Prompt para Fase 1: Claude identifica ambientes e elementos novos necessários."""
+    images_list = "\n".join(f"- {p}" for p in image_paths) if image_paths else "Nenhuma"
+    docs_str = ("\n\nDocumentos do projeto:\n" + "\n\n".join(docs_content)[:3000]) if docs_content else ""
+    return f"""Você é um supervisor de produção de série animada.
+A partir da descrição do episódio e dos recursos visuais do projeto, faça:
+
+1. MAPEAMENTO DE AMBIENTES: Identifique todos os locais/ambientes onde as cenas acontecem
+2. ELEMENTOS NOVOS: Identifique elementos visuais que NÃO têm imagem de referência disponível na lista abaixo
+
+Imagens de referência disponíveis no projeto:
+{images_list}{docs_str}
+
+Descrição do episódio:
+{description}
+
+Retorne SOMENTE um JSON válido com este formato exato:
+{{
+  "environments": [
+    {{
+      "name": "nome curto do ambiente",
+      "description": "descrição visual detalhada do ambiente",
+      "existing_ref": "projetos/X/imagens/Y.png ou null se não existe"
+    }}
+  ],
+  "new_elements": [
+    {{
+      "name": "nome do elemento",
+      "type": "environment|character|object",
+      "image_prompt": "prompt detalhado em inglês para gerar imagem via fal.ai (anime style, 16:9, 2030 futuristic)"
+    }}
+  ]
+}}
+
+REGRAS OBRIGATÓRIAS:
+- environments.existing_ref: use o path EXATO de uma imagem da lista acima (copie exatamente como está), ou null
+- new_elements: SOMENTE elementos que NÃO têm nenhuma imagem correspondente na lista acima
+- Máximo 5 novos elementos — priorize ambientes e personagens novos mais importantes
+- Se todos os ambientes já têm referência visual: new_elements = []
+
+APENAS o JSON."""
+
+
 @app.route("/projects/<name>/generate-episode", methods=["POST"])
 def generate_episode_prompts(name):
     data = request.get_json(force=True)
@@ -1883,26 +1926,23 @@ def generate_episode_prompts(name):
         f'}}'
     )
 
-    template = _load_system_prompt()
-    prompt = template.format(
-        description=description,
-        resources=resources_section,
-        task_type=task_type,
-        resolution=resolution,
-        duration=duration,
-        json_template=json_template,
-    )
+    # Fase 2 usará json_template e template do sistema; construímos fora para capturar no closure
+    _sys_template = _load_system_prompt()
 
     # Iniciar geração em background — retorna job_id imediatamente
     job_id = uuid.uuid4().hex[:8]
     with _ep_gen_lock:
         _ep_gen_state[job_id] = {
             "status": "running",
+            "phase": "phase1",
+            "phase_msg": "Fase 1: identificando ambientes e elementos visuais…",
             "jobs": [],
             "saved_doc": saved_doc,
             "ep_title": doc_title,
             "error": None,
             "raw": "",
+            "environments": [],
+            "new_refs": [],
         }
         _ep_gen_by_project[name] = job_id
 
@@ -1910,21 +1950,155 @@ def generate_episode_prompts(name):
         _env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
         proc = None
         try:
+            # ─── FASE 1: identificar ambientes e elementos novos ───────────────
+            with _ep_gen_lock:
+                _ep_gen_state[job_id]["phase"]     = "phase1"
+                _ep_gen_state[job_id]["phase_msg"] = "Fase 1: identificando ambientes e elementos visuais…"
+
+            phase1_prompt = _build_phase1_prompt(description, effective_imgs, all_docs_content)
             proc = subprocess.run(
-                ["/home/nmaldaner/.local/bin/claude", "-p", prompt],
+                ["/home/nmaldaner/.local/bin/claude", "-p", phase1_prompt],
+                capture_output=True, text=True, timeout=180, env=_env
+            )
+            raw1 = proc.stdout.strip()
+            if raw1.startswith("```"):
+                raw1 = re.sub(r"^```[a-z]*\n?", "", raw1)
+                raw1 = re.sub(r"\n?```$", "", raw1)
+
+            phase1_result = json.loads(raw1)
+            environments = phase1_result.get("environments", [])
+            new_elements = phase1_result.get("new_elements", [])
+            with _ep_gen_lock:
+                _ep_gen_state[job_id]["environments"] = environments
+
+            # ─── FASE 1b: gerar imagens para elementos novos ──────────────────
+            new_refs = []
+            if new_elements:
+                with _ep_gen_lock:
+                    _ep_gen_state[job_id]["phase"]     = "generating_refs"
+                    _ep_gen_state[job_id]["phase_msg"] = f"Gerando {len(new_elements)} imagem(ns) de referência nova(s)…"
+
+                cfg = _load_global_config()
+                fal_key = cfg.get("fal_key", "") or os.environ.get("FAL_KEY", "")
+                if fal_key:
+                    try:
+                        import fal_client
+                        import urllib.request as urllib_req
+                        os.environ["FAL_KEY"] = fal_key
+                        model = cfg.get("image_model", "fal-ai/flux/dev")
+                        img_dir = PROJECTS_DIR / name / "imagens"
+                        img_dir.mkdir(exist_ok=True)
+
+                        for idx_e, elem in enumerate(new_elements):
+                            with _ep_gen_lock:
+                                _ep_gen_state[job_id]["phase_msg"] = (
+                                    f"Gerando referência {idx_e + 1}/{len(new_elements)}: "
+                                    f"{elem.get('name', '')}…"
+                                )
+                            try:
+                                img_prompt = elem.get("image_prompt") or elem.get("name", "")
+                                res = fal_client.subscribe(model, arguments={
+                                    "prompt": img_prompt,
+                                    "num_images": 1,
+                                    "image_size": "landscape_16_9",
+                                })
+                                url = res["images"][0]["url"]
+                                safe_n = re.sub(r'[^\w\-]', '_', elem.get("name", "element")[:40])
+                                dest = img_dir / f"{safe_n}.png"
+                                urllib_req.urlretrieve(url, str(dest))
+                                rel = str(dest.relative_to(PROJECT_ROOT))
+                                new_refs.append({
+                                    "name": elem.get("name"),
+                                    "type": elem.get("type", ""),
+                                    "path": rel,
+                                })
+                                print(f"[ep-gen] nova ref gerada: {rel}")
+                            except Exception as img_err:
+                                print(f"[ep-gen] erro ao gerar imagem para '{elem.get('name')}': {img_err}")
+                    except ImportError:
+                        print("[ep-gen] fal-client não instalado — pulando geração de novas refs")
+
+            with _ep_gen_lock:
+                _ep_gen_state[job_id]["new_refs"] = new_refs
+
+            # ─── FASE 2: gerar cenas com referências completas ────────────────
+            with _ep_gen_lock:
+                _ep_gen_state[job_id]["phase"]     = "phase2"
+                _ep_gen_state[job_id]["phase_msg"] = "Fase 2: criando cenas com referências completas…"
+
+            # Lista atualizada: refs originais + novas geradas
+            all_refs = list(effective_imgs) + [nr["path"] for nr in new_refs]
+            updated_images_list = "\n".join(f"- {p}" for p in all_refs) if all_refs else "Nenhuma"
+
+            # Mapa de ambientes para orientar a IA na fase 2
+            env_section = ""
+            if environments:
+                env_section = (
+                    "\n\nMAPA DE AMBIENTES DO EPISÓDIO"
+                    " — distribua CONSISTENTEMENTE por cena:\n"
+                )
+                for env in environments:
+                    ref = env.get("existing_ref")
+                    # Substituir/completar com nova ref gerada se houver
+                    for nr in new_refs:
+                        if nr["name"].lower() == env["name"].lower():
+                            ref = nr["path"]
+                            break
+                    env_section += f"- {env['name']}: {env.get('description', '')}\n"
+                    if ref:
+                        env_section += (
+                            f"  → REFERÊNCIA OBRIGATÓRIA: {ref}"
+                            f" (inclua em TODA cena que ocorre neste ambiente)\n"
+                        )
+
+            resources_section_updated = (
+                f"\nImagens de referência do projeto (use os paths exatos nas cenas):\n"
+                f"{updated_images_list}\n"
+            )
+            if all_audios:
+                resources_section_updated += (
+                    "\nÁudios disponíveis no projeto:\n"
+                    + "\n".join(f"- {a}" for a in all_audios) + "\n"
+                )
+            if all_docs_content:
+                resources_section_updated += (
+                    "\nDocumentos do projeto (contexto de consistência):\n"
+                    + "\n\n".join(all_docs_content) + "\n"
+                )
+            if env_section:
+                resources_section_updated += env_section
+
+            phase2_prompt = _sys_template.format(
+                description=description,
+                resources=resources_section_updated,
+                task_type=task_type,
+                resolution=resolution,
+                duration=duration,
+                json_template=json_template,
+            )
+
+            proc = subprocess.run(
+                ["/home/nmaldaner/.local/bin/claude", "-p", phase2_prompt],
                 capture_output=True, text=True, timeout=360, env=_env
             )
-            raw = proc.stdout.strip()
-            if raw.startswith("```"):
-                raw = re.sub(r"^```[a-z]*\n?", "", raw)
-                raw = re.sub(r"\n?```$", "", raw)
-            jobs = json.loads(raw)
+            raw2 = proc.stdout.strip()
+            if raw2.startswith("```"):
+                raw2 = re.sub(r"^```[a-z]*\n?", "", raw2)
+                raw2 = re.sub(r"\n?```$", "", raw2)
+            jobs = json.loads(raw2)
             if not isinstance(jobs, list):
                 raise ValueError("Resposta não é um array")
+
             with _ep_gen_lock:
                 if job_id in _ep_gen_state:
-                    _ep_gen_state[job_id]["status"] = "done"
-                    _ep_gen_state[job_id]["jobs"]   = jobs
+                    done_msg = f"Concluído! {len(jobs)} cenas"
+                    if new_refs:
+                        done_msg += f" · {len(new_refs)} nova(s) referência(s) criada(s)"
+                    _ep_gen_state[job_id]["status"]   = "done"
+                    _ep_gen_state[job_id]["phase"]     = "done"
+                    _ep_gen_state[job_id]["phase_msg"] = done_msg
+                    _ep_gen_state[job_id]["jobs"]      = jobs
+
         except Exception as e:
             with _ep_gen_lock:
                 if job_id in _ep_gen_state:

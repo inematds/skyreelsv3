@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.37.13</title>
+<title>INEMA SkyReels V3 3.38.13</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -967,7 +967,7 @@
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="37 recursos adicionados">37</span>.<span class="fix" title="13 correções">13</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="38 recursos adicionados">38</span>.<span class="fix" title="13 correções">13</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -3611,12 +3611,22 @@ function _startGenPoll(projName, jobId) {
         _genJobs = data.jobs;
         renderGenPreview();
         _showGenStep(2);
-        if (data.saved_doc) {
+        // Resumo de geração (doc salvo + novas referências criadas)
+        const sl = document.getElementById('gen-ep-scene-list');
+        if (sl && (data.saved_doc || (data.new_refs && data.new_refs.length))) {
           const info = document.createElement('div');
-          info.style.cssText = 'font-size:.75rem;color:#6fcf6f;padding:4px 0 0';
-          info.textContent = '\u2713 Descri\xE7\xE3o salva em ' + data.saved_doc;
-          const sl = document.getElementById('gen-ep-scene-list');
-          if (sl) sl.before(info);
+          info.style.cssText = 'font-size:.75rem;color:#6fcf6f;padding:4px 0 8px;line-height:1.6';
+          let html = '';
+          if (data.saved_doc) html += `✓ Descrição salva em ${data.saved_doc}<br>`;
+          if (data.environments && data.environments.length) {
+            html += `🗺 ${data.environments.length} ambiente(s) mapeado(s) · `;
+          }
+          if (data.new_refs && data.new_refs.length) {
+            html += `🖼 ${data.new_refs.length} referência(s) nova(s) gerada(s): `;
+            html += data.new_refs.map(r => `<span style="color:#a78bfa">${r.name}</span>`).join(', ');
+          }
+          info.innerHTML = html;
+          sl.before(info);
         }
       } else if (data.status === 'error') {
         clearInterval(_genPollTimer); _genPollTimer = null;
@@ -3629,7 +3639,16 @@ function _startGenPoll(projName, jobId) {
           : msg;
         alert(friendly + (data.raw ? '\n\n' + data.raw : ''));
       }
-      // status === 'running' → continua polling
+      // status === 'running' → atualiza mensagem de fase e continua polling
+      if (data.status === 'running' && data.phase_msg) {
+        const phaseIcons = {
+          phase1: '🔍',
+          generating_refs: '🖼',
+          phase2: '✍️',
+        };
+        const icon = phaseIcons[data.phase] || '⏳';
+        _setGenStatusMsg(`${icon} ${data.phase_msg}`);
+      }
     } catch (e) { /* rede falhou, tenta de novo no próximo tick */ }
   }, 3000);
 }
