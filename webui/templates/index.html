@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.34.12</title>
+<title>INEMA SkyReels V3 3.35.12</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -967,7 +967,7 @@
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="34 recursos adicionados">34</span>.<span class="fix" title="12 correções">12</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="35 recursos adicionados">35</span>.<span class="fix" title="12 correções">12</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -1268,6 +1268,7 @@
               <button id="nq-run-btn"     class="nq-action-btn run"     onclick="runCurrentNq()"     title="Continuar: executar cenas idle, pula erros">▶ Continuar</button>
               <button id="nq-retry-btn"  class="nq-action-btn reset"   onclick="retryCurrentNq()"   title="Repetir do erro: reseta erros e continua de onde parou" style="display:none">↩ Repetir do erro</button>
               <button id="nq-restart-btn" class="nq-action-btn danger2" onclick="restartCurrentNq()" title="Reiniciar do zero: apaga tudo e começa do início" style="display:none">↺ Reiniciar do zero</button>
+              <button id="nq-mix-audio-btn" class="nq-action-btn" onclick="mixAudioCurrentNq()" title="Mixar áudio nos vídeos silenciosos (aplica input_audio de cada cena via ffmpeg)" style="border-color:#22c55e;color:#86efac">🔊 Mix Áudio</button>
               <button id="nq-finalize-btn" class="nq-action-btn finalize" onclick="finalizeCurrentNq()" title="Concatenar todas as cenas concluídas em um vídeo final" disabled>🎬 Finalizar</button>
               <button class="nq-action-btn danger" onclick="deleteCurrentNq()" title="Excluir esta fila">🗑</button>
               <button class="nq-action-btn" onclick="toggleAllScenes(true)"  title="Expandir todas as cenas">⊞</button>
@@ -2223,6 +2224,27 @@ function downloadNqZip(includeSources) {
   a.href = `/nqueues/${currentNqId}/download-zip${includeSources ? '?include_sources=1' : ''}`;
   a.download = '';
   a.click();
+}
+
+async function mixAudioCurrentNq() {
+  if (!currentNqId) return;
+  const btn = document.getElementById('nq-mix-audio-btn');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '\u23F3 Mixando...';
+  try {
+    const res  = await fetch(`/nqueues/${currentNqId}/mix-audio`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || 'Erro ao mixar'); return; }
+    let msg = `\u2713 Mixado: ${data.mixed} vídeo(s)  |  Já com áudio/sem áudio: ${data.skipped}`;
+    if (data.errors?.length) msg += '\n\nErros:\n' + data.errors.join('\n');
+    alert(msg);
+  } catch(e) {
+    alert('Erro: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
 }
 
 async function finalizeCurrentNq() {

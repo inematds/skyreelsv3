@@ -601,6 +601,13 @@ def run_generation(cmd, env_extra=None, metadata=None, job=None):
                 generation_state["last_video"] = str(last_video.relative_to(PROJECT_ROOT))
                 if job:
                     job["output_video"] = generation_state["last_video"]
+                    # Auto-mix audio (reference_to_video/extension geram vídeo silencioso)
+                    if job.get("task_type") != "talking_avatar":
+                        input_audio = job.get("input_audio", "")
+                        if input_audio:
+                            audio_path = PROJECT_ROOT / input_audio
+                            if audio_path.exists():
+                                _mix_audio_into_video(last_video, audio_path)
                 # Save metadata JSON alongside the video
                 if metadata:
                     metadata["generated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -1394,6 +1401,31 @@ def _video_info(path):
     return has_aud, duration
 
 
+def _mix_audio_into_video(video_path: Path, audio_path: Path) -> bool:
+    """Mixes audio into a silent video, replacing the original in-place. Returns True on success."""
+    tmp = video_path.with_name(video_path.stem + "_mixed_tmp.mp4")
+    try:
+        r = subprocess.run(
+            ["ffmpeg", "-y",
+             "-i", str(video_path),
+             "-i", str(audio_path),
+             "-map", "0:v", "-map", "1:a",
+             "-c:v", "copy", "-c:a", "aac", "-ar", "44100", "-ac", "2",
+             "-shortest", str(tmp)],
+            capture_output=True, text=True, timeout=120
+        )
+        if r.returncode == 0 and tmp.exists():
+            tmp.replace(video_path)  # atomic rename — replaces original
+            return True
+        if tmp.exists():
+            tmp.unlink()
+        return False
+    except Exception:
+        if tmp.exists():
+            tmp.unlink()
+        return False
+
+
 @app.route("/nqueues/<int:nq_id>/finalize", methods=["POST"])
 def finalize_nq_route(nq_id):
     with nq_lock:
@@ -1493,6 +1525,47 @@ def finalize_nq_route(nq_id):
 
     rel_path = str(out_path.relative_to(PROJECT_ROOT))
     return jsonify({"ok": True, "output_video": rel_path, "scene_count": len(videos)})
+
+
+@app.route("/nqueues/<int:nq_id>/mix-audio", methods=["POST"])
+def nq_mix_audio(nq_id):
+    """Mixes input_audio into each done scene video that still has no audio track."""
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return jsonify({"error": "Fila não encontrada"}), 404
+        jobs = nq["jobs"]
+
+    mixed, skipped, errors = 0, 0, []
+    for job in jobs:
+        if job.get("status") != "done":
+            skipped += 1
+            continue
+        output_video = job.get("output_video", "")
+        input_audio  = job.get("input_audio", "")
+        if not output_video or not input_audio or job.get("task_type") == "talking_avatar":
+            skipped += 1
+            continue
+        vpath = PROJECT_ROOT / output_video
+        apath = PROJECT_ROOT / input_audio
+        if not vpath.exists():
+            errors.append(f"{job.get('label','?')}: vídeo não encontrado")
+            continue
+        if not apath.exists():
+            errors.append(f"{job.get('label','?')}: áudio não encontrado")
+            continue
+        # Skip if video already has an audio track
+        has_aud, _ = _video_info(vpath)
+        if has_aud:
+            skipped += 1
+            continue
+        ok = _mix_audio_into_video(vpath, apath)
+        if ok:
+            mixed += 1
+        else:
+            errors.append(f"{job.get('label','?')}: ffmpeg falhou")
+
+    return jsonify({"ok": True, "mixed": mixed, "skipped": skipped, "errors": errors})
 
 
 # ─── Config global ───────────────────────────────────────────
