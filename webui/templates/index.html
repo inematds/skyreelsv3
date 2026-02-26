@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.31.10</title>
+<title>INEMA SkyReels V3 3.33.12</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -967,7 +967,7 @@
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="31 recursos adicionados">31</span>.<span class="fix" title="10 correções">10</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="33 recursos adicionados">33</span>.<span class="fix" title="12 correções">12</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -2200,7 +2200,7 @@ async function runNqJob(nqId, jobId) {
 
 async function deleteNq(id) {
   if (!confirm('Excluir esta fila?')) return;
-  const res = await fetch(`/nqueues/${id}`, { method: 'DELETE' });
+  const res = await fetch(`/nqueues/${id}?force=true`, { method: 'DELETE' });
   const data = await res.json();
   if (!data.ok) { alert(data.error); return; }
   if (currentNqId === id) showNqList();
@@ -2625,12 +2625,8 @@ async function loadProjectDetail(name) {
 
   detail.innerHTML = html;
 
-  // Abrir seção de imagens por padrão e renderizar em lista
-  const imgSection = detail.querySelector('.proj-folder-section');
-  if (imgSection) imgSection.classList.add('open');
   if ((data.folders?.imagens || []).length) {
     window._projImgFiles = data.folders.imagens;
-    renderProjImgView(name, 'list');
   }
 }
 
@@ -2689,7 +2685,15 @@ function showProjImgPreview(src, name) {
 }
 
 function toggleProjSection(titleEl) {
-  titleEl.closest('.proj-folder-section').classList.toggle('open');
+  const section = titleEl.closest('.proj-folder-section');
+  section.classList.toggle('open');
+  // Renderiza imagens ao abrir pela primeira vez
+  if (section.classList.contains('open')) {
+    const imgBody = section.querySelector('#proj-img-body');
+    if (imgBody && !imgBody.innerHTML.trim() && window._projImgFiles?.length) {
+      renderProjImgView(imgBody.dataset.proj, imgBody.dataset.view || 'list');
+    }
+  }
 }
 
 function buildProjectFileRow(f, sub) {
@@ -2755,10 +2759,11 @@ function buildEpisodeCard(ep, projectName) {
   const clr = ep.running ? '#f59e0b' : ep.error ? '#ef4444'
               : (ep.done === ep.total && ep.total > 0) ? '#6fcf6f' : '#888';
   const txt = ep.running ? '\u25B6 Rodando' : `${ep.done}/${ep.total} cenas`;
-  const safeName    = ep.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const safeName     = ep.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   const safeProjName = (projectName||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const code = ep.ep_code ? `<span style="font-size:.68rem;color:#6366f1;background:#1a1a3a;border:1px solid #3a3a6a;border-radius:4px;padding:1px 6px;margin-right:4px;flex-shrink:0">${ep.ep_code}</span>` : '';
   return `<div class="proj-ep-card">
-    <span class="proj-ep-name" title="${ep.name}">${ep.name}</span>
+    ${code}<span class="proj-ep-name" title="${ep.name}">${ep.name}</span>
     <span class="proj-ep-status" style="color:${clr}">${txt}</span>
     <div class="proj-ep-actions">
       <button class="proj-ep-btn" onclick="openEpisodeDetail(${ep.id},'${safeProjName}')" title="Ver cenas">\uD83D\uDCC4 Abrir</button>
@@ -2881,6 +2886,10 @@ async function openEpisodeDetail(nqId, projectName) {
             <div class="proj-config-label">Texto de áudio (narração / fala)</div>
             <textarea class="proj-config-input" id="ej-audio-${nqId}-${j.id}" rows="2">${esc(j.audio_text||'')}</textarea>
           </div>` : ''}
+          <div style="margin-bottom:8px">
+            <div class="proj-config-label">Voice ID — ElevenLabs (voz do personagem desta cena)</div>
+            <input class="proj-config-input" id="ej-voice-${nqId}-${j.id}" value="${esc(j.voice_id||'')}" placeholder="ex: FIEA0c5UHH9JnvWaQrXS (Valen)">
+          </div>
           <div style="margin-bottom:10px">
             <div class="proj-config-label">Imagens de referência (paths separados por vírgula)</div>
             <input class="proj-config-input" id="ej-refs-${nqId}-${j.id}" value="${esc(refs)}" placeholder="uploads/foto.jpg, uploads/bg.png">
@@ -2907,7 +2916,9 @@ async function openEpisodeDetail(nqId, projectName) {
       <button class="proj-ep-btn" onclick="epGenAudio(${nqId},'${safeProjName}',this)" title="Gerar \xE1udios via ElevenLabs">\uD83C\uDFB5 \xC1udios</button>
       <button class="proj-ep-btn" style="opacity:.5;cursor:not-allowed" title="Em breve">\uD83C\uDFB6 M\xFAsica</button>
       <button class="proj-ep-btn run" onclick="runEpisode(${nqId},'${safeProjName}')" title="Gerar v\xEDdeos (rodar fila)">\uD83C\uDFAC V\xEDdeos</button>
+      <button class="proj-ep-btn" onclick="openEpisodeGallery(${nqId})" id="ep-gallery-btn-${nqId}" title="Ver assets gerados">\uD83D\uDDC2 Galeria</button>
     </div>
+    <div id="ep-gallery-${nqId}" style="display:none;border-bottom:1px solid #1a1a2a;background:#07070d;padding:10px 14px"></div>
     <div class="ep-detail-jobs">${jobsHtml}</div>`;
 }
 
@@ -2927,6 +2938,8 @@ async function saveEpJob(nqId, jobId, hasImgPrompt, hasAudioText) {
   };
   if (hasImgPrompt) payload.image_prompt = g(`ej-imgprompt-${nqId}-${jobId}`) || '';
   if (hasAudioText) payload.audio_text   = g(`ej-audio-${nqId}-${jobId}`)    || '';
+  const voiceVal = g(`ej-voice-${nqId}-${jobId}`);
+  if (voiceVal !== null) payload.voice_id = voiceVal.trim();
 
   const res = await fetch(`/nqueues/${nqId}/jobs/${jobId}`, {
     method: 'PATCH', headers: {'Content-Type':'application/json'},
@@ -2951,6 +2964,67 @@ async function deleteEpJob(nqId, jobId, projectName) {
   await openEpisodeDetail(nqId, projectName);
 }
 
+// -- Galeria do episódio --
+async function openEpisodeGallery(nqId) {
+  const panel = document.getElementById(`ep-gallery-${nqId}`);
+  const btn   = document.getElementById(`ep-gallery-btn-${nqId}`);
+  if (!panel) return;
+  if (panel.style.display !== 'none') { panel.style.display = 'none'; if (btn) btn.textContent = '\uD83D\uDDC2 Galeria'; return; }
+  panel.innerHTML = '<span style="color:#555;font-size:.8rem">Carregando\u2026</span>';
+  panel.style.display = 'block';
+  if (btn) btn.textContent = '\u2716 Fechar Galeria';
+  const res = await fetch(`/nqueues/${nqId}/gallery`);
+  if (!res.ok) { panel.innerHTML = '<span style="color:#f87171;font-size:.8rem">Erro ao carregar galeria.</span>'; return; }
+  const g = await res.json();
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let html = '';
+
+  if (g.images && g.images.length) {
+    html += `<div style="margin-bottom:10px"><div style="color:#7c7caa;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">\uD83D\uDDBC Imagens (${g.images.length})</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">`;
+    for (const p of g.images) {
+      const name = p.split('/').pop();
+      html += `<div style="position:relative" title="${esc(name)}">
+        <img src="/file/${encodeURIComponent(p)}" style="width:100px;height:60px;object-fit:cover;border-radius:4px;border:1px solid #1a1a2a;cursor:pointer" onclick="window.open('/file/${encodeURIComponent(p)}','_blank')">
+        <div style="font-size:.6rem;color:#555;text-align:center;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</div>
+      </div>`;
+    }
+    html += '</div></div>';
+  }
+
+  if (g.audios && g.audios.length) {
+    html += `<div style="margin-bottom:10px"><div style="color:#7c7caa;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">\uD83C\uDFB5 \xC1udios (${g.audios.length})</div>
+    <div style="display:flex;flex-direction:column;gap:4px">`;
+    for (const p of g.audios) {
+      const name = p.split('/').pop().replace(/\.mp3$/i,'');
+      html += `<div style="display:flex;align-items:center;gap:8px;background:#0d0d1a;border-radius:4px;padding:4px 8px">
+        <span style="color:#888;font-size:.75rem;min-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</span>
+        <audio controls src="/file/${encodeURIComponent(p)}" style="height:26px;flex:1;min-width:0"></audio>
+      </div>`;
+    }
+    html += '</div></div>';
+  }
+
+  if (g.videos && g.videos.length) {
+    html += `<div style="margin-bottom:10px"><div style="color:#7c7caa;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">\uD83C\uDFAC V\xEDdeos (${g.videos.length})</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">`;
+    for (const p of g.videos) {
+      const name = p.split('/').pop();
+      html += `<div style="text-align:center">
+        <video src="/file/${encodeURIComponent(p)}" style="width:160px;height:90px;object-fit:cover;border-radius:4px;border:1px solid #1a1a2a;cursor:pointer" onclick="playVideoByPath('${p.replace(/'/g,"\\'")}')"></video>
+        <div style="font-size:.6rem;color:#555;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(name)}</div>
+      </div>`;
+    }
+    html += '</div></div>';
+  }
+
+  if (!g.images?.length && !g.audios?.length && !g.videos?.length) {
+    html = '<span style="color:#444;font-size:.8rem">Nenhum asset gerado ainda. Use os bot\xF5es acima para gerar imagens e \xE1udios.</span>';
+  }
+
+  panel.innerHTML = html;
+}
+
 // -- Remover episódio do projeto --
 let _removeEpState = null;
 
@@ -2971,7 +3045,7 @@ async function removeEpisodeFromProject(alsoDeleteFromQueue) {
   const { nqId, projectName } = _removeEpState;
   closeRemoveEpisodeModal();
   const url = alsoDeleteFromQueue
-    ? `/nqueues/${nqId}`
+    ? `/nqueues/${nqId}?force=true`
     : `/nqueues/${nqId}/project-link`;
   const res = await fetch(url, { method: 'DELETE' });
   if (!res.ok) {

@@ -85,8 +85,15 @@ REGRAS OBRIGATÓRIAS — preencha TODOS os campos:
    - Máximo 4 imagens por cena para reference_to_video
    - Exemplo: ["uploads/valen.png", "uploads/escola.png"]
 
-5. CONSISTÊNCIA NARRATIVA:
-   - Use os documentos do projeto como base de conhecimento absoluta para personagens e universo
+5. VOZ DO PERSONAGEM (campo "voice_id"):
+   - Extraia o voice_id do ElevenLabs diretamente dos documentos do projeto (tabela de casting)
+   - Coloque o voice_id do personagem principal que fala ou narra a cena
+   - Se a cena for silenciosa ou a voz for genérica/narradora, use string vazia: ""
+   - NÃO invente voice_ids — use SOMENTE os que estão explicitamente nos docs do projeto
+   - Exemplo: "FIEA0c5UHH9JnvWaQrXS" (Valen), "vibfi5nlk3hs8Mtvf9Oy" (Lumi), etc.
+
+6. CONSISTÊNCIA NARRATIVA:
+   - Use os documentos do projeto como base de conhecimento absoluta para personagens, universo e vozes
    - Distribua imagens de referência coerentemente (personagem correto em cada cena)
    - Adapte duração conforme intensidade narrativa (~{duration}s como base)
    - Cubra TODA a história descrita — não pule cenas importantes
@@ -180,6 +187,13 @@ def _load_queues():
                 if j.get("status") in ("running", "pending"):
                     j["status"] = "idle"
             named_queues.append(nq)
+        # Atribuir ep_code a episódios existentes que não têm código
+        _proj_counters: dict = {}
+        for nq in named_queues:
+            proj = nq.get("project", "")
+            if proj and not nq.get("ep_code"):
+                _proj_counters[proj] = _proj_counters.get(proj, 0) + 1
+                nq["ep_code"] = f"EP{_proj_counters[proj]:03d}"
         # Restore counters to avoid ID collisions
         if named_queues:
             _nq_id_counter = max(nq["id"] for nq in named_queues)
@@ -195,6 +209,65 @@ def _next_job_id():
     global _job_id_counter
     _job_id_counter += 1
     return _job_id_counter
+
+
+def _parse_project_voices(proj_name: str) -> dict:
+    """Lê os docs do projeto e extrai mapa {nome_personagem: voice_id} de tabelas Markdown.
+    Procura pela coluna 'Voice ID' (3ª coluna) em tabelas pipe-separadas.
+    Padrão: | Personagem | Voz | voice_id | ...
+    """
+    voices: dict = {}
+    docs_dir = PROJECTS_DIR / proj_name / "docs"
+    if not docs_dir.exists():
+        return voices
+    # ElevenLabs voice IDs: alphanum, 15–25 chars
+    # Captura: | Nome | qualquer_coisa | VOICE_ID |
+    row_re = re.compile(r'^\|\s*([^|]+?)\s*\|[^|]*\|\s*([A-Za-z0-9]{15,25})\s*\|')
+    skip_names = {"personagem", "character", "nome", "voz", "voice", "perfil"}
+    for f in sorted(docs_dir.glob("*.md")):
+        for line in f.read_text(errors="ignore").splitlines():
+            m = row_re.match(line.strip())
+            if not m:
+                continue
+            name = m.group(1).strip()
+            vid  = m.group(2).strip()
+            if name.lower() in skip_names:
+                continue
+            voices[name] = vid
+    return voices
+
+
+def _match_voice(voices: dict, label: str, fallback: str) -> str:
+    """Retorna o voice_id do personagem cujo nome aparece MAIS CEDO no label da cena.
+    Evita falso match quando múltiplos personagens estão no título (ex: 'Lumi Chama Valen').
+    """
+    label_lower = label.lower()
+    best_pos = len(label_lower) + 1
+    best_vid = fallback
+    for name, vid in voices.items():
+        first = name.split()[0].lower()
+        idx = label_lower.find(first)
+        if idx != -1 and idx < best_pos:
+            best_pos = idx
+            best_vid = vid
+    return best_vid
+
+
+def _next_ep_code(proj_name: str) -> str:
+    """Gera o próximo código sequencial de episódio para um projeto (EP001, EP002, ...)."""
+    existing = [
+        q.get("ep_code", "")
+        for q in named_queues
+        if q.get("project") == proj_name and q.get("ep_code", "").startswith("EP")
+    ]
+    nums = []
+    for code in existing:
+        try:
+            nums.append(int(code[2:]))
+        except ValueError:
+            pass
+    n = max(nums, default=0) + 1
+    return f"EP{n:03d}"
 
 
 # Patterns for named-queue reference resolution
@@ -1029,18 +1102,21 @@ def create_named_queue():
             **{k: v for k, v in jd.items() if k not in ("id", "nq_id", "status")},
         })
 
+    proj = data.get("project", "")
     nq = {
         "id": nq_id,
         "name": name,
-        "project": data.get("project", ""),
+        "project": proj,
         "status": "idle",
         "jobs": jobs,
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
+    if proj:
+        nq["ep_code"] = _next_ep_code(proj)
     with nq_lock:
         named_queues.append(nq)
     _save_queues()
-    return jsonify({"ok": True, "id": nq_id})
+    return jsonify({"ok": True, "id": nq_id, "ep_code": nq.get("ep_code", "")})
 
 
 @app.route("/nqueues/import", methods=["POST"])
@@ -1170,15 +1246,15 @@ def patch_nq_job(nq_id, job_id):
 
 @app.route("/nqueues/<int:nq_id>", methods=["DELETE"])
 def delete_named_queue_route(nq_id):
+    force = request.args.get("force") == "true"
     with nq_lock:
         nq = next((q for q in named_queues if q["id"] == nq_id), None)
         if nq is None:
             return jsonify({"error": "Fila não encontrada"}), 404
         if nq["status"] == "running":
             return jsonify({"error": "Não é possível excluir uma fila em execução"}), 400
-        if nq.get("project"):
-            # Episódio vinculado a projeto: só limpa os jobs e reseta status,
-            # mantém o registro para o projeto não perder o episódio.
+        if nq.get("project") and not force:
+            # Episódio vinculado a projeto sem force: só limpa jobs e reseta status
             nq["jobs"] = []
             nq["status"] = "idle"
             nq["current_job"] = 0
@@ -1186,6 +1262,36 @@ def delete_named_queue_route(nq_id):
             named_queues.remove(nq)
     _save_queues()
     return jsonify({"ok": True})
+
+
+@app.route("/nqueues/<int:nq_id>/gallery")
+def nq_gallery(nq_id):
+    """Lista os assets gerados para o episódio: imagens, áudios e vídeos."""
+    nq = next((q for q in named_queues if q["id"] == nq_id), None)
+    if nq is None:
+        return jsonify({"error": "Fila não encontrada"}), 404
+
+    proj_name = nq.get("project", "")
+    ep_code   = nq.get("ep_code", "")
+
+    result: dict = {"images": [], "audios": [], "videos": [], "docs": []}
+
+    if proj_name and ep_code:
+        ep_dir = PROJECTS_DIR / proj_name / "episodios" / ep_code
+        for f in sorted((ep_dir / "imagens").glob("*")) if (ep_dir / "imagens").exists() else []:
+            if f.is_file():
+                result["images"].append(str(f.relative_to(PROJECT_ROOT)))
+        for f in sorted((ep_dir / "audios").glob("*")) if (ep_dir / "audios").exists() else []:
+            if f.is_file():
+                result["audios"].append(str(f.relative_to(PROJECT_ROOT)))
+
+    # Vídeos gerados (output_video de cada job)
+    for j in nq.get("jobs", []):
+        vid = j.get("output_video", "")
+        if vid and (PROJECT_ROOT / vid).exists():
+            result["videos"].append(vid)
+
+    return jsonify(result)
 
 
 @app.route("/nqueues/<int:nq_id>/project-link", methods=["DELETE"])
@@ -1436,18 +1542,26 @@ def get_project(name):
     with nq_lock:
         episodes = [
             {
-                "id": q["id"],
-                "name": q["name"],
-                "total": len(q.get("jobs", [])),
-                "done": sum(1 for j in q.get("jobs", []) if j["status"] == "done"),
-                "running": any(j["status"] == "running" for j in q.get("jobs", [])),
-                "error": any(j["status"] == "error" for j in q.get("jobs", [])),
-                "status": q.get("status", "idle"),
+                "id":       q["id"],
+                "name":     q["name"],
+                "ep_code":  q.get("ep_code", ""),
+                "total":    len(q.get("jobs", [])),
+                "done":     sum(1 for j in q.get("jobs", []) if j["status"] == "done"),
+                "running":  any(j["status"] == "running" for j in q.get("jobs", [])),
+                "error":    any(j["status"] == "error" for j in q.get("jobs", [])),
+                "status":   q.get("status", "idle"),
             }
             for q in named_queues
             if q.get("project") == name
         ]
     return jsonify({"name": name, "folders": folders, "episodes": episodes})
+
+
+@app.route("/projects/<name>/voices")
+def get_project_voices(name):
+    """Retorna o mapa personagem → voice_id extraído dos docs do projeto."""
+    voices = _parse_project_voices(name)
+    return jsonify({"project": name, "voices": voices})
 
 
 @app.route("/projects/<name>/upload/<subfolder>", methods=["POST"])
@@ -1588,6 +1702,7 @@ def generate_episode_prompts(name):
         f'  "prompt": "Cinematic video description in English — camera movement, lighting, characters, action...",\n'
         f'  "image_prompt": "Flux/fal.ai image prompt in English — characters, environment, art style, colors...",\n'
         f'  "audio_text": "Narração ou diálogos em português para esta cena (ou string vazia se silenciosa)",\n'
+        f'  "voice_id": "ElevenLabs voice_id do personagem que fala nesta cena (extraia dos docs do projeto; vazio se narração genérica)",\n'
         f'  "resolution": "{resolution}",\n'
         f'  "duration": <duração em segundos mais adequada para esta cena>,\n'
         f'  "seed": <número entre 1000 e 9999>,\n'
@@ -1803,7 +1918,7 @@ def nq_generate_images(nq_id):
     os.environ["FAL_KEY"] = fal_key
     model = cfg.get("image_model", "fal-ai/flux/dev")
     # Imagens do episódio ficam em projetos/<proj>/temp/<ep-name>/imagens/
-    ep_slug = re.sub(r'[^\w\-]', '_', nq.get("name", f"ep_{nq_id}"))[:60]
+    ep_slug = nq.get("ep_code") or re.sub(r'[^\w\-]', '_', nq.get("name", f"ep_{nq_id}"))[:60]
     img_dir = PROJECTS_DIR / proj_name / "episodios" / ep_slug / "imagens"
     img_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1880,14 +1995,16 @@ def nq_generate_audio(nq_id):
     except ImportError:
         return jsonify({"error": "elevenlabs não instalado"}), 500
 
-    cfg    = _load_global_config()
-    el_key = cfg.get("elevenlabs_key", "") or os.environ.get("ELEVENLABS_API_KEY", "")
-    voice  = cfg.get("elevenlabs_voice_id", "")
-    if not el_key or not voice:
+    cfg         = _load_global_config()
+    el_key      = cfg.get("elevenlabs_key", "") or os.environ.get("ELEVENLABS_API_KEY", "")
+    global_voice = cfg.get("elevenlabs_voice_id", "")
+    if not el_key:
         return jsonify({"error": "ElevenLabs não configurado. Clique em ⚙ na aba Projetos."}), 400
 
-    # Áudios do episódio ficam em projetos/<proj>/temp/<ep-name>/audios/
-    ep_slug = re.sub(r'[^\w\-]', '_', nq.get("name", f"ep_{nq_id}"))[:60]
+    # Mapa de vozes por personagem extraído dos docs do projeto
+    proj_voices = _parse_project_voices(proj_name)
+
+    ep_slug = nq.get("ep_code") or re.sub(r'[^\w\-]', '_', nq.get("name", f"ep_{nq_id}"))[:60]
     aud_dir = PROJECTS_DIR / proj_name / "episodios" / ep_slug / "audios"
     aud_dir.mkdir(parents=True, exist_ok=True)
     client  = EL(api_key=el_key)
@@ -1900,6 +2017,15 @@ def nq_generate_audio(nq_id):
         text = job.get("audio_text") or ""
         if not text:
             continue
+        # Voz: 1) voice_id do próprio job, 2) match por nome do personagem no label, 3) global
+        voice = (
+            job.get("voice_id")
+            or (proj_voices and _match_voice(proj_voices, job.get("label", ""), ""))
+            or global_voice
+        )
+        if not voice:
+            errors.append(f"Cena {i+1}: nenhuma voz configurada")
+            continue
         try:
             audio_bytes = b"".join(client.text_to_speech.convert(
                 text=text, voice_id=voice,
@@ -1910,7 +2036,7 @@ def nq_generate_audio(nq_id):
             dest  = aud_dir / fname
             dest.write_bytes(audio_bytes)
             rel   = str(dest.relative_to(PROJECT_ROOT))
-            jobs[i] = {**job, "input_audio": rel}
+            jobs[i] = {**job, "input_audio": rel, "voice_id": voice}
         except Exception as e:
             errors.append(f"Cena {i+1}: {e}")
 
@@ -1925,6 +2051,7 @@ def nq_generate_audio(nq_id):
 # ─────────────────────────────────────────────────────────────
 
 _load_queues()
+_save_queues()   # persiste ep_codes atribuídos retroactivamente
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=7860, debug=False, threaded=True)
