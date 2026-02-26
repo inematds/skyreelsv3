@@ -2461,6 +2461,161 @@ def nq_generate_audio(nq_id):
     return jsonify({"ok": True, "updated": len(jobs), "errors": errors})
 
 
+@app.route("/nqueues/<int:nq_id>/jobs/<int:job_id>/generate-audio", methods=["POST"])
+def nq_job_generate_audio(nq_id, job_id):
+    """Regenera o áudio de uma cena específica."""
+    nq, proj_name = _nq_get_project(nq_id)
+    if nq is None:
+        return jsonify({"error": "Fila não encontrada"}), 404
+    if not proj_name:
+        return jsonify({"error": "Episódio não vinculado a um projeto"}), 400
+    try:
+        from elevenlabs.client import ElevenLabs as EL
+    except ImportError:
+        return jsonify({"error": "elevenlabs não instalado"}), 500
+
+    cfg          = _load_global_config()
+    el_key       = cfg.get("elevenlabs_key", "") or os.environ.get("ELEVENLABS_API_KEY", "")
+    global_voice = cfg.get("elevenlabs_voice_id", "")
+    if not el_key:
+        return jsonify({"error": "ElevenLabs não configurado"}), 400
+
+    with nq_lock:
+        nq2  = next((q for q in named_queues if q["id"] == nq_id), None)
+        job  = next((j for j in nq2["jobs"] if j["id"] == job_id), None) if nq2 else None
+    if job is None:
+        return jsonify({"error": "Cena não encontrada"}), 404
+
+    text = job.get("audio_text", "").strip()
+    if not text:
+        return jsonify({"error": "Cena sem audio_text"}), 400
+
+    proj_voices = _parse_project_voices(proj_name)
+    voice = (
+        job.get("voice_id")
+        or (proj_voices and _match_voice(proj_voices, job.get("label", ""), ""))
+        or global_voice
+    )
+    if not voice:
+        return jsonify({"error": "Nenhuma voz configurada para esta cena"}), 400
+
+    ep_slug = nq2.get("ep_code") or re.sub(r'[^\w\-]', '_', nq2.get("name", f"ep_{nq_id}"))[:60]
+    aud_dir = PROJECTS_DIR / proj_name / "episodios" / ep_slug / "audios"
+    aud_dir.mkdir(parents=True, exist_ok=True)
+    client = EL(api_key=el_key)
+
+    try:
+        import math
+        audio_bytes = b"".join(client.text_to_speech.convert(
+            text=text, voice_id=voice,
+            model_id="eleven_multilingual_v2",
+            output_format="mp3_44100_128"
+        ))
+        fname = secure_filename(f"{job.get('label','scene')[:40]}.mp3").replace(" ", "_")
+        dest  = aud_dir / fname
+        dest.write_bytes(audio_bytes)
+        rel   = str(dest.relative_to(PROJECT_ROOT))
+        aud_dur = _audio_duration(dest)
+        with nq_lock:
+            nq3 = next((q for q in named_queues if q["id"] == nq_id), None)
+            if nq3:
+                for j in nq3["jobs"]:
+                    if j["id"] == job_id:
+                        j["input_audio"] = rel
+                        j["voice_id"]    = voice
+                        if aud_dur > 0:
+                            min_dur = math.ceil(aud_dur) + 1
+                            if j.get("duration", 0) < min_dur:
+                                j["duration"] = min_dur
+                        break
+        _save_queues()
+        result = {"ok": True, "input_audio": rel, "voice_id": voice}
+        if aud_dur > 0:
+            result["audio_duration"] = round(aud_dur, 1)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/nqueues/<int:nq_id>/jobs/<int:job_id>/generate-image", methods=["POST"])
+def nq_job_generate_image(nq_id, job_id):
+    """Regenera a imagem de referência de uma cena específica."""
+    import urllib.request as urllib_req
+    nq, proj_name = _nq_get_project(nq_id)
+    if nq is None:
+        return jsonify({"error": "Fila não encontrada"}), 404
+    if not proj_name:
+        return jsonify({"error": "Episódio não vinculado a um projeto"}), 400
+    try:
+        import fal_client
+    except ImportError:
+        return jsonify({"error": "fal-client não instalado"}), 500
+
+    cfg     = _load_global_config()
+    fal_key = cfg.get("fal_key", "") or os.environ.get("FAL_KEY", "")
+    if not fal_key:
+        return jsonify({"error": "FAL_KEY não configurada"}), 400
+
+    with nq_lock:
+        nq2 = next((q for q in named_queues if q["id"] == nq_id), None)
+        job = next((j for j in nq2["jobs"] if j["id"] == job_id), None) if nq2 else None
+    if job is None:
+        return jsonify({"error": "Cena não encontrada"}), 404
+
+    img_prompt = job.get("image_prompt") or job.get("prompt", "")[:400]
+    if not img_prompt:
+        return jsonify({"error": "Cena sem image_prompt"}), 400
+
+    os.environ["FAL_KEY"] = fal_key
+    model   = cfg.get("image_model", "fal-ai/flux/dev")
+    ep_slug = nq2.get("ep_code") or re.sub(r'[^\w\-]', '_', nq2.get("name", f"ep_{nq_id}"))[:60]
+    img_dir = PROJECTS_DIR / proj_name / "episodios" / ep_slug / "imagens"
+    img_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        ref_paths = [r for r in (job.get("ref_imgs") or []) if r and not r.startswith("http")]
+        if ref_paths:
+            image_urls = []
+            for rp in ref_paths[:4]:
+                full = PROJECT_ROOT / rp
+                if full.exists():
+                    image_urls.append(fal_client.upload_file(str(full)))
+            if image_urls:
+                res = fal_client.subscribe("fal-ai/nano-banana/edit", arguments={
+                    "prompt": img_prompt, "image_urls": image_urls,
+                    "num_images": 1, "aspect_ratio": "16:9", "output_format": "png",
+                })
+            else:
+                res = fal_client.subscribe("fal-ai/nano-banana", arguments={
+                    "prompt": img_prompt, "num_images": 1,
+                    "aspect_ratio": "16:9", "output_format": "png",
+                })
+        else:
+            res = fal_client.subscribe("fal-ai/nano-banana", arguments={
+                "prompt": img_prompt, "num_images": 1,
+                "aspect_ratio": "16:9", "output_format": "png",
+            })
+
+        url   = res["images"][0]["url"]
+        fname = secure_filename(f"{job.get('label','scene')[:40]}.png").replace(" ", "_")
+        dest  = img_dir / fname
+        urllib_req.urlretrieve(url, str(dest))
+        rel   = str(dest.relative_to(PROJECT_ROOT))
+
+        with nq_lock:
+            nq3 = next((q for q in named_queues if q["id"] == nq_id), None)
+            if nq3:
+                for j in nq3["jobs"]:
+                    if j["id"] == job_id:
+                        orig = [r for r in (j.get("ref_imgs") or []) if r != rel]
+                        j["ref_imgs"] = [rel] + orig
+                        break
+        _save_queues()
+        return jsonify({"ok": True, "image_path": rel})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ─────────────────────────────────────────────────────────────
 
 _load_queues()

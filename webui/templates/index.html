@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.39.17</title>
+<title>INEMA SkyReels V3 3.40.17</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -1006,7 +1006,7 @@
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="39 recursos adicionados">39</span>.<span class="fix" title="17 correções">17</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="40 recursos adicionados">40</span>.<span class="fix" title="17 correções">17</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -2142,6 +2142,57 @@ function buildSceneCard(nqId, job) {
     editBtn.textContent = '✏️';
     editBtn.addEventListener('click', e => { e.stopPropagation(); openEditJobModal(nqId, _jobCache.get(job.id)); });
     header.appendChild(editBtn);
+  }
+
+  // Botões de regeneração — voz e imagem
+  if (job.audio_text) {
+    const rAudBtn = document.createElement('button');
+    rAudBtn.className = 'nq-mini-btn';
+    rAudBtn.title = 'Regenerar voz';
+    rAudBtn.textContent = '🎤';
+    rAudBtn.style.cssText = 'font-size:.75rem';
+    rAudBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      rAudBtn.disabled = true; rAudBtn.textContent = '⏳';
+      try {
+        const r = await fetch(`/nqueues/${nqId}/jobs/${job.id}/generate-audio`, { method: 'POST' });
+        const d = await r.json();
+        if (d.ok) {
+          rAudBtn.textContent = '✅';
+          setTimeout(() => { rAudBtn.textContent = '🎤'; rAudBtn.disabled = false; }, 2000);
+          refreshNqDetail(nqId);
+        } else {
+          alert(d.error || 'Erro ao gerar áudio');
+          rAudBtn.textContent = '🎤'; rAudBtn.disabled = false;
+        }
+      } catch(err) { alert('Erro: ' + err.message); rAudBtn.textContent = '🎤'; rAudBtn.disabled = false; }
+    });
+    header.appendChild(rAudBtn);
+  }
+
+  if (job.image_prompt || job.prompt) {
+    const rImgBtn = document.createElement('button');
+    rImgBtn.className = 'nq-mini-btn';
+    rImgBtn.title = 'Regenerar imagem';
+    rImgBtn.textContent = '🖼';
+    rImgBtn.style.cssText = 'font-size:.75rem';
+    rImgBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      rImgBtn.disabled = true; rImgBtn.textContent = '⏳';
+      try {
+        const r = await fetch(`/nqueues/${nqId}/jobs/${job.id}/generate-image`, { method: 'POST' });
+        const d = await r.json();
+        if (d.ok) {
+          rImgBtn.textContent = '✅';
+          setTimeout(() => { rImgBtn.textContent = '🖼'; rImgBtn.disabled = false; }, 2000);
+          refreshNqDetail(nqId);
+        } else {
+          alert(d.error || 'Erro ao gerar imagem');
+          rImgBtn.textContent = '🖼'; rImgBtn.disabled = false;
+        }
+      } catch(err) { alert('Erro: ' + err.message); rImgBtn.textContent = '🖼'; rImgBtn.disabled = false; }
+    });
+    header.appendChild(rImgBtn);
   }
 
   // ── Quick-view buttons ────────────────────────────────────
