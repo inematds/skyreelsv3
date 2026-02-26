@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.10.7</title>
+<title>INEMA SkyReels V3 3.31.10</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -334,12 +334,10 @@
   .vt-body.pos-bottom .video-card video { height: 68px; }
 
   /* ---- FULL GALLERY TAB ---- */
-  #tab-galeria { overflow: hidden; }
+  #tab-galeria { overflow-y: auto; overflow-x: hidden; }
   .galeria-panel {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    overflow: hidden;
   }
   .galeria-top {
     display: flex;
@@ -347,8 +345,10 @@
     gap: 8px;
     padding: 10px 16px 8px;
     border-bottom: 1px solid #1e1e2e;
-    flex-shrink: 0;
     background: #14141e;
+    position: sticky;
+    top: 0;
+    z-index: 1;
   }
   .galeria-top-title {
     font-size: 0.78rem;
@@ -362,7 +362,6 @@
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 12px;
     padding: 16px;
-    overflow-y: auto;
     align-content: start;
   }
   /* Larger cards in galeria */
@@ -529,6 +528,17 @@
     color: #444;
     font-style: italic;
   }
+  .detail-downloads {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding-top: 12px; margin-top: 4px;
+    border-top: 1px solid #1e1e2e;
+  }
+  .dl-btn {
+    background: #1e1e2e; border: 1px solid #2a2a3a; border-radius: 6px;
+    color: #a78bfa; font-size: 0.75rem; padding: 5px 10px;
+    text-decoration: none; transition: all .2s;
+  }
+  .dl-btn:hover { border-color: #7c3aed; background: #1a1040; }
 
   /* ---- QUEUE BUTTON (left panel) ---- */
   .btn-queue-add {
@@ -544,6 +554,10 @@
     white-space: nowrap;
   }
   .btn-queue-add:hover { background: #2a1a4a; border-color: #7c3aed; }
+  .btn-queue-add.has-target { background: #1a2a1a; color: #6fcf6f; border-color: #2a5a2a; }
+  .btn-queue-add.has-target:hover { background: #243424; border-color: #4a8a4a; }
+  .queue-btn.add-from-form { background: #1a2a1a; color: #6fcf6f; border-color: #2a5a2a; font-weight: 600; }
+  .queue-btn.add-from-form:hover { background: #243424; }
 
   /* ---- QUEUE TAB ---- */
   #tab-queue { overflow: hidden; }
@@ -719,6 +733,7 @@
     min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .nq-detail-status { font-size: 0.7rem; color: #666; flex-shrink: 0; }
+  .nq-detail-time   { font-size: 0.7rem; color: #a78bfa; flex-shrink: 0; }
   .nq-detail-actions { display: flex; gap: 5px; flex-shrink: 0; }
   .nq-action-btn {
     background: #1e1e2e; border: 1px solid #2a2a3a; border-radius: 6px;
@@ -842,12 +857,117 @@
     background: none; border: none; color: #888; font-size: 1rem; cursor: pointer; line-height: 1;
   }
   .nq-finalized-header button:hover { color: #fff; }
+
+  /* === Projetos === */
+  .proj-panel { display:flex; flex-direction:column; height:100%; }
+  .proj-top { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid #1e1e2e; background:#0a0a0f; position:sticky; top:0; z-index:1; }
+  .proj-top-title { font-weight:600; color:#a78bfa; flex:1; }
+  .proj-list { display:flex; flex-wrap:wrap; gap:14px; padding:16px; align-content:start; }
+  .proj-card { background:#111118; border:1px solid #2a2a3a; border-radius:8px; padding:14px 16px; width:180px; cursor:pointer; transition:border-color .2s; }
+  .proj-card:hover { border-color:#a78bfa; }
+  .proj-card-name { font-weight:600; color:#e0e0e0; font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .proj-card-meta { font-size:.75rem; color:#666; margin-top:4px; }
+  .proj-detail { display:flex; flex-direction:column; gap:0; height:100%; overflow-y:auto; }
+  .proj-detail-header { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid #1e1e2e; background:#0a0a0f; position:sticky; top:0; z-index:1; }
+  .proj-detail-name { font-weight:600; color:#a78bfa; font-size:1rem; flex:1; }
+  .proj-folder-section { border-bottom:1px solid #1a1a2a; }
+  .proj-folder-title { font-size:.8rem; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:.06em; padding:10px 14px; display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
+  .proj-folder-title .pf-arrow { font-size:.6rem; color:#555; display:inline-block; transition:transform .15s; margin-right:2px; flex-shrink:0; }
+  .proj-folder-section.open .proj-folder-title .pf-arrow { transform:rotate(90deg); }
+  .proj-folder-body { display:none; }
+  .proj-folder-section.open .proj-folder-body { display:block; }
+  .proj-file-list { display:flex; flex-direction:column; gap:0; padding:0 14px 10px; }
+  .proj-file-row { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid #16161e; font-size:.82rem; }
+  .proj-file-name { flex:1; color:#c0c0d0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .proj-file-size { color:#555; font-size:.75rem; min-width:50px; text-align:right; }
+  .proj-file-btn { background:none; border:1px solid #2a2a3a; border-radius:4px; color:#888; font-size:.72rem; padding:2px 7px; cursor:pointer; }
+  .proj-file-btn:hover { border-color:#a78bfa; color:#a78bfa; }
+  .proj-upload-row { padding:8px 14px 12px; display:flex; align-items:center; gap:8px; }
+  .proj-upload-btn { background:#1a1230; border:1px solid #3a2a5a; border-radius:5px; color:#a78bfa; font-size:.78rem; padding:5px 12px; cursor:pointer; }
+  .proj-upload-btn:hover { background:#2a1a40; }
+  .proj-upload-input { display:none; }
+  .proj-ep-list { display:flex; flex-direction:column; gap:6px; padding:10px 14px 14px; }
+  .proj-ep-card { background:#0d0d18; border:1px solid #252535; border-radius:6px; padding:9px 12px; display:flex; align-items:center; gap:10px; }
+  .proj-ep-name { font-weight:600; color:#e0e0e0; font-size:.85rem; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .proj-ep-status { font-size:.75rem; color:#888; white-space:nowrap; }
+  .proj-ep-actions { display:flex; gap:5px; flex-shrink:0; }
+  .proj-ep-btn { background:none; border:1px solid #2a2a3a; border-radius:4px; color:#888; font-size:.72rem; padding:3px 8px; cursor:pointer; white-space:nowrap; }
+  .proj-ep-btn:hover { border-color:#a78bfa; color:#a78bfa; }
+  .proj-ep-btn.run { border-color:#2a4a2a; color:#6fcf6f; }
+  .proj-ep-btn.run:hover { background:#1a2a1a; }
+
+  /* Episode inline detail */
+  .ep-detail-jobs { display:flex; flex-direction:column; gap:4px; padding:10px 14px 14px; }
+  .ep-job-row { background:#0d0d18; border:1px solid #252535; border-radius:6px; overflow:hidden; }
+  .ep-job-summary:hover { background:#11111e; }
+  .ep-job-label { font-size:.82rem; color:#ccc; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:240px; }
+  .ep-job-label { font-size:.83rem; color:#d0d0d0; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ep-job-badge { font-size:.7rem; padding:2px 7px; border-radius:10px; white-space:nowrap; flex-shrink:0; }
+  .ep-job-badge.idle    { background:#1e1e2e; color:#666; border:1px solid #333; }
+  .ep-job-badge.running { background:#2a1e00; color:#f59e0b; border:1px solid #7a4e00; }
+  .ep-job-badge.done    { background:#0a2a0a; color:#6fcf6f; border:1px solid #2a5a2a; }
+  .ep-job-badge.error   { background:#2a0a0a; color:#f87171; border:1px solid #5a2020; }
+  .ep-job-meta { font-size:.72rem; color:#555; white-space:nowrap; flex-shrink:0; }
+  .ep-job-video { font-size:.72rem; color:#7c6fe0; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+  .ep-job-video:hover { color:#a78bfa; }
+
+  /* AI gen button */
+  .proj-upload-btn.ai-gen { background:#1a1230; border-color:#6a3aed; color:#a78bfa; font-weight:600; }
+  .proj-upload-btn.ai-gen:hover { background:#2a1a50; border-color:#9060ff; }
+
+  /* Project config form */
+  .proj-config-form { padding:10px 14px 14px; display:flex; flex-direction:column; gap:10px; }
+  .proj-config-row  { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .proj-config-label { font-size:.75rem; color:#888; text-transform:uppercase; letter-spacing:.04em; margin-bottom:3px; }
+  .proj-config-input {
+    width:100%; background:#0f0f18; border:1px solid #2a2a3a; border-radius:6px;
+    color:#e0e0e0; padding:7px 10px; font-size:.85rem; outline:none; transition:border-color .2s;
+  }
+  .proj-config-input:focus { border-color:#7c3aed; }
+  .proj-config-save { align-self:flex-end; background:#7c3aed; color:#fff; border:none; border-radius:6px;
+    padding:7px 18px; font-size:.85rem; font-weight:600; cursor:pointer; transition:background .2s; }
+  .proj-config-save:hover { background:#6d28d9; }
+
+  /* Gen episode modal */
+  .gen-ep-modal { width:min(640px,95vw); }
+  .gen-ep-step  { display:none; flex-direction:column; gap:12px; }
+  .gen-ep-step.active { display:flex; }
+  .gen-ep-scene-list { display:flex; flex-direction:column; gap:8px; max-height:50vh; overflow-y:auto; }
+  .gen-ep-scene-card {
+    background:#0f0f18; border:1px solid #2a2a3a; border-radius:8px; padding:10px 12px;
+  }
+  .gen-ep-scene-card.has-error { border-color:#4a2020; }
+  .gen-ep-scene-title { font-size:.82rem; font-weight:600; color:#d0c0ff; margin-bottom:4px; }
+  .gen-ep-scene-prompt { font-size:.78rem; color:#888; line-height:1.5; }
+  .gen-ep-scene-prompt textarea {
+    width:100%; background:#0a0a12; border:1px solid #252535; border-radius:4px;
+    color:#ccc; padding:5px 7px; font-size:.78rem; resize:vertical; font-family:inherit;
+    min-height:52px; margin-top:4px;
+  }
+  .gen-ep-status-tag { font-size:.7rem; padding:1px 7px; border-radius:999px; margin-left:4px; }
+  .gen-ep-status-ok  { background:#0d2e1a; color:#4ade80; }
+  .gen-ep-status-err { background:#2e0d0d; color:#f87171; }
+  .gen-ep-status-img { background:#1a2a0a; color:#a3e635; }
+  .gen-ep-status-aud { background:#0a1a2e; color:#60a5fa; }
+  .gen-ep-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .gen-ep-btn {
+    background:#1e1e2e; border:1px solid #2a2a3a; border-radius:6px;
+    color:#aaa; font-size:.8rem; padding:6px 12px; cursor:pointer; transition:all .2s; white-space:nowrap;
+  }
+  .gen-ep-btn:hover:not(:disabled) { border-color:#7c3aed; color:#a78bfa; }
+  .gen-ep-btn:disabled { opacity:.4; cursor:not-allowed; }
+  .gen-ep-btn.primary { background:#7c3aed; color:#fff; border-color:#7c3aed; }
+  .gen-ep-btn.primary:hover:not(:disabled) { background:#6d28d9; }
+  .gen-ep-spinner { display:none; font-size:.8rem; color:#a78bfa; align-items:center; gap:6px; }
+  .gen-ep-spinner.active { display:flex; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .gen-ep-spin { display:inline-block; animation:spin 1s linear infinite; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="10 recursos adicionados">10</span>.<span class="fix" title="4 correções">4</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="31 recursos adicionados">31</span>.<span class="fix" title="10 correções">10</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -1017,6 +1137,7 @@
       <div class="tab" onclick="showTab('tab-videos', this)">Vídeos</div>
       <div class="tab" onclick="showTab('tab-galeria', this); refreshGaleria()">Galeria</div>
       <div class="tab" onclick="showTab('tab-queue', this); refreshNamedQueues()">Fila</div>
+      <div class="tab" onclick="showTab('tab-projetos', this); refreshProjects()">Projetos</div>
     </div>
 
     <!-- Progress Tab -->
@@ -1112,6 +1233,10 @@
           <span class="queue-top-title" id="queue-view-title">Filas de Geração</span>
           <input type="file" id="queue-import-input" accept=".json,.md,.txt" style="display:none"
                  onchange="importQueueFile(this)">
+          <button id="btn-add-from-form" class="queue-btn add-from-form" style="display:none"
+                  onclick="addFormJobToCurrentQueue()" title="Adicionar cena do formulário à esquerda a esta fila">
+            ＋ Cena do form
+          </button>
           <button class="queue-btn" onclick="document.getElementById('queue-import-input').click()" title="Importar .json ou .md como nova fila">
             ↑ Importar
           </button>
@@ -1138,6 +1263,7 @@
           <div class="nq-detail-header">
             <div class="nq-detail-title" id="nq-detail-name"></div>
             <div class="nq-detail-status" id="nq-detail-status"></div>
+            <div class="nq-detail-time" id="nq-detail-time"></div>
             <div class="nq-detail-actions">
               <button id="nq-run-btn"     class="nq-action-btn run"     onclick="runCurrentNq()"     title="Continuar: executar cenas idle, pula erros">▶ Continuar</button>
               <button id="nq-retry-btn"  class="nq-action-btn reset"   onclick="retryCurrentNq()"   title="Repetir do erro: reseta erros e continua de onde parou" style="display:none">↩ Repetir do erro</button>
@@ -1146,11 +1272,28 @@
               <button class="nq-action-btn danger" onclick="deleteCurrentNq()" title="Excluir esta fila">🗑</button>
               <button class="nq-action-btn" onclick="toggleAllScenes(true)"  title="Expandir todas as cenas">⊞</button>
               <button class="nq-action-btn" onclick="toggleAllScenes(false)" title="Colapsar todas as cenas">⊟</button>
+              <button class="nq-action-btn" id="nq-json-btn"  onclick="exportNqJson()"     title="Baixar JSON da fila">⬇ JSON</button>
+              <button class="nq-action-btn" id="nq-zip-btn"   onclick="downloadNqZip(false)" title="Baixar ZIP dos vídeos gerados">⬇ ZIP</button>
+              <button class="nq-action-btn" id="nq-zip2-btn"  onclick="downloadNqZip(true)"  title="Baixar ZIP com vídeos + origens (imagens, áudio)">⬇ ZIP+origens</button>
             </div>
           </div>
           <div id="nq-scenes" class="nq-scenes"></div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- Projetos Tab -->
+    <div id="tab-projetos" class="tab-content">
+      <div class="proj-panel">
+        <div class="proj-top">
+          <span class="proj-top-title">Projetos</span>
+          <button class="queue-btn" onclick="refreshProjects()" title="Recarregar">&#x21BB;</button>
+          <button class="queue-btn" onclick="openNewProjectModal()" title="Novo projeto">&#xFF0B; Novo</button>
+          <button class="queue-btn" onclick="openGlobalConfigModal()" title="Configurar APIs (FAL, ElevenLabs…)" style="border-color:#4a3a8a;color:#a78bfa">&#x2699; APIs</button>
+        </div>
+        <div id="proj-list" class="proj-list"></div>
+        <div id="proj-detail" class="proj-detail" style="display:none"></div>
       </div>
     </div>
 
@@ -1502,7 +1645,19 @@ async function loadDetails(path) {
     if (m.input_image) add('Imagem retrato', m.input_image.split('/').pop() || m.input_image);
     if (m.input_audio) add('Áudio', m.input_audio.split('/').pop() || m.input_audio);
     add('Gerado em', m.generated_at);
-    body.innerHTML = rows.join('');
+
+    // Download buttons
+    const dlBtns = [];
+    dlBtns.push(`<a class="dl-btn" href="/download/${path.replace(/\.mp4$/, '.json')}" download>⬇ JSON</a>`);
+    if (m.input_audio) dlBtns.push(`<a class="dl-btn" href="/download/${m.input_audio}" download>⬇ Áudio</a>`);
+    if (m.input_image) dlBtns.push(`<a class="dl-btn" href="/download/${m.input_image}" download>⬇ Imagem</a>`);
+    if (Array.isArray(m.ref_imgs)) {
+      m.ref_imgs.forEach((p, i) =>
+        dlBtns.push(`<a class="dl-btn" href="/download/${p}" download>⬇ Ref ${i+1}</a>`)
+      );
+    }
+    const dlRow = `<div class="detail-downloads">${dlBtns.join('')}</div>`;
+    body.innerHTML = rows.join('') + dlRow;
   } catch(e) {
     body.innerHTML = '<div class="detail-row"><span class="detail-val no-meta">Erro ao carregar metadados.</span></div>';
   }
@@ -1684,6 +1839,13 @@ const _jobCache = new Map();
 let currentNqId = null;
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+function fmtMinutes(m) {
+  if (!m) return '';
+  const h = Math.floor(m / 60);
+  const min = Math.round(m % 60);
+  return h > 0 ? `~${h}h ${min}min` : `~${min}min`;
+}
+
 function buildNqCard(nq) {
   const div = document.createElement('div');
   div.className = `nq-card status-${nq.status}`;
@@ -1712,7 +1874,11 @@ function buildNqCard(nq) {
     </div>
     <div class="nq-card-meta">
       <span class="nq-status-pill">${NQ_STATUS_LABEL[nq.status] || nq.status}</span>
-      ${nq.done_count}/${nq.job_count} cenas${nq.error_count ? ` · ${nq.error_count} erro(s)` : ''} · ${nq.created_at}
+      ${nq.done_count}/${nq.job_count} cenas${nq.error_count ? ` · ${nq.error_count} erro(s)` : ''}
+      ${nq.remaining_minutes > 0
+        ? ` · ⏱ ${fmtMinutes(nq.remaining_minutes)} restante${nq.status === 'done' ? '' : 's'}`
+        : nq.estimated_minutes > 0 ? ` · ⏱ ${fmtMinutes(nq.estimated_minutes)} total` : ''}
+      · ${nq.created_at}
     </div>
     <div class="nq-card-progress-bg">
       <div class="nq-card-progress-fill" style="width:${pct}%"></div>
@@ -1757,6 +1923,9 @@ async function openNq(id) {
   const dv = document.getElementById('nq-detail-view');
   dv.style.display = 'flex';
   document.getElementById('btn-nq-back').style.display = '';
+  document.getElementById('btn-add-from-form').style.display = '';
+  const qaBtn = document.getElementById('btn-queue-add');
+  if (qaBtn) qaBtn.classList.add('has-target');
   await refreshNqDetail(id);
 }
 
@@ -1765,6 +1934,9 @@ function showNqList() {
   document.getElementById('nq-list-view').style.display = '';
   document.getElementById('nq-detail-view').style.display = 'none';
   document.getElementById('btn-nq-back').style.display = 'none';
+  document.getElementById('btn-add-from-form').style.display = 'none';
+  const qaBtn = document.getElementById('btn-queue-add');
+  if (qaBtn) qaBtn.classList.remove('has-target');
   document.getElementById('queue-view-title').textContent = 'Filas de Geração';
   refreshNamedQueues();
 }
@@ -1779,6 +1951,26 @@ async function refreshNqDetail(id) {
   const done = nq.jobs.filter(j => j.status === 'done').length;
   document.getElementById('nq-detail-status').textContent =
     `${done}/${nq.jobs.length} cenas · ${NQ_STATUS_LABEL[nq.status] || nq.status}`;
+
+  // Tempo estimado
+  const estJob = j => {
+    const res = j.resolution || '720P', dur = j.duration || 5;
+    if (j.task_type === 'reference_to_video')
+      return ({480:8,540:12,720:18}[parseInt(res)] || 14) + dur * 0.5;
+    if (j.task_type === 'talking_avatar')
+      return {480:15,720:22}[parseInt(res)] || 15;
+    if (j.task_type === 'single_shot_extension')   return 8 + dur * 0.4;
+    if (j.task_type === 'shot_switching_extension') return 5 + dur * 0.3;
+    return 10;
+  };
+  const totalMin   = Math.round(nq.jobs.reduce((s, j) => s + estJob(j), 0));
+  const remainMin  = Math.round(nq.jobs.filter(j => j.status !== 'done').reduce((s, j) => s + estJob(j), 0));
+  const timeEl = document.getElementById('nq-detail-time');
+  if (timeEl) {
+    timeEl.textContent = remainMin > 0 && remainMin < totalMin
+      ? `⏱ ${fmtMinutes(remainMin)} restantes  (total ${fmtMinutes(totalMin)})`
+      : `⏱ ${fmtMinutes(totalMin)} estimado`;
+  }
 
   const runBtn     = document.getElementById('nq-run-btn');
   const retryBtn   = document.getElementById('nq-retry-btn');
@@ -1838,8 +2030,8 @@ function buildSceneCard(nqId, job) {
   card.className = 'nq-scene-card status-' + job.status;
   card.dataset.jobId = job.id;
 
-  const canRun = !['running', 'pending'].includes(job.status);
-  const canEdit = ['idle', 'error'].includes(job.status);
+  const canRun  = !['running', 'pending'].includes(job.status);
+  const canEdit = !['running', 'pending'].includes(job.status);
 
   // ── Header (pure DOM, no innerHTML) ─────────────────────────
   const header = document.createElement('div');
@@ -2017,6 +2209,22 @@ async function deleteNq(id) {
 
 async function deleteCurrentNq() { if (currentNqId) deleteNq(currentNqId); }
 
+function exportNqJson() {
+  if (!currentNqId) return;
+  const a = document.createElement('a');
+  a.href = `/nqueues/${currentNqId}/export-json`;
+  a.download = '';
+  a.click();
+}
+
+function downloadNqZip(includeSources) {
+  if (!currentNqId) return;
+  const a = document.createElement('a');
+  a.href = `/nqueues/${currentNqId}/download-zip${includeSources ? '?include_sources=1' : ''}`;
+  a.download = '';
+  a.click();
+}
+
 async function finalizeCurrentNq() {
   if (!currentNqId) return;
   const btn = document.getElementById('nq-finalize-btn');
@@ -2045,10 +2253,13 @@ function showFinalizedVideo(path, sceneCount) {
   panel.innerHTML = `
     <div class="nq-finalized-header">
       <span>🎬 Vídeo final — ${sceneCount} cena(s) concatenada(s)</span>
-      <button onclick="this.closest('#nq-finalized-panel').remove()">✕</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a class="dl-btn" href="/download/${path}" download style="font-size:.75rem">⬇ Download</a>
+        <button onclick="this.closest('#nq-finalized-panel').remove()">✕</button>
+      </div>
     </div>
     <video src="/video/${path}" controls style="width:100%;border-radius:6px;margin-top:8px"></video>
-    <div style="margin-top:8px;font-size:.8rem;color:#888">${path}</div>
+    <div style="margin-top:6px;font-size:.75rem;color:#666">${path}</div>
   `;
   document.getElementById('nq-detail-view').insertBefore(
     panel,
@@ -2145,33 +2356,73 @@ function collectFormJob() {
   return job;
 }
 
-async function addToQueue() {
-  const job = collectFormJob();
+function _validateFormJob(job) {
   if (job.task_type === 'reference_to_video' && (!job.ref_imgs || job.ref_imgs.length === 0)) {
-    alert('Para adicionar à fila, informe os caminhos das imagens (campo "Ou informe caminhos").'); return;
+    alert('Para adicionar à fila, informe os caminhos das imagens (campo "Ou informe caminhos").'); return false;
   }
   if ((job.task_type === 'single_shot_extension' || job.task_type === 'shot_switching_extension') && !job.input_video) {
-    alert('Informe o vídeo de entrada.'); return;
+    alert('Informe o vídeo de entrada.'); return false;
   }
   if (job.task_type === 'talking_avatar' && (!job.input_image || !job.input_audio)) {
-    alert('Informe a imagem do retrato e o áudio.'); return;
+    alert('Informe a imagem do retrato e o áudio.'); return false;
   }
+  return true;
+}
 
-  const defaultName = job.label || `${job.task_type} — seed ${job.seed}`;
-  const name = prompt('Nome da fila:', defaultName);
-  if (name === null) return;
-
-  const res = await fetch('/nqueues', {
+async function addFormJobToCurrentQueue() {
+  if (!currentNqId) return;
+  const job = collectFormJob();
+  if (!_validateFormJob(job)) return;
+  const res = await fetch(`/nqueues/${currentNqId}/jobs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: name || defaultName, jobs: [job] }),
+    body: JSON.stringify(job),
   });
   const data = await res.json();
   if (data.ok) {
-    showTab('tab-queue', document.querySelectorAll('.tab')[3]);
-    refreshNamedQueues();
+    refreshNqDetail(currentNqId);
   } else {
     alert('Erro: ' + data.error);
+  }
+}
+
+async function addToQueue() {
+  const job = collectFormJob();
+  if (!_validateFormJob(job)) return;
+
+  if (currentNqId !== null) {
+    // Fila já aberta → adiciona direto nela
+    const nqName = document.getElementById('nq-detail-name').textContent || 'fila aberta';
+    if (!confirm(`Adicionar cena à fila "${nqName}"?`)) return;
+    const res = await fetch(`/nqueues/${currentNqId}/jobs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(job),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showTab('tab-queue', document.querySelectorAll('.tab')[3]);
+      refreshNqDetail(currentNqId);
+    } else {
+      alert('Erro: ' + data.error);
+    }
+  } else {
+    // Sem fila aberta → cria nova fila
+    const defaultName = `${job.task_type} — seed ${job.seed}`;
+    const name = prompt('Nome da fila:', defaultName);
+    if (name === null) return;
+    const res = await fetch('/nqueues', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name || defaultName, jobs: [job] }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showTab('tab-queue', document.querySelectorAll('.tab')[3]);
+      refreshNamedQueues();
+    } else {
+      alert('Erro: ' + data.error);
+    }
   }
 }
 
@@ -2206,7 +2457,8 @@ function openEditJobModal(nqId, job) {
   _editJob = job;
   document.getElementById('edit-nq-id').value = nqId;
   document.getElementById('edit-job-id').value = job.id;
-  document.getElementById('edit-job-title').textContent = `Editar: ${job.label}`;
+  document.getElementById('edit-job-title').textContent =
+    job.status === 'done' ? `✏️ Re-executar: ${job.label}` : `✏️ Editar: ${job.label}`;
   document.getElementById('edit-label').value      = job.label || '';
   document.getElementById('edit-prompt').value     = job.prompt || '';
   document.getElementById('edit-resolution').value = job.resolution || '720P';
@@ -2276,6 +2528,1000 @@ async function saveEditJob() {
 }
 // ────────────────────────────────────────────────────────────
 
+// === Projetos ===
+let _currentProject = null;
+
+async function refreshProjects() {
+  const res = await fetch('/projects');
+  const projs = await res.json();
+  const el = document.getElementById('proj-list');
+  document.getElementById('proj-detail').style.display = 'none';
+  el.style.display = 'flex';
+  if (!projs.length) {
+    el.innerHTML = '<div style="color:#555;padding:24px">Nenhum projeto. Clique em ＋ Novo para criar.</div>';
+    return;
+  }
+  el.innerHTML = projs.map(p => `
+    <div class="proj-card" onclick="openProject('${p.name}')">
+      <div class="proj-card-name">${p.name}</div>
+      <div class="proj-card-meta">📁 ${p.name}</div>
+    </div>`).join('');
+}
+
+async function openProject(name) {
+  _currentProject = name;
+  document.getElementById('proj-list').style.display = 'none';
+  const detail = document.getElementById('proj-detail');
+  detail.style.display = 'flex';
+  detail.innerHTML = '<div style="color:#555;padding:24px">Carregando\u2026</div>';
+  await loadProjectDetail(name);
+}
+
+async function loadProjectDetail(name) {
+  const res = await fetch(`/projects/${encodeURIComponent(name)}`);
+  const data = await res.json();
+  const detail = document.getElementById('proj-detail');
+  const FOLDER_LABELS = { imagens: '\uD83D\uDDBC Imagens', audios: '\uD83C\uDFB5 \xC1udios', docs: '\uD83D\uDCC4 Docs' };
+  const FOLDER_ACCEPT = { imagens: 'image/*', audios: 'audio/*', docs: '*/*' };
+
+  let html = `<div class="proj-detail-header">
+    <button class="nq-action-btn" onclick="refreshProjects()">\u2190 Voltar</button>
+    <span class="proj-detail-name">${name}</span>
+    <button class="nq-action-btn" onclick="confirmDeleteProject('${name}')" style="background:#2a1010;border-color:#4a2020;color:#f87171">\uD83D\uDDD1 Excluir projeto</button>
+  </div>`;
+
+  for (const sub of ['imagens', 'audios', 'docs']) {
+    const files = data.folders[sub] || [];
+    const isImgs = sub === 'imagens';
+    const toggleBtn = isImgs && files.length
+      ? `<span onclick="event.stopPropagation()">
+           <button class="proj-file-btn" id="proj-img-view-btn" onclick="toggleProjImgView('${name}')" style="font-size:.7rem;padding:2px 8px">\u25A6 Visual</button>
+           <button class="proj-file-btn" onclick="toggleProjImgSelectAll('${name}',true)" style="font-size:.7rem;padding:2px 6px" title="Selecionar todas">\u2713</button>
+           <button class="proj-file-btn" onclick="toggleProjImgSelectAll('${name}',false)" style="font-size:.7rem;padding:2px 6px" title="Desmarcar todas">\u25A1</button>
+         </span>` : '';
+    const bodyContent = isImgs && files.length
+      ? `<div id="proj-img-body" data-view="list" data-proj="${name}"></div>`
+      : `<div class="proj-file-list" id="proj-files-${sub}">
+           ${files.map(f => buildProjectFileRow(f, sub)).join('') || '<div style="color:#444;padding:4px 0 4px 14px;font-size:.8rem">Vazio</div>'}
+         </div>`;
+    html += `<div class="proj-folder-section">
+      <div class="proj-folder-title" onclick="toggleProjSection(this)">
+        <span class="pf-arrow">&#9654;</span>
+        ${FOLDER_LABELS[sub]} <span style="color:#444;font-weight:400">(${files.length})</span>
+        <span style="margin-left:auto">${toggleBtn}</span>
+      </div>
+      <div class="proj-folder-body">
+        ${bodyContent}
+        <div class="proj-upload-row">
+          <input type="file" id="proj-upload-${sub}" class="proj-upload-input" multiple accept="${FOLDER_ACCEPT[sub]}"
+                 onchange="uploadProjectFiles('${name}','${sub}',this)">
+          <button class="proj-upload-btn" onclick="document.getElementById('proj-upload-${sub}').click()">\u2B06 Upload</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+
+  // Episodes section
+  const eps = data.episodes || [];
+  html += `<div class="proj-folder-section">
+    <div class="proj-folder-title" onclick="toggleProjSection(this)">
+      <span class="pf-arrow">&#9654;</span>
+      \uD83C\uDFAC Epis\xF3dios <span style="color:#444;font-weight:400">(${eps.length})</span>
+      <span style="margin-left:auto;display:flex;gap:6px" onclick="event.stopPropagation()">
+        <button class="proj-upload-btn ai-gen" onclick="openGenEpisodeModal('${name}')">&#x26A1; IA</button>
+        <button class="proj-upload-btn" onclick="openNewEpisodeModal('${name}')">&#xFF0B; Criar</button>
+        <input type="file" id="proj-ep-import-${name.replace(/\s/g,'_')}" class="proj-upload-input" accept=".json,.md,.txt"
+               onchange="importEpisodeFile('${name}',this)">
+        <button class="proj-upload-btn" onclick="document.getElementById('proj-ep-import-${name.replace(/\s/g,'_')}').click()">\u2191 Importar</button>
+      </span>
+    </div>
+    <div class="proj-folder-body">
+      <div class="proj-ep-list">
+        ${eps.length ? eps.map(ep => buildEpisodeCard(ep, name)).join('') : '<div style="color:#444;padding:4px 14px;font-size:.8rem">Nenhum epis\xF3dio. Crie ou importe.</div>'}
+      </div>
+    </div>
+  </div>`;
+
+  detail.innerHTML = html;
+
+  // Abrir seção de imagens por padrão e renderizar em lista
+  const imgSection = detail.querySelector('.proj-folder-section');
+  if (imgSection) imgSection.classList.add('open');
+  if ((data.folders?.imagens || []).length) {
+    window._projImgFiles = data.folders.imagens;
+    renderProjImgView(name, 'list');
+  }
+}
+
+function renderProjImgView(projName, view) {
+  const body = document.getElementById('proj-img-body');
+  if (!body) return;
+  const files = window._projImgFiles || [];
+  body.dataset.view = view;
+  const btn = document.getElementById('proj-img-view-btn');
+
+  if (view === 'visual') {
+    if (btn) btn.textContent = '\u2630 Lista';
+    body.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px">
+      ${files.map(f => {
+        const safeName = f.name.replace(/'/g, "\\'");
+        return `<div style="position:relative;flex-shrink:0;cursor:pointer" title="${f.name}"
+                     onclick="showProjImgPreview('/file/${f.path}','${safeName}')">
+          <img src="/file/${f.path}" style="height:90px;width:135px;object-fit:cover;border-radius:6px;border:1px solid #2a2a3a;display:block;transition:border-color .15s"
+               onmouseover="this.style.borderColor='#7c3aed'" onmouseout="this.style.borderColor='#2a2a3a'">
+          <button onclick="event.stopPropagation();deleteProjectFile('${projName}','imagens','${safeName}')"
+                  style="position:absolute;top:3px;right:3px;background:#1a0a0a;border:1px solid #4a2020;border-radius:3px;color:#f87171;font-size:.65rem;padding:1px 5px;cursor:pointer;opacity:0;transition:opacity .15s"
+                  onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">\uD83D\uDDD1</button>
+        </div>`;
+      }).join('')}
+    </div>`;
+  } else {
+    if (btn) btn.textContent = '\u25A6 Visual';
+    body.innerHTML = `<div class="proj-file-list">
+      ${files.map(f => buildProjectFileRow(f, 'imagens')).join('')}
+    </div>`;
+  }
+}
+
+function toggleProjImgView(projName) {
+  const body = document.getElementById('proj-img-body');
+  if (!body) return;
+  renderProjImgView(projName, body.dataset.view === 'visual' ? 'list' : 'visual');
+}
+
+function toggleProjImgSelectAll(projName, select) {
+  document.querySelectorAll('#proj-img-body input[type="checkbox"]').forEach(c => { c.checked = select; });
+}
+
+let _projImgPreview = null;
+function showProjImgPreview(src, name) {
+  // Lightbox simples
+  if (_projImgPreview) _projImgPreview.remove();
+  const div = document.createElement('div');
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:zoom-out';
+  div.onclick = () => { div.remove(); _projImgPreview = null; };
+  div.innerHTML = `<div style="font-size:.85rem;color:#aaa">${name}</div>
+    <img src="${src}" style="max-width:90vw;max-height:80vh;border-radius:8px;border:1px solid #333;object-fit:contain">
+    <div style="font-size:.75rem;color:#555">Clique para fechar</div>`;
+  document.body.appendChild(div);
+  _projImgPreview = div;
+}
+
+function toggleProjSection(titleEl) {
+  titleEl.closest('.proj-folder-section').classList.toggle('open');
+}
+
+function buildProjectFileRow(f, sub) {
+  const size = f.size > 1048576 ? (f.size/1048576).toFixed(1)+'MB' : (f.size/1024).toFixed(0)+'KB';
+  return `<div class="proj-file-row">
+    <span class="proj-file-name" title="${f.name}">${f.name}</span>
+    <span class="proj-file-size">${size}</span>
+    <a class="proj-file-btn" href="/download/${f.path}" download>\u2B07</a>
+    <button class="proj-file-btn" onclick="deleteProjectFile('${_currentProject}','${sub}','${f.name.replace(/'/g, "\\'")}')">🗑</button>
+  </div>`;
+}
+
+async function uploadProjectFiles(name, sub, input) {
+  if (!input.files.length) return;
+  const form = new FormData();
+  for (const f of input.files) form.append('files', f);
+  const res = await fetch(`/projects/${encodeURIComponent(name)}/upload/${sub}`, {method:'POST', body:form});
+  input.value = '';
+  if (!res.ok) { alert('Erro no upload'); return; }
+  await loadProjectDetail(name);
+}
+
+async function deleteProjectFile(name, sub, filename) {
+  if (!confirm(`Excluir ${filename}?`)) return;
+  const res = await fetch(`/projects/${encodeURIComponent(name)}/files/${sub}/${encodeURIComponent(filename)}`, {method:'DELETE'});
+  if (!res.ok) { alert('Erro ao excluir'); return; }
+  await loadProjectDetail(name);
+}
+
+async function confirmDeleteProject(name) {
+  if (!confirm(`Excluir projeto "${name}" e todos os seus arquivos?`)) return;
+  const res = await fetch(`/projects/${encodeURIComponent(name)}`, {method:'DELETE'});
+  if (!res.ok) { alert('Erro ao excluir projeto'); return; }
+  refreshProjects();
+}
+
+function openNewProjectModal() {
+  document.getElementById('new-project-modal').style.display = 'flex';
+  document.getElementById('new-project-name').value = '';
+  setTimeout(() => document.getElementById('new-project-name').focus(), 50);
+}
+
+function closeNewProjectModal() {
+  document.getElementById('new-project-modal').style.display = 'none';
+}
+
+async function createNewProject() {
+  const name = document.getElementById('new-project-name').value.trim();
+  if (!name) return;
+  const res = await fetch('/projects', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name})
+  });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'Erro ao criar projeto'); return; }
+  closeNewProjectModal();
+  await refreshProjects();
+  openProject(data.name);
+}
+
+// -- Episódios --
+
+function buildEpisodeCard(ep, projectName) {
+  const clr = ep.running ? '#f59e0b' : ep.error ? '#ef4444'
+              : (ep.done === ep.total && ep.total > 0) ? '#6fcf6f' : '#888';
+  const txt = ep.running ? '\u25B6 Rodando' : `${ep.done}/${ep.total} cenas`;
+  const safeName    = ep.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const safeProjName = (projectName||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  return `<div class="proj-ep-card">
+    <span class="proj-ep-name" title="${ep.name}">${ep.name}</span>
+    <span class="proj-ep-status" style="color:${clr}">${txt}</span>
+    <div class="proj-ep-actions">
+      <button class="proj-ep-btn" onclick="openEpisodeDetail(${ep.id},'${safeProjName}')" title="Ver cenas">\uD83D\uDCC4 Abrir</button>
+      <button class="proj-ep-btn" onclick="confirmRemoveEpisode(${ep.id},'${safeName}','${safeProjName}',${ep.running})" style="border-color:#4a2020;color:#f87171" title="Remover">\uD83D\uDDD1</button>
+    </div>
+  </div>`;
+}
+
+async function runEpisode(nqId, projectName) {
+  const res = await fetch(`/nqueues/${nqId}/run`, {method:'POST'});
+  if (!res.ok) { const e = await res.json(); alert(e.error || 'Erro ao rodar'); return; }
+  if (projectName) {
+    await openEpisodeDetail(nqId, projectName);
+  } else {
+    openEpisodeInFila(nqId);
+  }
+}
+
+async function epGenImages(nqId, projName, btn) {
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Imgs';
+  try {
+    const res = await fetch(`/nqueues/${nqId}/generate-images`, {method:'POST'});
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || 'Erro ao gerar imagens'); return; }
+    if (data.errors?.length) alert('Avisos:\n' + data.errors.join('\n'));
+    if (projName) await openEpisodeDetail(nqId, projName);
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+async function epGenAudio(nqId, projName, btn) {
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ Áudios';
+  try {
+    const res = await fetch(`/nqueues/${nqId}/generate-audio`, {method:'POST'});
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || 'Erro ao gerar áudios'); return; }
+    if (data.errors?.length) alert('Avisos:\n' + data.errors.join('\n'));
+    if (projName) await openEpisodeDetail(nqId, projName);
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+function openEpisodeInFila(nqId) {
+  showTab('tab-queue', document.querySelectorAll('.tab')[3]);
+  openNq(nqId);
+}
+
+// -- Detalhe do episódio inline no projeto --
+async function openEpisodeDetail(nqId, projectName) {
+  const detail = document.getElementById('proj-detail');
+  detail.style.display = 'flex';
+  detail.innerHTML = '<div style="color:#555;padding:24px">Carregando\u2026</div>';
+
+  const res = await fetch(`/nqueues/${nqId}`);
+  if (!res.ok) { detail.innerHTML = '<div style="color:#f87171;padding:24px">Erro ao carregar epis\xF3dio.</div>'; return; }
+  const nq = await res.json();
+  const jobs = nq.jobs || [];
+
+  const STATUS_LABEL = { idle:'Aguardando', running:'Rodando', done:'Conclu\xEDdo', error:'Erro', pending:'Aguardando' };
+  const STATUS_CLS   = { idle:'idle', running:'running', done:'done', error:'error', pending:'idle' };
+
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  let jobsHtml = '';
+  if (!jobs.length) {
+    jobsHtml = '<div style="color:#444;padding:12px 14px;font-size:.8rem">Nenhuma cena. Gere o episódio com IA ou adicione cenas na aba Fila.</div>';
+  } else {
+    jobsHtml = jobs.map((j, i) => {
+      const st   = j.status || 'idle';
+      const cls  = STATUS_CLS[st]  || 'idle';
+      const lbl  = STATUS_LABEL[st] || st;
+      const refs = Array.isArray(j.ref_imgs) ? j.ref_imgs.join(', ') : (j.ref_imgs || '');
+      const vidBtn = j.output_video
+        ? `<button class="proj-ep-btn run" onclick="playVideoByPath('${j.output_video}')" style="padding:2px 8px;font-size:.72rem">\u25B6 Ver vídeo</button>`
+        : '';
+      return `
+      <div class="ep-job-row" id="epjob-${nqId}-${j.id}">
+        <div class="ep-job-summary" onclick="toggleEpJob(${nqId},${j.id})" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 12px">
+          <span style="color:#555;font-size:.75rem;min-width:20px">${i+1}.</span>
+          <span class="ep-job-label" style="flex:1">${esc(j.label || j.task_type)}</span>
+          <span class="ep-job-badge ${cls}">${lbl}</span>
+          <span style="color:#555;font-size:.7rem">${j.resolution||''} ${j.duration ? j.duration+'s' : ''}</span>
+          ${vidBtn}
+          <span style="color:#555;font-size:.8rem">\u25BE</span>
+        </div>
+        <div class="ep-job-edit" id="epjob-edit-${nqId}-${j.id}" style="display:none;padding:10px 14px 14px;border-top:1px solid #1a1a2a;background:#09090f">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div>
+              <div class="proj-config-label">Título da cena</div>
+              <input class="proj-config-input" id="ej-label-${nqId}-${j.id}" value="${esc(j.label||'')}">
+            </div>
+            <div style="display:flex;gap:6px">
+              <div style="flex:1">
+                <div class="proj-config-label">Resolução</div>
+                <select class="proj-config-input" id="ej-res-${nqId}-${j.id}">
+                  ${['480P','540P','720P'].map(r=>`<option${j.resolution===r?' selected':''}>${r}</option>`).join('')}
+                </select>
+              </div>
+              <div style="flex:1">
+                <div class="proj-config-label">Duração (s)</div>
+                <input type="number" class="proj-config-input" id="ej-dur-${nqId}-${j.id}" value="${esc(j.duration||5)}" min="1" max="30">
+              </div>
+            </div>
+          </div>
+          <div style="margin-bottom:8px">
+            <div class="proj-config-label">Prompt de vídeo</div>
+            <textarea class="proj-config-input" id="ej-prompt-${nqId}-${j.id}" rows="3">${esc(j.prompt||'')}</textarea>
+          </div>
+          ${j.image_prompt !== undefined ? `
+          <div style="margin-bottom:8px">
+            <div class="proj-config-label">Prompt de imagem</div>
+            <textarea class="proj-config-input" id="ej-imgprompt-${nqId}-${j.id}" rows="2">${esc(j.image_prompt||'')}</textarea>
+          </div>` : ''}
+          ${j.audio_text !== undefined ? `
+          <div style="margin-bottom:8px">
+            <div class="proj-config-label">Texto de áudio (narração / fala)</div>
+            <textarea class="proj-config-input" id="ej-audio-${nqId}-${j.id}" rows="2">${esc(j.audio_text||'')}</textarea>
+          </div>` : ''}
+          <div style="margin-bottom:10px">
+            <div class="proj-config-label">Imagens de referência (paths separados por vírgula)</div>
+            <input class="proj-config-input" id="ej-refs-${nqId}-${j.id}" value="${esc(refs)}" placeholder="uploads/foto.jpg, uploads/bg.png">
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="nq-action-btn run" onclick="saveEpJob(${nqId},${j.id},'${esc(j.image_prompt!==undefined?'1':'')}','${esc(j.audio_text!==undefined?'1':'')}')">💾 Salvar</button>
+            <button class="nq-action-btn" onclick="toggleEpJob(${nqId},${j.id})">Cancelar</button>
+            <button class="nq-action-btn" style="margin-left:auto;border-color:#4a2020;color:#f87171" onclick="deleteEpJob(${nqId},${j.id},'${esc(projectName)}')">🗑 Remover cena</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  const safeProjName = projectName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  detail.innerHTML = `
+    <div class="proj-detail-header">
+      <button class="nq-action-btn" onclick="loadProjectDetail('${safeProjName}')">\u2190 Projeto</button>
+      <span class="proj-detail-name">${nq.name}</span>
+      <button class="nq-action-btn" onclick="openEpisodeInFila(${nqId})" title="Gerenciar na aba Fila">\uD83D\uDD17 Fila</button>
+    </div>
+    <div style="display:flex;gap:6px;padding:8px 12px;border-bottom:1px solid #1a1a2a;flex-wrap:wrap">
+      <button class="proj-ep-btn" onclick="epGenImages(${nqId},'${safeProjName}',this)" title="Gerar imagens via fal.ai">\uD83D\uDDBC Imagens</button>
+      <button class="proj-ep-btn" onclick="epGenAudio(${nqId},'${safeProjName}',this)" title="Gerar \xE1udios via ElevenLabs">\uD83C\uDFB5 \xC1udios</button>
+      <button class="proj-ep-btn" style="opacity:.5;cursor:not-allowed" title="Em breve">\uD83C\uDFB6 M\xFAsica</button>
+      <button class="proj-ep-btn run" onclick="runEpisode(${nqId},'${safeProjName}')" title="Gerar v\xEDdeos (rodar fila)">\uD83C\uDFAC V\xEDdeos</button>
+    </div>
+    <div class="ep-detail-jobs">${jobsHtml}</div>`;
+}
+
+function toggleEpJob(nqId, jobId) {
+  const el = document.getElementById(`epjob-edit-${nqId}-${jobId}`);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function saveEpJob(nqId, jobId, hasImgPrompt, hasAudioText) {
+  const g = id => { const e = document.getElementById(id); return e ? e.value : null; };
+  const payload = {
+    label:      g(`ej-label-${nqId}-${jobId}`),
+    resolution: g(`ej-res-${nqId}-${jobId}`),
+    duration:   Number(g(`ej-dur-${nqId}-${jobId}`)),
+    prompt:     g(`ej-prompt-${nqId}-${jobId}`),
+    ref_imgs:   (g(`ej-refs-${nqId}-${jobId}`) || '').split(',').map(s=>s.trim()).filter(Boolean),
+  };
+  if (hasImgPrompt) payload.image_prompt = g(`ej-imgprompt-${nqId}-${jobId}`) || '';
+  if (hasAudioText) payload.audio_text   = g(`ej-audio-${nqId}-${jobId}`)    || '';
+
+  const res = await fetch(`/nqueues/${nqId}/jobs/${jobId}`, {
+    method: 'PATCH', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) { const e = await res.json(); alert(e.error || 'Erro ao salvar'); return; }
+  toggleEpJob(nqId, jobId);
+  // Atualiza só o label e badge sem recarregar tudo
+  const row = document.getElementById(`epjob-${nqId}-${jobId}`);
+  if (row) {
+    const labelEl = row.querySelector('.ep-job-label');
+    if (labelEl) labelEl.textContent = payload.label || '';
+    const badge = row.querySelector('.ep-job-badge');
+    if (badge) { badge.className = 'ep-job-badge idle'; badge.textContent = 'Aguardando'; }
+  }
+}
+
+async function deleteEpJob(nqId, jobId, projectName) {
+  if (!confirm('Remover esta cena do episódio?')) return;
+  const res = await fetch(`/nqueues/${nqId}/jobs/${jobId}`, {method:'DELETE'});
+  if (!res.ok) { const e = await res.json(); alert(e.error || 'Erro ao remover'); return; }
+  await openEpisodeDetail(nqId, projectName);
+}
+
+// -- Remover episódio do projeto --
+let _removeEpState = null;
+
+function confirmRemoveEpisode(nqId, epName, projectName, isRunning) {
+  if (isRunning) { alert('Não é possível remover um episódio em execução.'); return; }
+  _removeEpState = { nqId, projectName };
+  document.getElementById('rem-ep-name').textContent = epName;
+  document.getElementById('remove-episode-modal').style.display = 'flex';
+}
+
+function closeRemoveEpisodeModal() {
+  document.getElementById('remove-episode-modal').style.display = 'none';
+  _removeEpState = null;
+}
+
+async function removeEpisodeFromProject(alsoDeleteFromQueue) {
+  if (!_removeEpState) return;
+  const { nqId, projectName } = _removeEpState;
+  closeRemoveEpisodeModal();
+  const url = alsoDeleteFromQueue
+    ? `/nqueues/${nqId}`
+    : `/nqueues/${nqId}/project-link`;
+  const res = await fetch(url, { method: 'DELETE' });
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    alert(e.error || 'Erro ao remover episódio');
+    return;
+  }
+  await loadProjectDetail(projectName);
+}
+
+function openNewEpisodeModal(projectName) {
+  document.getElementById('new-episode-project').value = projectName;
+  document.getElementById('new-episode-name').value = '';
+  document.getElementById('new-episode-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('new-episode-name').focus(), 50);
+}
+
+function closeNewEpisodeModal() {
+  document.getElementById('new-episode-modal').style.display = 'none';
+}
+
+async function createNewEpisode() {
+  const projectName = document.getElementById('new-episode-project').value;
+  const name = document.getElementById('new-episode-name').value.trim();
+  if (!name) return;
+  const res = await fetch('/nqueues', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({name, project: projectName, jobs:[]})
+  });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'Erro ao criar epis\xF3dio'); return; }
+  closeNewEpisodeModal();
+  openEpisodeInFila(data.id);
+}
+
+async function importEpisodeFile(projectName, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const text = await file.text();
+  const defaultName = file.name.replace(/\.[^.]+$/, '');
+  const epName = prompt('Nome do epis\xF3dio:', defaultName);
+  if (epName === null) { input.value = ''; return; }
+  const res = await fetch(
+    `/nqueues/import?name=${encodeURIComponent(epName||defaultName)}&project=${encodeURIComponent(projectName)}`,
+    {method:'POST', headers:{'Content-Type':'text/plain'}, body:text}
+  );
+  const data = await res.json();
+  input.value = '';
+  if (data.ok) {
+    await loadProjectDetail(projectName);
+  } else {
+    alert('Erro ao importar: ' + data.error);
+  }
+}
+// ────────────────────────────────────────────────────────────
+
+// ── Global Config Modal ─────────────────────────────────────
+
+async function openGlobalConfigModal() {
+  const res = await fetch('/config');
+  const cfg = res.ok ? await res.json() : {};
+  _projConfig = cfg;
+  document.getElementById('gcfg-fal-key').value    = cfg.fal_key || '';
+  document.getElementById('gcfg-image-model').value = cfg.image_model || 'fal-ai/flux/dev';
+  document.getElementById('gcfg-el-key').value     = cfg.elevenlabs_key || '';
+  document.getElementById('gcfg-el-voice').value   = cfg.elevenlabs_voice_id || '';
+  document.getElementById('global-config-modal').style.display = 'flex';
+}
+
+function closeGlobalConfigModal() {
+  document.getElementById('global-config-modal').style.display = 'none';
+}
+
+async function saveGlobalConfig() {
+  const cfg = {
+    fal_key:             document.getElementById('gcfg-fal-key').value.trim(),
+    image_model:         document.getElementById('gcfg-image-model').value.trim() || 'fal-ai/flux/dev',
+    elevenlabs_key:      document.getElementById('gcfg-el-key').value.trim(),
+    elevenlabs_voice_id: document.getElementById('gcfg-el-voice').value.trim(),
+  };
+  const res = await fetch('/config', {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(cfg)
+  });
+  if (res.ok) {
+    _projConfig = cfg;
+    const btn = document.getElementById('gcfg-save-btn');
+    btn.textContent = '\u2713 Salvo';
+    setTimeout(() => { btn.textContent = 'Salvar'; closeGlobalConfigModal(); }, 1000);
+  } else {
+    alert('Erro ao salvar');
+  }
+}
+
+// ── Gen Episode Modal ────────────────────────────────────────
+
+let _genEpisodeProject = null;
+let _genJobs = [];
+let _projConfig = {};
+
+function _showGenStep(n) {
+  document.getElementById('gen-ep-step1').classList.toggle('active', n === 1);
+  document.getElementById('gen-ep-step2').classList.toggle('active', n === 2);
+  document.getElementById('gen-ep-step1-footer').style.display = n === 1 ? 'flex' : 'none';
+  document.getElementById('gen-ep-step2-footer').style.display = n === 2 ? 'flex' : 'none';
+}
+
+function onGenTaskChange() {
+  const isAvatar = document.getElementById('gen-ep-task')?.value === 'talking_avatar';
+  const imgsSection  = document.getElementById('gen-ep-imgs-section');
+  const avatarNote   = document.getElementById('gen-ep-avatar-note');
+  if (imgsSection) imgsSection.style.display  = isAvatar ? 'none' : '';
+  if (avatarNote)  avatarNote.style.display   = isAvatar ? ''     : 'none';
+  const resEl = document.getElementById('gen-ep-res');
+  if (resEl) {
+    if (isAvatar) {
+      resEl.innerHTML = '<option value="480P" selected>480P</option><option value="720P">720P</option>';
+    } else if (!resEl.querySelector('[value="540P"]')) {
+      resEl.innerHTML = '<option value="540P" selected>540P</option><option value="720P">720P</option><option value="480P">480P</option>';
+    }
+  }
+}
+
+async function openGenEpisodeModal(projName) {
+  // Restore existing jobs for the same project instead of rebuilding
+  if (_genEpisodeProject === projName && _genJobs.length > 0) {
+    renderGenPreview();
+    _showGenStep(2);
+    document.getElementById('gen-ep-modal').style.display = 'flex';
+    return;
+  }
+
+  _genEpisodeProject = projName;
+  _genJobs = [];
+
+  // Load global config, project files and upload list in parallel
+  const [cfgRes, projRes, uplRes] = await Promise.all([
+    fetch('/config'),
+    fetch(`/projects/${encodeURIComponent(projName)}`),
+    fetch('/uploads/list'),
+  ]);
+  _projConfig = cfgRes.ok ? await cfgRes.json() : {};
+  const projData  = projRes.ok ? await projRes.json() : {};
+  const uplData   = uplRes.ok  ? await uplRes.json()  : {};
+  const images    = (projData.folders?.imagens || []).map(f => f.path);  // imagens do projeto
+  const tempDocs  = (projData.folders?.temp    || []);                   // arquivos em projetos/<name>/temp/
+  const nAudios   = (projData.folders?.audios || []).length;
+  const nDocs     = (projData.folders?.docs   || []).length;
+
+  const resourceSummary = [
+    images.length ? `${images.length} imagem${images.length !== 1 ? 'ns' : ''}` : '',
+    nAudios       ? `${nAudios} \xE1udio${nAudios !== 1 ? 's' : ''}` : '',
+    nDocs         ? `${nDocs} doc${nDocs !== 1 ? 's' : ''}` : '',
+  ].filter(Boolean).join(' \xB7 ') || 'Nenhum arquivo no projeto';
+
+  // Renderização das imagens — chamada por toggleGenImgView()
+  window._genEpImages = images;
+
+  const imgSection = images.length ? `
+    <div id="gen-img-container" data-view="visual" style="background:#0a0a12;border:1px solid #2a2a3a;border-radius:6px;overflow:hidden">
+      <!-- conteúdo preenchido por renderGenImgView() -->
+    </div>` : '<div style="color:#555;font-size:.8rem;padding:6px 0">Nenhuma imagem no projeto</div>';
+
+  const docOptions = tempDocs.length
+    ? `<option value="">— novo —</option>` + tempDocs.map(f =>
+        `<option value="${f.path}">${f.name}</option>`).join('')
+    : null;
+
+  document.getElementById('gen-ep-step1').innerHTML = `
+    <div class="proj-config-row" style="align-items:flex-end;gap:8px">
+      <div style="flex:1">
+        <div class="proj-config-label">T\xEDtulo do epis\xF3dio *</div>
+        <input id="gen-ep-title" type="text" class="proj-config-input" placeholder="Ex: Ep01 — Rob\xF4 da Turma">
+      </div>
+    </div>
+    <div>
+      <div class="proj-config-label" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+        <span>Descri\xE7\xE3o do epis\xF3dio *
+          <span style="font-size:.7rem;color:#555;text-transform:none;font-weight:400"> — salva automaticamente em docs/</span>
+        </span>
+        <span style="display:flex;gap:6px;align-items:center">
+          ${docOptions ? `<select id="gen-ep-doc-sel" style="background:#1a1a2a;border:1px solid #333;border-radius:4px;color:#aaa;font-size:.75rem;padding:3px 6px;cursor:pointer" onchange="loadGenEpDoc(this.value)">
+            ${docOptions}
+          </select>` : ''}
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;background:#1a1a2a;border:1px solid #333;border-radius:4px;padding:3px 8px;font-size:.75rem;color:#aaa;white-space:nowrap" title="Carregar arquivo do seu computador">
+            \uD83D\uDCC2 Computador
+            <input type="file" accept=".txt,.md,.json,.doc,.docx" style="display:none" onchange="loadGenEpFromFile(this)">
+          </label>
+          <span style="font-size:.72rem;color:#4caf88;white-space:nowrap" title="A IA usa todos os docs, imagens e \xE1udios do projeto como base de conhecimento">\uD83D\uDCCE ${resourceSummary}</span>
+        </span>
+      </div>
+      <textarea id="gen-ep-concept" class="proj-config-input" rows="8"
+        placeholder="Escreva o roteiro ou descri\xE7\xE3o completa do epis\xF3dio. A IA usa todos os documentos, imagens e \xE1udios do projeto como base de conhecimento para manter consist\xEAncia."></textarea>
+      <div style="font-size:.72rem;color:#555;margin-top:3px">\uD83D\uDCA1 Todos os documentos do projeto s\xE3o sempre lidos pela IA como base de conhecimento — independentemente do que voc\xEA escrever aqui.</div>
+    </div>
+    <div class="proj-config-row">
+      <div>
+        <div class="proj-config-label">Resolu\xE7\xE3o</div>
+        <select id="gen-ep-res" class="proj-config-input">
+          <option value="540P">540P</option>
+          <option value="720P">720P</option>
+          <option value="480P">480P</option>
+        </select>
+      </div>
+      <div>
+        <div class="proj-config-label">~Dura\xE7\xE3o/cena (s)</div>
+        <input type="number" id="gen-ep-dur" class="proj-config-input" value="5" min="1" max="30">
+      </div>
+    </div>
+    <div id="gen-ep-imgs-section">
+      <div class="proj-config-label" style="display:flex;align-items:center;gap:8px">
+        <span>Imagens de refer\xEAncia</span>
+        <span style="font-size:.7rem;color:#555;text-transform:none;flex:1">(todas selecionadas por padr\xE3o)</span>
+        ${images.length ? `
+        <button class="gen-ep-btn" onclick="toggleGenImgView()" id="gen-img-view-btn" style="padding:2px 8px;font-size:.7rem">\u22EE Lista</button>
+        <button class="gen-ep-btn" onclick="toggleGenImgSelectAll(true)" style="padding:2px 7px;font-size:.7rem" title="Selecionar todas">\u2713 Todas</button>
+        <button class="gen-ep-btn" onclick="toggleGenImgSelectAll(false)" style="padding:2px 7px;font-size:.7rem" title="Desmarcar todas">\u25A1 Nenhuma</button>
+        ` : ''}
+      </div>
+      ${imgSection}
+    </div>
+  `;
+
+  _showGenStep(1);
+  document.getElementById('gen-ep-modal').style.display = 'flex';
+  if (images.length) renderGenImgView('visual');
+}
+
+function renderGenImgView(view) {
+  const container = document.getElementById('gen-img-container');
+  if (!container) return;
+  const images = window._genEpImages || [];
+  // Preservar estado dos checkboxes existentes
+  const checked = new Set(
+    Array.from(document.querySelectorAll('input[name="gen-ref-img"]:checked')).map(c => c.value)
+  );
+  // Se ainda não há estado, marcar todas
+  const hasState = document.querySelectorAll('input[name="gen-ref-img"]').length > 0;
+  const isChecked = p => hasState ? checked.has(p) : true;
+
+  container.dataset.view = view;
+  const btn = document.getElementById('gen-img-view-btn');
+
+  if (view === 'visual') {
+    if (btn) btn.textContent = '\u2630 Lista';
+    container.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;padding:10px;max-height:180px;overflow-y:auto">
+      ${images.map(p => {
+        const name = p.split('/').pop();
+        const chk = isChecked(p) ? 'checked' : '';
+        return `<label style="cursor:pointer;position:relative;flex-shrink:0" title="${name}">
+          <input type="checkbox" name="gen-ref-img" value="${p}" ${chk} style="position:absolute;top:3px;left:3px;z-index:1;accent-color:#7c3aed">
+          <img src="/file/${p}" style="height:72px;width:108px;object-fit:cover;border-radius:5px;border:2px solid ${isChecked(p)?'#7c3aed':'#333'};display:block;transition:border-color .15s"
+               onload="this.previousElementSibling.addEventListener('change',e=>this.style.borderColor=e.target.checked?'#7c3aed':'#333')">
+        </label>`;
+      }).join('')}
+    </div>`;
+  } else {
+    if (btn) btn.textContent = '\u25A6 Visual';
+    container.innerHTML = `<div style="display:flex;flex-direction:column;max-height:180px;overflow-y:auto">
+      ${images.map((p, i) => {
+        const name = p.split('/').pop();
+        const chk = isChecked(p) ? 'checked' : '';
+        const bg = i % 2 === 0 ? '#0a0a12' : '#0d0d18';
+        return `<label style="display:flex;align-items:center;gap:10px;padding:6px 10px;cursor:pointer;background:${bg};border-bottom:1px solid #1a1a28">
+          <input type="checkbox" name="gen-ref-img" value="${p}" ${chk} style="accent-color:#7c3aed;flex-shrink:0">
+          <img src="/file/${p}" style="height:36px;width:54px;object-fit:cover;border-radius:3px;border:1px solid #333;flex-shrink:0">
+          <span style="font-size:.8rem;color:#ccc;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>
+        </label>`;
+      }).join('')}
+    </div>`;
+  }
+}
+
+function toggleGenImgView() {
+  const container = document.getElementById('gen-img-container');
+  if (!container) return;
+  const current = container.dataset.view || 'visual';
+  renderGenImgView(current === 'visual' ? 'list' : 'visual');
+}
+
+function toggleGenImgSelectAll(select) {
+  document.querySelectorAll('input[name="gen-ref-img"]').forEach(c => {
+    c.checked = select;
+    // Atualizar borda na view visual
+    const img = c.nextElementSibling;
+    if (img && img.tagName === 'IMG') img.style.borderColor = select ? '#7c3aed' : '#333';
+  });
+}
+
+function closeGenEpisodeModal() {
+  document.getElementById('gen-ep-modal').style.display = 'none';
+}
+
+async function openSysPromptModal() {
+  const res = await fetch('/system-prompt/episode');
+  const data = res.ok ? await res.json() : {};
+  const ta = document.getElementById('sys-prompt-ta');
+  if (ta) ta.value = data.prompt || '';
+  document.getElementById('sys-prompt-modal').style.display = 'flex';
+}
+
+function closeSysPromptModal() {
+  document.getElementById('sys-prompt-modal').style.display = 'none';
+}
+
+async function saveSysPrompt() {
+  const text = document.getElementById('sys-prompt-ta').value.trim();
+  if (!text) return;
+  const res = await fetch('/system-prompt/episode', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({prompt: text}),
+  });
+  if (!res.ok) { const e = await res.json(); alert(e.error || 'Erro ao salvar'); return; }
+  closeSysPromptModal();
+}
+
+async function resetSysPrompt() {
+  if (!confirm('Restaurar o system prompt padrão? O prompt atual será perdido.')) return;
+  const res = await fetch('/system-prompt/episode/reset', {method:'POST'});
+  const data = res.ok ? await res.json() : {};
+  const ta = document.getElementById('sys-prompt-ta');
+  if (ta && data.prompt) ta.value = data.prompt;
+}
+
+function resetGenEpisodeModal() {
+  _genJobs = [];
+  _showGenStep(1);
+  if (window._genEpImages?.length) renderGenImgView(document.getElementById('gen-img-container')?.dataset.view || 'visual');
+}
+
+async function loadGenEpDoc(path) {
+  if (!path) return;
+  try {
+    const res = await fetch(`/file/${path}`);
+    if (!res.ok) return;
+    const text = await res.text();
+    const ta = document.getElementById('gen-ep-concept');
+    if (ta) { ta.value = text; ta.focus(); }
+    const titleEl = document.getElementById('gen-ep-title');
+    if (titleEl && !titleEl.value)
+      titleEl.value = path.split('/').pop().replace(/\.[^.]+$/, '');
+  } catch (e) { console.warn('loadGenEpDoc:', e); }
+}
+
+function loadGenEpFromFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const ta = document.getElementById('gen-ep-concept');
+    if (ta) { ta.value = e.target.result; ta.focus(); }
+    const titleEl = document.getElementById('gen-ep-title');
+    if (titleEl && !titleEl.value)
+      titleEl.value = file.name.replace(/\.[^.]+$/, '');
+  };
+  reader.readAsText(file, 'UTF-8');
+  input.value = ''; // reset para permitir reler o mesmo arquivo
+}
+
+async function generateEpisodePrompts() {
+  const description = document.getElementById('gen-ep-concept').value.trim();
+  if (!description) { alert('Escreva a descri\xE7\xE3o do epis\xF3dio'); return; }
+  const doc_title = (document.getElementById('gen-ep-title')?.value || '').trim();
+  if (!doc_title) { alert('Informe o t\xEDtulo do epis\xF3dio'); return; }
+
+  // Imagens selecionadas — se nenhuma marcada, envia [] e o backend usa todas do projeto
+  const allImgBoxes = Array.from(document.querySelectorAll('input[name="gen-ref-img"]'));
+  const checkedImgs = allImgBoxes.filter(c => c.checked).map(c => c.value);
+  const payload = {
+    description,
+    doc_title,
+    task_type:  'reference_to_video',
+    resolution: document.getElementById('gen-ep-res').value,
+    duration:   parseInt(document.getElementById('gen-ep-dur').value) || 5,
+    ref_imgs:   checkedImgs,
+  };
+
+  const spinner = document.getElementById('gen-ep-spinner');
+  const genBtn  = document.getElementById('gen-ep-gen-btn');
+  spinner.classList.add('active');
+  genBtn.disabled = true;
+
+  try {
+    const res = await fetch(`/projects/${encodeURIComponent(_genEpisodeProject)}/generate-episode`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const msg = data.error || 'Falha na gera\xE7\xE3o';
+      const friendly = msg.includes('timed out') ? '\u23F1 Timeout: o Claude demorou demais para responder. Tente com menos cenas ou um conceito mais curto.\n\nDetalhe: ' + msg : msg;
+      alert(friendly + (data.raw ? '\n\n' + data.raw : ''));
+      return;
+    }
+    _genJobs = data.jobs;
+    renderGenPreview();
+    _showGenStep(2);
+    if (data.saved_doc) {
+      const info = document.createElement('div');
+      info.style.cssText = 'font-size:.75rem;color:#6fcf6f;padding:4px 0 0';
+      info.textContent = '\u2713 Descri\xE7\xE3o salva em ' + data.saved_doc;
+      document.getElementById('gen-ep-scene-list').before(info);
+    }
+  } finally {
+    spinner.classList.remove('active');
+    genBtn.disabled = false;
+  }
+}
+
+function renderGenPreview() {
+  const container = document.getElementById('gen-ep-scene-list');
+  container.innerHTML = '';
+
+  _genJobs.forEach((job, i) => {
+    const card = document.createElement('div');
+    card.className = 'gen-ep-scene-card' + (job._img_error || job._audio_error ? ' has-error' : '');
+
+    let tags = '';
+    if (job._img_error)        tags += `<span class="gen-ep-status-tag gen-ep-status-err" title="${job._img_error}">\u26A0 img</span>`;
+    else if (job.ref_imgs?.length) tags += `<span class="gen-ep-status-tag gen-ep-status-img">\uD83D\uDDBC img</span>`;
+    if (job._audio_error)      tags += `<span class="gen-ep-status-tag gen-ep-status-err" title="${job._audio_error}">\u26A0 \xE1udio</span>`;
+    else if (job.input_audio)  tags += `<span class="gen-ep-status-tag gen-ep-status-aud">\uD83C\uDFB5 \xE1udio</span>`;
+
+    // Image thumbnails
+    const refs = Array.isArray(job.ref_imgs) ? job.ref_imgs : [];
+    let thumbs = '';
+    if (refs.length) {
+      thumbs = '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">' +
+        refs.slice(0, 4).map(p =>
+          `<img src="/file/${p}" style="height:44px;width:66px;object-fit:cover;border-radius:4px;border:1px solid #333" title="${p.split('/').pop()}">`
+        ).join('') +
+        '</div>';
+    }
+
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span class="gen-ep-scene-title" style="flex:1;margin-bottom:0">${job.label || 'Cena '+(i+1)}</span>
+        ${tags}
+        <button class="gen-ep-btn" id="gen-regen-btn-${i}" onclick="regenerateGenScene(${i})" title="Refazer esta cena via IA" style="padding:2px 6px;font-size:.7rem">&#x21BB;</button>
+        <button class="gen-ep-btn" onclick="removeGenScene(${i})" title="Remover esta cena" style="padding:2px 6px;font-size:.7rem;color:#f87171;border-color:#4a2020">&#x2715;</button>
+      </div>
+      <div class="gen-ep-scene-prompt">
+        <textarea id="gen-job-prompt-${i}" onchange="_genJobs[${i}].prompt=this.value">${job.prompt||''}</textarea>
+      </div>
+      ${thumbs}
+      <div style="font-size:.72rem;color:#555;margin-top:5px">
+        ${job.task_type} \xB7 ${job.resolution} \xB7 ${job.duration}s \xB7 seed ${job.seed}
+        ${refs.length ? ' \xB7 ' + refs.length + ' ref(s)' : ''}
+        ${job.input_image ? ' \xB7 img: ' + job.input_image.split('/').pop() : ''}
+        ${job.input_audio ? ' \xB7 \xE1udio: ' + job.input_audio.split('/').pop() : ''}
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  const hasFalKey = !!_projConfig.fal_key;
+  const hasElKey  = !!(_projConfig.elevenlabs_key && _projConfig.elevenlabs_voice_id);
+  const imgBtn = document.getElementById('gen-ep-img-btn');
+  const audBtn = document.getElementById('gen-ep-aud-btn');
+  imgBtn.disabled = !hasFalKey;
+  imgBtn.title    = hasFalKey ? 'Gerar imagens com fal.ai' : 'Configure FAL_KEY em \u2699 Configura\xE7\xF5es';
+  audBtn.disabled = !hasElKey;
+  audBtn.title    = hasElKey  ? 'Gerar \xE1udios com ElevenLabs' : 'Configure ElevenLabs em \u2699 Configura\xE7\xF5es';
+}
+
+function removeGenScene(i) {
+  _genJobs.splice(i, 1);
+  renderGenPreview();
+}
+
+async function regenerateGenScene(i) {
+  const job = _genJobs[i];
+  if (!job) return;
+  const btn = document.getElementById(`gen-regen-btn-${i}`);
+  if (btn) { btn.disabled = true; btn.textContent = '\u23F3'; }
+  try {
+    const checkedImgs = Array.from(document.querySelectorAll('input[name="gen-ref-img"]:checked')).map(c => c.value);
+    const payload = {
+      label:      job.label || `Cena ${i+1}`,
+      resolution: job.resolution || '720P',
+      duration:   job.duration || 5,
+      ref_imgs:   checkedImgs.length ? checkedImgs : (job.ref_imgs || []),
+    };
+    const res = await fetch(`/projects/${encodeURIComponent(_genEpisodeProject)}/regenerate-scene`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) { alert('Erro: ' + (data.error || 'Falha na regenera\xE7\xE3o') + (data.raw ? '\n\n' + data.raw : '')); return; }
+    _genJobs[i] = { ..._genJobs[i], ...data.job };
+    renderGenPreview();
+  } finally {
+    const b = document.getElementById(`gen-regen-btn-${i}`);
+    if (b) { b.disabled = false; b.textContent = '\u21BB'; }
+  }
+}
+
+async function genEpisodeImages() {
+  const btn = document.getElementById('gen-ep-img-btn');
+  btn.disabled = true; btn.textContent = '\u23F3 Gerando imagens...';
+  try {
+    const res = await fetch(`/projects/${encodeURIComponent(_genEpisodeProject)}/generate-images`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({jobs: _genJobs})
+    });
+    const data = await res.json();
+    if (!res.ok) { alert('Erro: ' + data.error); return; }
+    _genJobs = data.jobs;
+    renderGenPreview();
+  } finally {
+    btn.disabled = !_projConfig.fal_key;
+    btn.textContent = '\uD83D\uDDBC Gerar Imagens';
+  }
+}
+
+async function genEpisodeAudio() {
+  const hasTexts = _genJobs.some(j => j.audio_text);
+  if (!hasTexts) {
+    const text = prompt('Texto para narra\xE7\xE3o (aplicado a todas as cenas sem audio_text definido):\n(Deixe vazio para cancelar)');
+    if (!text) return;
+    _genJobs = _genJobs.map(j => ({...j, audio_text: j.audio_text || text}));
+  }
+  const btn = document.getElementById('gen-ep-aud-btn');
+  btn.disabled = true; btn.textContent = '\u23F3 Gerando \xE1udios...';
+  try {
+    const res = await fetch(`/projects/${encodeURIComponent(_genEpisodeProject)}/generate-audio`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({jobs: _genJobs})
+    });
+    const data = await res.json();
+    if (!res.ok) { alert('Erro: ' + data.error); return; }
+    _genJobs = data.jobs;
+    renderGenPreview();
+  } finally {
+    const hasElKey = !!(_projConfig.elevenlabs_key && _projConfig.elevenlabs_voice_id);
+    btn.disabled = !hasElKey;
+    btn.textContent = '\uD83C\uDFB5 Gerar \xC1udios';
+  }
+}
+
+async function createEpisodeFromGen() {
+  const defaultName = `Ep \u2014 ${_genEpisodeProject} \u2014 ${new Date().toLocaleDateString('pt-BR')}`;
+  const name = prompt('Nome do epis\xF3dio:', defaultName);
+  if (name === null) return;
+  const res = await fetch('/nqueues', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ name: name || defaultName, project: _genEpisodeProject, jobs: _genJobs })
+  });
+  const data = await res.json();
+  if (!res.ok) { alert(data.error || 'Erro ao criar epis\xF3dio'); return; }
+  closeGenEpisodeModal();
+  showTab('tab-queue', document.querySelectorAll('.tab')[3]);
+  openNq(data.id);
+}
+
 // Poll every 3 seconds
 setInterval(refreshNamedQueues, 3000);
 refreshNamedQueues();
@@ -2320,6 +3566,164 @@ refreshNamedQueues();
     <div class="modal-footer">
       <button class="nq-action-btn" onclick="closeEditJobModal()">Cancelar</button>
       <button class="nq-action-btn run" onclick="saveEditJob()">Salvar</button>
+    </div>
+  </div>
+</div>
+<!-- New episode modal -->
+<div id="new-episode-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeNewEpisodeModal()">
+  <div class="modal-box" style="width:min(400px,95vw)">
+    <div class="modal-header">
+      <span>Criar Episódio</span>
+      <button onclick="closeNewEpisodeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="new-episode-project">
+      <label>Nome do episódio
+        <input id="new-episode-name" type="text" class="modal-input" placeholder="ex: Ep01 — Abertura"
+               onkeydown="if(event.key==='Enter')createNewEpisode()">
+      </label>
+      <div style="font-size:.78rem;color:#666">Cria uma fila de geração vazia vinculada ao projeto. Adicione cenas na aba Fila.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="nq-action-btn" onclick="closeNewEpisodeModal()">Cancelar</button>
+      <button class="nq-action-btn run" onclick="createNewEpisode()">Criar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Global config modal -->
+<div id="global-config-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeGlobalConfigModal()">
+  <div class="modal-box" style="width:min(480px,95vw)">
+    <div class="modal-header">
+      <span>&#x2699; Configura&#xE7;&#xF5;es de APIs</span>
+      <button onclick="closeGlobalConfigModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:.78rem;color:#666;margin-bottom:4px">Configurações globais — valem para todos os projetos.</div>
+      <label style="font-size:.78rem;color:#888">FAL_KEY <span style="color:#555">(fal.ai — geração de imagens)</span>
+        <input id="gcfg-fal-key" type="password" class="modal-input" placeholder="key_xxxx..." style="margin-top:4px">
+      </label>
+      <label style="font-size:.78rem;color:#888">Modelo de imagem
+        <input id="gcfg-image-model" type="text" class="modal-input" placeholder="fal-ai/flux/dev" style="margin-top:4px">
+      </label>
+      <label style="font-size:.78rem;color:#888">ElevenLabs API Key <span style="color:#555">(geração de áudio / TTS)</span>
+        <input id="gcfg-el-key" type="password" class="modal-input" placeholder="sk_xxxx..." style="margin-top:4px">
+      </label>
+      <label style="font-size:.78rem;color:#888">ElevenLabs Voice ID
+        <input id="gcfg-el-voice" type="text" class="modal-input" placeholder="EXAVITQu4vr4xnSDxMaL" style="margin-top:4px">
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="nq-action-btn" onclick="closeGlobalConfigModal()">Cancelar</button>
+      <button id="gcfg-save-btn" class="nq-action-btn run" onclick="saveGlobalConfig()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Gen Episode modal -->
+<div id="gen-ep-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeGenEpisodeModal()">
+  <div class="modal-box gen-ep-modal">
+    <div class="modal-header">
+      <span>⚡ Gerar Episódio com IA</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="gen-ep-btn" onclick="openSysPromptModal()" title="Ver e editar o system prompt da IA" style="font-size:.72rem;padding:3px 9px">✏ System Prompt</button>
+        <button onclick="closeGenEpisodeModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <!-- Step 1: Concept form -->
+      <div id="gen-ep-step1" class="gen-ep-step"></div>
+      <!-- Step 2: Preview / Approval -->
+      <div id="gen-ep-step2" class="gen-ep-step">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:.8rem;color:#666;flex:1">Revise os prompts. Clique &#x21BB; para refazer uma cena via IA ou &#x2715; para remov\xEA-la.</span>
+          <button class="gen-ep-btn" id="gen-ep-img-btn" onclick="genEpisodeImages()" disabled>&#x1F5BC; Gerar Imagens</button>
+          <button class="gen-ep-btn" id="gen-ep-aud-btn" onclick="genEpisodeAudio()" disabled>&#x1F3B5; Gerar \xC1udios</button>
+        </div>
+        <div class="gen-ep-scene-list" id="gen-ep-scene-list"></div>
+      </div>
+    </div>
+    <!-- Step 1 footer -->
+    <div class="modal-footer" id="gen-ep-step1-footer" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div class="gen-ep-spinner" id="gen-ep-spinner"><span class="gen-ep-spin">⏳</span> Gerando prompts via Claude CLI...</div>
+      <div style="flex:1"></div>
+      <button class="gen-ep-btn" onclick="closeGenEpisodeModal()">Cancelar</button>
+      <button class="gen-ep-btn primary" id="gen-ep-gen-btn" onclick="generateEpisodePrompts()">Gerar Prompts ⚡</button>
+    </div>
+    <!-- Step 2 footer -->
+    <div class="modal-footer" id="gen-ep-step2-footer" style="display:none;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="gen-ep-btn" onclick="_showGenStep(1)">&#x2190; Voltar</button>
+      <button class="gen-ep-btn" onclick="resetGenEpisodeModal()" title="Descartar cenas geradas e recomeçar do passo 1" style="color:#f59e0b;border-color:#b45309">&#x21BA; Nova gera&#x00E7;&#x00E3;o</button>
+      <div style="flex:1"></div>
+      <button class="gen-ep-btn primary" onclick="createEpisodeFromGen()">Criar Fila &#x25BA;</button>
+    </div>
+  </div>
+</div>
+
+<!-- System Prompt modal -->
+<div id="sys-prompt-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeSysPromptModal()">
+  <div class="modal-box" style="width:min(780px,96vw);max-height:92vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <span>✏ System Prompt — Gerador de Episódio</span>
+      <button onclick="closeSysPromptModal()">✕</button>
+    </div>
+    <div class="modal-body" style="flex:1;display:flex;flex-direction:column;gap:8px;overflow:auto">
+      <div style="font-size:.75rem;color:#666;line-height:1.5">
+        Variáveis disponíveis (serão substituídas automaticamente na hora de gerar):
+        <code style="background:#0a0a12;border:1px solid #2a2a3a;padding:2px 6px;border-radius:4px;color:#a78bfa">{description}</code>
+        <code style="background:#0a0a12;border:1px solid #2a2a3a;padding:2px 6px;border-radius:4px;color:#a78bfa">{resources}</code>
+        <code style="background:#0a0a12;border:1px solid #2a2a3a;padding:2px 6px;border-radius:4px;color:#a78bfa">{task_type}</code>
+        <code style="background:#0a0a12;border:1px solid #2a2a3a;padding:2px 6px;border-radius:4px;color:#a78bfa">{resolution}</code>
+        <code style="background:#0a0a12;border:1px solid #2a2a3a;padding:2px 6px;border-radius:4px;color:#a78bfa">{duration}</code>
+        <code style="background:#0a0a12;border:1px solid #2a2a3a;padding:2px 6px;border-radius:4px;color:#a78bfa">{json_template}</code>
+      </div>
+      <textarea id="sys-prompt-ta" class="proj-config-input" style="flex:1;min-height:420px;font-size:.78rem;font-family:monospace;line-height:1.6;resize:vertical"></textarea>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px">
+      <button class="gen-ep-btn" onclick="resetSysPrompt()" style="color:#f59e0b;border-color:#b45309">↺ Restaurar padrão</button>
+      <div style="flex:1"></div>
+      <button class="gen-ep-btn" onclick="closeSysPromptModal()">Cancelar</button>
+      <button class="gen-ep-btn primary" onclick="saveSysPrompt()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove episode modal -->
+<div id="remove-episode-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeRemoveEpisodeModal()">
+  <div class="modal-box" style="width:min(420px,95vw)">
+    <div class="modal-header">
+      <span>Remover Episódio</span>
+      <button onclick="closeRemoveEpisodeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:.88rem;color:#e0e0e0">Remover <strong id="rem-ep-name"></strong> do projeto?</div>
+      <div style="font-size:.78rem;color:#888;margin-top:4px">Esta ação não pode ser desfeita.</div>
+    </div>
+    <div class="modal-footer" style="flex-direction:column;gap:8px;align-items:stretch">
+      <button class="nq-action-btn" onclick="removeEpisodeFromProject(false)">Remover do projeto (manter na fila)</button>
+      <button class="nq-action-btn" onclick="removeEpisodeFromProject(true)" style="background:#2a1010;border-color:#4a2020;color:#f87171">Remover do projeto e excluir da fila</button>
+      <button class="nq-action-btn" onclick="closeRemoveEpisodeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- New project modal -->
+<div id="new-project-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeNewProjectModal()">
+  <div class="modal-box" style="width:min(400px,95vw)">
+    <div class="modal-header">
+      <span>Novo Projeto</span>
+      <button onclick="closeNewProjectModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <label>Nome do projeto
+        <input id="new-project-name" type="text" class="modal-input" placeholder="ex: Episodio_01"
+               onkeydown="if(event.key==='Enter')createNewProject()">
+      </label>
+      <div style="font-size:.78rem;color:#666">Serão criadas subpastas: imagens/, audios/, docs/</div>
+    </div>
+    <div class="modal-footer">
+      <button class="nq-action-btn" onclick="closeNewProjectModal()">Cancelar</button>
+      <button class="nq-action-btn run" onclick="createNewProject()">Criar</button>
     </div>
   </div>
 </div>

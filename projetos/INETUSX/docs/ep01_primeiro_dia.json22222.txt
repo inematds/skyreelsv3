@@ -1,0 +1,282 @@
+[
+  {
+    "label": "C01-A · Corredor — Estabelecimento",
+    "task_type": "reference_to_video",
+    "prompt": "A modern school hallway on the first day of school. Bright LED lights reflect off polished floors. Digital schedule screens line the walls. One student stands studying an interactive map on her tablet while another walks confidently toward her. They almost collide. Anime-inspired soft shading, wide establishing shot, warm ambient light.",
+    "resolution": "540P",
+    "duration": 4,
+    "seed": 1001,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": [
+      "uploads/inetusx/eps01/cena01.png",
+      "uploads/inetusx/eps01/vana.png",
+      "uploads/inetusx/eps01/lumi.png"
+    ]
+  },
+  {
+    "label": "C01-B · Valen — 'Foi mal.'",
+    "task_type": "talking_avatar",
+    "prompt": "A teenage girl, composed but slightly embarrassed, speaking a brief apology, direct gaze, school hallway background. Close-up shot.",
+    "resolution": "480P",
+    "seed": 1002,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/vana.png",
+    "input_audio": "uploads/inetusx/eps01/c01_valen_01.mp3"
+  },
+  {
+    "label": "C01-C · Lumi — 'Tudo bem… eu que estava parada no meio.'",
+    "task_type": "talking_avatar",
+    "prompt": "A teenage girl with a gentle, relieved expression, speaking softly, slightly flustered but calm. Close-up shot, school hallway background.",
+    "resolution": "480P",
+    "seed": 1003,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/lumi.png",
+    "input_audio": "uploads/inetusx/eps01/c01_lumi_01.mp3"
+  },
+  {
+    "label": "C01-D · Valen — 'Primeiro dia?'",
+    "task_type": "talking_avatar",
+    "prompt": "A teenage girl asking a curious, slightly amused question, direct gaze, subtle confident smirk. Close-up shot.",
+    "resolution": "480P",
+    "seed": 1004,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/vana.png",
+    "input_audio": "uploads/inetusx/eps01/c01_valen_02.mp3"
+  },
+  {
+    "label": "C01-E · Lumi — 'Dá pra perceber, né?'",
+    "task_type": "talking_avatar",
+    "prompt": "A teenage girl responding with a shy, self-aware smile, slightly embarrassed but finding some humor in the situation. Close-up shot.",
+    "resolution": "480P",
+    "seed": 1005,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/lumi.png",
+    "input_audio": "uploads/inetusx/eps01/c01_lumi_02.mp3"
+  },
+  {
+    "label": "C01-F · Corredor — Plano de saída, olhar que fica",
+    "task_type": "reference_to_video",
+    "prompt": "Two girls walking in opposite directions down a modern school hallway. Each glances back briefly before disappearing into the crowd. A quiet moment of curiosity and recognition. Medium shot, soft warm light.",
+    "resolution": "540P",
+    "duration": 4,
+    "seed": 1006,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": [
+      "uploads/inetusx/eps01/cena01.png",
+      "uploads/inetusx/eps01/vana.png",
+      "uploads/inetusx/eps01/lumi.png"
+    ]
+  },
+  {
+    "label": "C02-A · Sala — Lumi hesita, senta ao lado de Valen",
+    "task_type": "reference_to_video",
+    "prompt": "A modern digital classroom, most seats already taken. A girl pauses at the door scanning the room, then sits next to a student near the back who does not look up. Awkward silence of two strangers sharing space. Soft blue ambient glow from screens. Medium wide shot.",
+    "resolution": "540P",
+    "duration": 4,
+    "seed": 1011,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": [
+      "uploads/inetusx/eps01/cena02.png",
+      "uploads/inetusx/eps01/vana.png",
+      "uploads/inetusx/eps01/lumi.png"
+    ]
+  },
+  {
+    "label": "C02-B · Lumi — 'Você já entendeu essa parte?'",
+    "task_type": "talking_avatar",
+    "prompt": "A student leaning slightly toward the person beside her, whispering, curious and cautious expression, blue classroom lighting. Close-up.",
+    "resolution": "480P",
+    "seed": 1012,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/lumi.png",
+    "input_audio": "uploads/inetusx/eps01/c02_lumi_01.mp3"
+  },
+  {
+    "label": "C02-C · Valen — 'Quase. Acho que é mais simples do que parece.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student responding thoughtfully, arms slightly crossed, measured tone, not quite opening up yet. Close-up, classroom background.",
+    "resolution": "480P",
+    "seed": 1013,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/vana.png",
+    "input_audio": "uploads/inetusx/eps01/c02_valen_01.mp3"
+  },
+  {
+    "label": "C02-D · Lumi — 'Ou mais complicado.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student responding with dry subtle humor, slight raise of an eyebrow, almost smiling.",
+    "resolution": "480P",
+    "seed": 1014,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/lumi.png",
+    "input_audio": "uploads/inetusx/eps01/c02_lumi_02.mp3"
+  },
+  {
+    "label": "C02-E · Valen — 'Espero que não.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student responding quietly, a flicker of vulnerability behind the composed expression, looking back at her screen.",
+    "resolution": "480P",
+    "seed": 1015,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/vana.png",
+    "input_audio": "uploads/inetusx/eps01/c02_valen_02.mp3"
+  },
+  {
+    "label": "C02-F · Sala — Primeiro silêncio cúmplice",
+    "task_type": "reference_to_video",
+    "prompt": "Two students sitting side by side at a desk, both looking at their screens, subtly aware of each other. A quiet first connection. Blue digital glow, medium shot.",
+    "resolution": "540P",
+    "duration": 3,
+    "seed": 1016,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": [
+      "uploads/inetusx/eps01/cena02.png",
+      "uploads/inetusx/eps01/vana.png",
+      "uploads/inetusx/eps01/lumi.png"
+    ]
+  },
+  {
+    "label": "C03-A · Refeitório — Maya desenhando na fila",
+    "task_type": "reference_to_video",
+    "prompt": "A modern school cafeteria with digital menu panels overhead. A girl stands in the lunch line completely absorbed in sketching on her tablet, oblivious to the movement around her. Warm overhead light. Medium shot.",
+    "resolution": "540P",
+    "duration": 4,
+    "seed": 1021,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": [
+      "uploads/inetusx/eps01/cena03.png",
+      "uploads/inetusx/eps01/maya.png"
+    ]
+  },
+  {
+    "label": "C03-B · Lumi — 'Você desenhou isso agora?'",
+    "task_type": "talking_avatar",
+    "prompt": "A girl leaning in, genuinely surprised and curious, eyes moving between the drawing and the artist. Warm cafeteria background.",
+    "resolution": "480P",
+    "seed": 1022,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/lumi.png",
+    "input_audio": "uploads/inetusx/eps01/c03_lumi_01.mp3"
+  },
+  {
+    "label": "C03-C · Maya — 'Sim… eu gosto de desenhar enquanto espero.'",
+    "task_type": "talking_avatar",
+    "prompt": "A girl looking up from her drawing, slightly startled but gentle, holding her tablet close, soft voice.",
+    "resolution": "480P",
+    "seed": 1023,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/maya.png",
+    "input_audio": "uploads/inetusx/eps01/c03_maya_01.mp3"
+  },
+  {
+    "label": "C03-D · Valen — 'É um cachorro-robô?'",
+    "task_type": "talking_avatar",
+    "prompt": "A student speaking from behind, deadpan expression, pretending not to be interested but clearly looking at the drawing. Dry curiosity.",
+    "resolution": "480P",
+    "seed": 1024,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/vana.png",
+    "input_audio": "uploads/inetusx/eps01/c03_valen_01.mp3"
+  },
+  {
+    "label": "C03-E · Maya — 'É. Ele parece abandonado… mas não devia estar.'",
+    "task_type": "talking_avatar",
+    "prompt": "A girl speaking quietly, looking down at her drawing with a contemplative, gently melancholy expression. A genuine thought, not just small talk.",
+    "resolution": "480P",
+    "seed": 1025,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/maya.png",
+    "input_audio": "uploads/inetusx/eps01/c03_maya_02.mp3"
+  },
+  {
+    "label": "C03-F · Refeitório — Três juntos na fila, vínculo silencioso",
+    "task_type": "reference_to_video",
+    "prompt": "Three students standing together in a cafeteria line, one showing the others a drawing on her tablet. An unexpected small connection. Warm overhead light, medium shot.",
+    "resolution": "540P",
+    "duration": 3,
+    "seed": 1026,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": [
+      "uploads/inetusx/eps01/cena03.png",
+      "uploads/inetusx/eps01/lumi.png",
+      "uploads/inetusx/eps01/maya.png",
+      "uploads/inetusx/eps01/vana.png"
+    ]
+  },
+  {
+    "label": "C04-A · Sala — Caio entra, analisa a sala, vê o lugar livre",
+    "task_type": "reference_to_video",
+    "prompt": "A boy enters a busy digital classroom, pausing briefly at the entrance, scanning the room with quiet methodical eyes. He spots one available seat next to a small cluster of students. He walks toward it without hurry. Cool classroom lighting, medium shot.",
+    "resolution": "540P",
+    "duration": 4,
+    "seed": 1031,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": [
+      "uploads/inetusx/eps01/cena04.png",
+      "uploads/inetusx/eps01/caio.png"
+    ]
+  },
+  {
+    "label": "C04-B · Caio — 'Está ocupado?'",
+    "task_type": "talking_avatar",
+    "prompt": "A student asking calmly, polite and direct, neutral expression, slightly formal posture. No excess emotion.",
+    "resolution": "480P",
+    "seed": 1032,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/caio.png",
+    "input_audio": "uploads/inetusx/eps01/c04_caio_01.mp3"
+  },
+  {
+    "label": "C04-C · Maya — 'Não.'",
+    "task_type": "talking_avatar",
+    "prompt": "A girl answering simply, brief and neutral, barely looking up from her tablet. One word, no fuss.",
+    "resolution": "480P",
+    "seed": 1033,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/maya.png",
+    "input_audio": "uploads/inetusx/eps01/c04_maya_01.mp3"
+  },
+  {
+    "label": "C04-D · Lumi — 'Você já mexeu nesse sistema antes?'",
+    "task_type": "talking_avatar",
+    "prompt": "A student turning toward the newcomer with genuine curiosity, open and friendly expression, slightly eager.",
+    "resolution": "480P",
+    "seed": 1034,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/lumi.png",
+    "input_audio": "uploads/inetusx/eps01/c04_lumi_01.mp3"
+  },
+  {
+    "label": "C04-E · Caio — 'Um pouco… ele é mais intuitivo do que parece.'",
+    "task_type": "talking_avatar",
+    "prompt": "A student responding thoughtfully, gesturing slightly toward a screen, matter-of-fact tone, naturally joining the conversation.",
+    "resolution": "480P",
+    "seed": 1035,
+    "low_vram": true,
+    "input_image": "uploads/inetusx/eps01/caio.png",
+    "input_audio": "uploads/inetusx/eps01/c04_caio_02.mp3"
+  },
+  {
+    "label": "C04-F · Sala — Quatro mentes na mesma conversa",
+    "task_type": "reference_to_video",
+    "prompt": "Four students around a shared workspace, each looking at screens, all engaged in the same conversation naturally. First moment as an accidental group. Cool blue classroom light, medium wide shot.",
+    "resolution": "540P",
+    "duration": 3,
+    "seed": 1036,
+    "offload": true,
+    "low_vram": false,
+    "ref_imgs": [
+      "uploads/inetusx/eps01/cena04.png",
+      "uploads/inetusx/eps01/caio.png",
+      "uploads/inetusx/eps01/lumi.png",
+      "uploads/inetusx/eps01/maya.png"
+    ]
+  }
+]

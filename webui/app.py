@@ -1,3 +1,4 @@
+import io
 import os
 import re
 import sys
@@ -7,8 +8,10 @@ import queue
 import time
 import json
 import glob
+import zipfile
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, Response, send_file
+from werkzeug.utils import secure_filename
 
 # Paths
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -18,6 +21,98 @@ VENV_PYTHON = PROJECT_ROOT / ".venv" / "bin" / "python"
 
 UPLOAD_DIR.mkdir(exist_ok=True)
 QUEUES_FILE = UPLOAD_DIR / "queues.json"
+
+PROJECTS_DIR = PROJECT_ROOT / "projetos"
+PROJECTS_DIR.mkdir(exist_ok=True)
+
+GLOBAL_CONFIG_FILE   = UPLOAD_DIR / "global_config.json"
+SYSTEM_PROMPT_FILE   = UPLOAD_DIR / "system_prompt_episode.txt"
+
+DEFAULT_SYSTEM_PROMPT = """\
+Você é um assistente de produção de série animada com IA (SkyReels V3). A partir da descrição do episódio e dos recursos do projeto, gere um array JSON com TODAS as cenas necessárias para cobrir a história completa.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESCRIÇÃO DO EPISÓDIO:
+{description}
+
+{resources}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PARÂMETROS TÉCNICOS:
+- Task type   : {task_type}
+- Resolução   : {resolution}
+- Duração/cena: ~{duration}s (ajuste conforme ritmo de cada cena)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFERÊNCIA DAS TASKS DO SKYREELS V3:
+
+• reference_to_video — Gera vídeo a partir de 1–4 imagens de referência + prompt de texto (modelo 14B).
+  O campo "ref_imgs" é OBRIGATÓRIO (paths das imagens do personagem/ambiente da cena).
+  O "prompt" descreve o movimento e ação que ocorre no vídeo.
+
+• single_shot_extension — Estende um vídeo existente por 5–30s (modelo 14B).
+  Usado quando a cena anterior precisa continuar sem corte.
+
+• shot_switching_extension — Estende com transição cinemática de câmera, máx. 5s (modelo 14B).
+  Usado para mudança de ângulo ou ambiente com transição suave.
+
+• talking_avatar — Gera avatar falante a partir de retrato + áudio, até 200s (modelo 19B).
+  Requer "input_image" (portrait) e "input_audio" (arquivo de áudio).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REGRAS OBRIGATÓRIAS — preencha TODOS os campos:
+
+1. PROMPT DE VÍDEO (campo "prompt"):
+   - Descrição cinemática detalhada em INGLÊS
+   - Inclua: composição, iluminação, movimento de câmera, emoção da cena, ação dos personagens
+   - Exemplo: "Medium shot, Valen stands at school corridor, morning sunlight through windows, she turns to look at Lumi, curious expression, soft camera pan right, anime style, 2030 futuristic school"
+
+2. PROMPT DE IMAGEM (campo "image_prompt"):
+   - Prompt em INGLÊS para geração de imagem estática via fal.ai / Flux
+   - Descreva: personagens presentes, ambiente, cores dominantes, estilo artístico, iluminação, ângulo
+   - Mantenha estilo visual consistente com os personagens do projeto
+   - Exemplo: "anime style illustration, 2030 futuristic school corridor, teenage girl with purple hair and confident expression, warm morning light, detailed background, vibrant colors"
+
+3. TEXTO DE ÁUDIO (campo "audio_text"):
+   - Narração ou diálogos em PORTUGUÊS BRASILEIRO para geração via ElevenLabs
+   - Inclua APENAS o que será falado/narrado nesta cena
+   - Se a cena for silenciosa ou só musical, use string vazia: ""
+   - Mantenha tom e personalidade dos personagens conforme os documentos do projeto
+   - Exemplo: "Valen olha para Lumi e diz: Você também vai para a turma do Professor Dex?"
+
+4. IMAGENS DE REFERÊNCIA (campo "ref_imgs"):
+   - Use os paths EXATOS das imagens listadas nos recursos acima
+   - Priorize imagens dos personagens que aparecem NA cena
+   - Máximo 4 imagens por cena para reference_to_video
+   - Exemplo: ["uploads/valen.png", "uploads/escola.png"]
+
+5. CONSISTÊNCIA NARRATIVA:
+   - Use os documentos do projeto como base de conhecimento absoluta para personagens e universo
+   - Distribua imagens de referência coerentemente (personagem correto em cada cena)
+   - Adapte duração conforme intensidade narrativa (~{duration}s como base)
+   - Cubra TODA a história descrita — não pule cenas importantes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Retorne SOMENTE um array JSON válido, sem texto antes ou depois, começando com [ e terminando com ].
+Cada cena deve seguir EXATAMENTE este formato:
+{json_template}
+
+APENAS o JSON. Nada mais.\
+"""
+
+
+def _load_system_prompt():
+    if SYSTEM_PROMPT_FILE.exists():
+        return SYSTEM_PROMPT_FILE.read_text(encoding="utf-8")
+    return DEFAULT_SYSTEM_PROMPT
+
+
+def _load_global_config():
+    if GLOBAL_CONFIG_FILE.exists():
+        try:
+            return json.loads(GLOBAL_CONFIG_FILE.read_text())
+        except Exception:
+            pass
+    return {}
 
 app = Flask(__name__)
 
@@ -621,6 +716,44 @@ def status():
     return jsonify(generation_state)
 
 
+@app.route("/uploads/list")
+def list_uploads():
+    """Lista todos os arquivos na pasta uploads/ (nível raiz, sem subpastas).
+    Retorna 'files' (imagens) e 'docs' (textos/outros) separados.
+    """
+    IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
+    SKIP       = {"queues.json", "global_config.json"}
+    images, docs = [], []
+    for f in sorted(UPLOAD_DIR.iterdir()):
+        if not f.is_file() or f.name in SKIP:
+            continue
+        entry = {
+            "name": f.name,
+            "size": f.stat().st_size,
+            "path": str(f.relative_to(PROJECT_ROOT)),
+        }
+        if f.suffix.lower() in IMAGE_EXTS:
+            images.append(entry)
+        else:
+            docs.append(entry)
+    return jsonify({"files": images, "docs": docs})
+
+
+@app.route("/file/<path:filepath>")
+def serve_file(filepath):
+    """Serve any project file inline (for image thumbnails, etc.)."""
+    full = PROJECT_ROOT / filepath
+    try:
+        full = full.resolve()
+        if not str(full).startswith(str(PROJECT_ROOT.resolve())):
+            return "Forbidden", 403
+    except Exception:
+        return "Not found", 404
+    if not full.exists() or not full.is_file():
+        return "Not found", 404
+    return send_file(str(full))
+
+
 @app.route("/video/<path:filepath>")
 def serve_video(filepath):
     full = PROJECT_ROOT / filepath
@@ -636,6 +769,69 @@ def video_meta(filepath):
     if not meta.exists():
         return jsonify({}), 404
     return jsonify(json.loads(meta.read_text()))
+
+
+@app.route("/download/<path:filepath>")
+def download_file(filepath):
+    full = PROJECT_ROOT / filepath
+    try:
+        full = full.resolve()
+        PROJECT_ROOT.resolve()
+    except Exception:
+        return "Not found", 404
+    if not str(full).startswith(str(PROJECT_ROOT.resolve())):
+        return "Forbidden", 403
+    if not full.exists() or not full.is_file():
+        return "Not found", 404
+    return send_file(str(full), as_attachment=True, download_name=full.name)
+
+
+@app.route("/nqueues/<int:nq_id>/export-json")
+def export_nq_json(nq_id):
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return "Fila não encontrada", 404
+        data = json.dumps(nq, indent=2, ensure_ascii=False).encode("utf-8")
+        safe = "".join(c if c.isalnum() or c in "-_ " else "_" for c in nq["name"]).strip()
+    buf = io.BytesIO(data)
+    return send_file(buf, as_attachment=True, download_name=f"{safe}.json", mimetype="application/json")
+
+
+@app.route("/nqueues/<int:nq_id>/download-zip")
+def download_nq_zip(nq_id):
+    include_sources = request.args.get("include_sources", "0") == "1"
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return "Fila não encontrada", 404
+        jobs_snap = [dict(j) for j in nq["jobs"]]
+        safe = "".join(c if c.isalnum() or c in "-_ " else "_" for c in nq["name"]).strip()
+    buf = io.BytesIO()
+    added = set()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as zf:
+        for job in jobs_snap:
+            if not job.get("output_video"):
+                continue
+            vp = PROJECT_ROOT / job["output_video"]
+            if vp.exists() and str(vp) not in added:
+                zf.write(str(vp), f"videos/{vp.name}")
+                added.add(str(vp))
+            if include_sources:
+                for ref in job.get("ref_imgs") or []:
+                    p = PROJECT_ROOT / ref
+                    if p.exists() and str(p) not in added:
+                        zf.write(str(p), f"sources/{p.name}")
+                        added.add(str(p))
+                for key in ("input_video", "input_image", "input_audio"):
+                    val = job.get(key)
+                    if val:
+                        p = PROJECT_ROOT / val
+                        if p.exists() and str(p) not in added:
+                            zf.write(str(p), f"sources/{p.name}")
+                            added.add(str(p))
+    buf.seek(0)
+    return send_file(buf, as_attachment=True, download_name=f"{safe}.zip", mimetype="application/zip")
 
 
 @app.route("/videos")
@@ -768,17 +964,41 @@ def help_page():
 
 # ---- Named Queue endpoints ----
 
+def _estimate_job_minutes(job):
+    """Estimated generation time in minutes for a single job."""
+    t   = job.get("task_type", "")
+    res = job.get("resolution", "720P")
+    dur = job.get("duration", 5) or 5
+    if t == "reference_to_video":
+        base = {"480P": 8, "540P": 12, "720P": 18}.get(res, 14)
+        return base + dur * 0.5
+    if t == "talking_avatar":
+        return {"480P": 15, "720P": 22}.get(res, 15)
+    if t == "single_shot_extension":
+        return 8 + dur * 0.4
+    if t == "shot_switching_extension":
+        return 5 + dur * 0.3
+    return 10
+
 @app.route("/nqueues", methods=["GET"])
 def get_named_queues():
     with nq_lock:
         result = [{
             "id": nq["id"],
             "name": nq["name"],
+            "project": nq.get("project", ""),
             "status": nq["status"],
             "job_count": len(nq["jobs"]),
             "done_count": sum(1 for j in nq["jobs"] if j["status"] == "done"),
             "error_count": sum(1 for j in nq["jobs"] if j["status"] == "error"),
             "created_at": nq["created_at"],
+            "estimated_minutes": round(sum(
+                _estimate_job_minutes(j) for j in nq["jobs"]
+            )),
+            "remaining_minutes": round(sum(
+                _estimate_job_minutes(j) for j in nq["jobs"]
+                if j["status"] not in ("done",)
+            )),
         } for nq in named_queues]
     return jsonify(result)
 
@@ -812,6 +1032,7 @@ def create_named_queue():
     nq = {
         "id": nq_id,
         "name": name,
+        "project": data.get("project", ""),
         "status": "idle",
         "jobs": jobs,
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -826,6 +1047,7 @@ def create_named_queue():
 def import_nq_route():
     content = request.data.decode("utf-8").strip()
     name = request.args.get("name") or f"Fila {len(named_queues) + 1}"
+    project = request.args.get("project", "")
     if not content:
         return jsonify({"error": "Conteúdo vazio"}), 400
     try:
@@ -856,6 +1078,7 @@ def import_nq_route():
         nq = {
             "id": nq_id,
             "name": name,
+            "project": project,
             "status": "idle",
             "jobs": jobs,
             "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -877,6 +1100,47 @@ def get_named_queue_detail(nq_id):
     return jsonify(nq)
 
 
+@app.route("/nqueues/<int:nq_id>/jobs", methods=["POST"])
+def add_nq_job(nq_id):
+    data = request.get_json(force=True)
+    if not data.get("task_type"):
+        return jsonify({"error": "task_type obrigatório"}), 400
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return jsonify({"error": "Fila não encontrada"}), 404
+        job_id = _next_job_id()
+        job = {
+            "id": job_id,
+            "nq_id": nq_id,
+            "nq_job_index": len(nq["jobs"]),
+            "status": "idle",
+            "label": data.get("label") or f"{data['task_type']} — seed {data.get('seed', 42)}",
+            "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "output_video": "",
+            **{k: v for k, v in data.items() if k not in ("id", "nq_id", "status", "created_at", "output_video")},
+        }
+        nq["jobs"].append(job)
+    _save_queues()
+    return jsonify({"ok": True, "id": job_id})
+
+
+@app.route("/nqueues/<int:nq_id>/jobs/<int:job_id>", methods=["DELETE"])
+def delete_nq_job(nq_id, job_id):
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return jsonify({"error": "Fila não encontrada"}), 404
+        job = next((j for j in nq["jobs"] if j["id"] == job_id), None)
+        if job is None:
+            return jsonify({"error": "Cena não encontrada"}), 404
+        if job["status"] == "running":
+            return jsonify({"error": "Cena em execução não pode ser removida"}), 400
+        nq["jobs"] = [j for j in nq["jobs"] if j["id"] != job_id]
+    _save_queues()
+    return jsonify({"ok": True})
+
+
 @app.route("/nqueues/<int:nq_id>/jobs/<int:job_id>", methods=["PATCH"])
 def patch_nq_job(nq_id, job_id):
     data = request.get_json(force=True)
@@ -889,13 +1153,19 @@ def patch_nq_job(nq_id, job_id):
         job = next((j for j in nq["jobs"] if j["id"] == job_id), None)
         if job is None:
             return jsonify({"error": "Cena não encontrada"}), 404
-        if job["status"] not in ("idle", "error"):
-            return jsonify({"error": "Cena não pode ser editada no estado atual"}), 400
+        if job["status"] == "running":
+            return jsonify({"error": "Cena não pode ser editada enquanto está rodando"}), 400
+        was_done = job["status"] == "done"
         for k, v in data.items():
             if k not in PROTECTED:
                 job[k] = v
+        if was_done:
+            job["status"] = "idle"
+            job["output_video"] = ""
+            job["started_at"] = ""
+            job["finished_at"] = ""
     _save_queues()
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "reset": was_done})
 
 
 @app.route("/nqueues/<int:nq_id>", methods=["DELETE"])
@@ -906,7 +1176,28 @@ def delete_named_queue_route(nq_id):
             return jsonify({"error": "Fila não encontrada"}), 404
         if nq["status"] == "running":
             return jsonify({"error": "Não é possível excluir uma fila em execução"}), 400
-        named_queues.remove(nq)
+        if nq.get("project"):
+            # Episódio vinculado a projeto: só limpa os jobs e reseta status,
+            # mantém o registro para o projeto não perder o episódio.
+            nq["jobs"] = []
+            nq["status"] = "idle"
+            nq["current_job"] = 0
+        else:
+            named_queues.remove(nq)
+    _save_queues()
+    return jsonify({"ok": True})
+
+
+@app.route("/nqueues/<int:nq_id>/project-link", methods=["DELETE"])
+def unlink_nq_from_project(nq_id):
+    """Remove a associação do episódio com o projeto sem excluir a fila."""
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return jsonify({"error": "Fila não encontrada"}), 404
+        if nq["status"] == "running":
+            return jsonify({"error": "Não é possível desvincular uma fila em execução"}), 400
+        nq.pop("project", None)
     _save_queues()
     return jsonify({"ok": True})
 
@@ -970,6 +1261,19 @@ def restart_nq_route(nq_id):
     return jsonify({"ok": True})
 
 
+def _video_info(path):
+    """Returns (has_audio, duration_seconds) for a video file."""
+    r = subprocess.run(
+        ["ffprobe", "-v", "quiet", "-print_format", "json",
+         "-show_streams", "-show_format", str(path)],
+        capture_output=True, text=True, timeout=15
+    )
+    data = json.loads(r.stdout) if r.returncode == 0 else {}
+    has_aud = any(s.get("codec_type") == "audio" for s in data.get("streams", []))
+    duration = float(data.get("format", {}).get("duration", 0))
+    return has_aud, duration
+
+
 @app.route("/nqueues/<int:nq_id>/finalize", methods=["POST"])
 def finalize_nq_route(nq_id):
     with nq_lock:
@@ -986,7 +1290,6 @@ def finalize_nq_route(nq_id):
     if not videos:
         return jsonify({"error": "Nenhuma cena concluída para finalizar"}), 400
 
-    # Check all source files exist
     missing = [str(v) for v in videos if not v.exists()]
     if missing:
         return jsonify({"error": f"Arquivo(s) não encontrado(s): {', '.join(missing)}"}), 400
@@ -997,33 +1300,631 @@ def finalize_nq_route(nq_id):
     safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in nq_name)
     out_path = out_dir / f"{safe_name}_{ts}.mp4"
 
-    # Build ffmpeg concat list
-    import tempfile
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-        for v in videos:
-            f.write(f"file '{v}'\n")
-        list_path = f.name
+    # Check audio presence per video
+    infos = [_video_info(v) for v in videos]
+    any_audio = any(has_aud for has_aud, _ in infos)
 
-    try:
-        cmd = [
-            "ffmpeg", "-y",
-            "-f", "concat", "-safe", "0",
-            "-i", list_path,
-            "-c", "copy",
+    import tempfile
+
+    if not any_audio:
+        # All silent — simple concat copy
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+            for v in videos:
+                f.write(f"file '{v}'\n")
+            list_path = f.name
+        try:
+            result = subprocess.run(
+                ["ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                 "-i", list_path, "-c", "copy", str(out_path)],
+                capture_output=True, text=True, timeout=600)
+        finally:
+            os.unlink(list_path)
+    else:
+        # Mixed audio/silent — filter_complex to normalize all streams then concat
+        cmd = ["ffmpeg", "-y"]
+        for v in videos:
+            cmd.extend(["-i", str(v)])
+
+        # Determine target resolution (most common among done videos)
+        from collections import Counter
+        res_list = []
+        for v in videos:
+            r = subprocess.run(
+                ["ffprobe", "-v", "quiet", "-select_streams", "v:0",
+                 "-show_entries", "stream=width,height", "-of", "csv=p=0", str(v)],
+                capture_output=True, text=True, timeout=10)
+            res_list.append(r.stdout.strip())
+        target_res = Counter(res_list).most_common(1)[0][0]
+        tw, th = target_res.split(",")
+
+        filter_parts = []
+        concat_inputs = ""
+        for i, (has_aud, dur) in enumerate(infos):
+            filter_parts.append(
+                f"[{i}:v]scale={tw}:{th}:force_original_aspect_ratio=decrease,"
+                f"pad={tw}:{th}:(ow-iw)/2:(oh-ih)/2:black,"
+                f"setpts=PTS-STARTPTS[v{i}]"
+            )
+            if has_aud:
+                filter_parts.append(
+                    f"[{i}:a]aresample=44100,aformat=channel_layouts=stereo,"
+                    f"asetpts=PTS-STARTPTS[a{i}]"
+                )
+            else:
+                filter_parts.append(
+                    f"anullsrc=r=44100:cl=stereo,atrim=duration={dur:.3f},"
+                    f"asetpts=PTS-STARTPTS[a{i}]"
+                )
+            concat_inputs += f"[v{i}][a{i}]"
+
+        n = len(videos)
+        filter_parts.append(f"{concat_inputs}concat=n={n}:v=1:a=1[v][a]")
+        cmd += [
+            "-filter_complex", ";".join(filter_parts),
+            "-map", "[v]", "-map", "[a]",
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+            "-c:a", "aac", "-ar", "44100", "-ac", "2", "-b:a", "128k",
             str(out_path)
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-        if result.returncode != 0:
-            return jsonify({"error": f"ffmpeg falhou: {result.stderr[-500:]}"}), 500
-    finally:
-        import os as _os
-        _os.unlink(list_path)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+
+    if result.returncode != 0:
+        return jsonify({"error": f"ffmpeg falhou: {result.stderr[-500:]}"}), 500
 
     rel_path = str(out_path.relative_to(PROJECT_ROOT))
     return jsonify({"ok": True, "output_video": rel_path, "scene_count": len(videos)})
 
 
+# ─── Config global ───────────────────────────────────────────
+
+@app.route("/config", methods=["GET"])
+def get_global_config():
+    return jsonify(_load_global_config())
+
+
+@app.route("/config", methods=["POST"])
+def save_global_config():
+    data = request.get_json(force=True)
+    GLOBAL_CONFIG_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+    return jsonify({"ok": True})
+
+
+# ─── Projetos ────────────────────────────────────────────────
+
+@app.route("/projects", methods=["GET"])
+def list_projects():
+    projs = []
+    if PROJECTS_DIR.exists():
+        for d in sorted(PROJECTS_DIR.iterdir()):
+            if d.is_dir():
+                projs.append({"name": d.name, "path": str(d.relative_to(PROJECT_ROOT))})
+    return jsonify(projs)
+
+
+@app.route("/projects", methods=["POST"])
+def create_project():
+    data = request.get_json(force=True)
+    name = re.sub(r'[^a-zA-Z0-9_\- ]', '', data.get("name", "")).strip()
+    if not name:
+        return jsonify({"error": "Nome inválido"}), 400
+    proj_dir = PROJECTS_DIR / name
+    if proj_dir.exists():
+        return jsonify({"error": "Projeto já existe"}), 409
+    for sub in ("imagens", "audios", "docs", "episodios", "temp"):
+        (proj_dir / sub).mkdir(parents=True, exist_ok=True)
+    return jsonify({"ok": True, "name": name})
+
+
+@app.route("/projects/<name>", methods=["GET"])
+def get_project(name):
+    proj_dir = PROJECTS_DIR / name
+    if not proj_dir.exists():
+        return jsonify({"error": "Projeto não encontrado"}), 404
+    folders = {}
+    for sub in ("imagens", "audios", "docs", "episodios", "temp"):
+        sub_dir = proj_dir / sub
+        sub_dir.mkdir(exist_ok=True)
+        files = []
+        for f in sorted(sub_dir.iterdir()):
+            if f.is_file():
+                files.append({
+                    "name": f.name,
+                    "size": f.stat().st_size,
+                    "path": str(f.relative_to(PROJECT_ROOT))
+                })
+        folders[sub] = files
+    with nq_lock:
+        episodes = [
+            {
+                "id": q["id"],
+                "name": q["name"],
+                "total": len(q.get("jobs", [])),
+                "done": sum(1 for j in q.get("jobs", []) if j["status"] == "done"),
+                "running": any(j["status"] == "running" for j in q.get("jobs", [])),
+                "error": any(j["status"] == "error" for j in q.get("jobs", [])),
+                "status": q.get("status", "idle"),
+            }
+            for q in named_queues
+            if q.get("project") == name
+        ]
+    return jsonify({"name": name, "folders": folders, "episodes": episodes})
+
+
+@app.route("/projects/<name>/upload/<subfolder>", methods=["POST"])
+def upload_project_file(name, subfolder):
+    if subfolder not in ("imagens", "audios", "docs", "episodios", "temp"):
+        return jsonify({"error": "Pasta inválida"}), 400
+    proj_dir = PROJECTS_DIR / name / subfolder
+    proj_dir.mkdir(parents=True, exist_ok=True)
+    if not (PROJECTS_DIR / name).exists():
+        return jsonify({"error": "Projeto não encontrado"}), 404
+    uploaded = []
+    for file in request.files.getlist("files"):
+        fname = secure_filename(file.filename)
+        if not fname:
+            continue
+        file.save(str(proj_dir / fname))
+        uploaded.append(fname)
+    return jsonify({"ok": True, "uploaded": uploaded})
+
+
+@app.route("/projects/<name>/files/<subfolder>/<filename>", methods=["DELETE"])
+def delete_project_file(name, subfolder, filename):
+    if subfolder not in ("imagens", "audios", "docs", "episodios", "temp"):
+        return jsonify({"error": "Pasta inválida"}), 400
+    fpath = PROJECTS_DIR / name / subfolder / filename
+    if not fpath.exists():
+        return jsonify({"error": "Arquivo não encontrado"}), 404
+    fpath.unlink()
+    return jsonify({"ok": True})
+
+
+@app.route("/projects/<name>", methods=["DELETE"])
+def delete_project(name):
+    import shutil
+    proj_dir = PROJECTS_DIR / name
+    if not proj_dir.exists():
+        return jsonify({"error": "Projeto não encontrado"}), 404
+    shutil.rmtree(str(proj_dir))
+    return jsonify({"ok": True})
+
+
+@app.route("/projects/<name>/config", methods=["GET"])
+def get_project_config(name):
+    cfg_file = PROJECTS_DIR / name / "config.json"
+    if cfg_file.exists():
+        return jsonify(json.loads(cfg_file.read_text()))
+    return jsonify({})
+
+
+@app.route("/projects/<name>/config", methods=["POST"])
+def save_project_config(name):
+    proj_dir = PROJECTS_DIR / name
+    if not proj_dir.exists():
+        return jsonify({"error": "Projeto não encontrado"}), 404
+    data = request.get_json(force=True)
+    (proj_dir / "config.json").write_text(json.dumps(data, ensure_ascii=False, indent=2))
+    return jsonify({"ok": True})
+
+
+@app.route("/system-prompt/episode", methods=["GET"])
+def get_system_prompt():
+    return jsonify({"prompt": _load_system_prompt(), "default": DEFAULT_SYSTEM_PROMPT})
+
+
+@app.route("/system-prompt/episode", methods=["POST"])
+def save_system_prompt():
+    data = request.get_json(force=True)
+    text = data.get("prompt", "").strip()
+    if not text:
+        return jsonify({"error": "Prompt não pode ser vazio"}), 400
+    SYSTEM_PROMPT_FILE.write_text(text, encoding="utf-8")
+    return jsonify({"ok": True})
+
+
+@app.route("/system-prompt/episode/reset", methods=["POST"])
+def reset_system_prompt():
+    if SYSTEM_PROMPT_FILE.exists():
+        SYSTEM_PROMPT_FILE.unlink()
+    return jsonify({"ok": True, "prompt": DEFAULT_SYSTEM_PROMPT})
+
+
+@app.route("/projects/<name>/generate-episode", methods=["POST"])
+def generate_episode_prompts(name):
+    data = request.get_json(force=True)
+    description = data.get("description", "") or data.get("concept", "")
+    doc_title   = data.get("doc_title", "").strip()
+    task_type   = data.get("task_type", "reference_to_video")
+    resolution  = data.get("resolution", "720P")
+    duration    = int(data.get("duration", 5))
+    ref_imgs    = data.get("ref_imgs", [])
+
+    # Salvar descrição em docs/ antes de gerar
+    saved_doc = None
+    proj_dir = PROJECTS_DIR / name
+    if proj_dir.exists() and description:
+        docs_dir = proj_dir / "docs"
+        docs_dir.mkdir(exist_ok=True)
+        safe_title = re.sub(r'[^\w\-_ ]', '', doc_title or "descricao_episodio").strip() or "descricao_episodio"
+        doc_path = docs_dir / f"{safe_title}.md"
+        doc_path.write_text(description, encoding="utf-8")
+        saved_doc = str(doc_path.relative_to(PROJECT_ROOT))
+
+    # Coletar TODOS os recursos para contexto de consistência
+    all_images, all_audios, all_docs_content = [], [], []
+
+    # Imagens: pasta do projeto
+    img_proj_dir = proj_dir / "imagens"
+    if img_proj_dir.exists():
+        for f in sorted(img_proj_dir.iterdir()):
+            if f.is_file():
+                all_images.append(str(f.relative_to(PROJECT_ROOT)))
+
+    if proj_dir.exists():
+        for f in sorted((proj_dir / "audios").iterdir()) if (proj_dir / "audios").exists() else []:
+            if f.is_file():
+                all_audios.append(f.name)
+        for f in sorted((proj_dir / "docs").iterdir()) if (proj_dir / "docs").exists() else []:
+            if f.is_file() and f.suffix in (".md", ".txt") and f != (doc_path if saved_doc else None):
+                try:
+                    all_docs_content.append(f"--- {f.name} ---\n{f.read_text(encoding='utf-8', errors='ignore')[:2000]}")
+                except Exception:
+                    pass
+
+    # Usar ref_imgs selecionadas (vêm de uploads/) ou todas as imagens de uploads/
+    effective_imgs = ref_imgs if ref_imgs else all_images
+    images_list = "\n".join(f"- {p}" for p in effective_imgs) if effective_imgs else "Nenhuma"
+
+    resources_section = f"\nImagens de referência do projeto (use os paths exatos nas cenas):\n{images_list}\n"
+    if all_audios:
+        resources_section += f"\nÁudios disponíveis no projeto:\n" + "\n".join(f"- {a}" for a in all_audios) + "\n"
+    if all_docs_content:
+        resources_section += f"\nDocumentos do projeto (contexto de consistência):\n" + "\n\n".join(all_docs_content) + "\n"
+
+    json_template = (
+        f'{{\n'
+        f'  "label": "Cena 01 — Título curto",\n'
+        f'  "task_type": "{task_type}",\n'
+        f'  "prompt": "Cinematic video description in English — camera movement, lighting, characters, action...",\n'
+        f'  "image_prompt": "Flux/fal.ai image prompt in English — characters, environment, art style, colors...",\n'
+        f'  "audio_text": "Narração ou diálogos em português para esta cena (ou string vazia se silenciosa)",\n'
+        f'  "resolution": "{resolution}",\n'
+        f'  "duration": <duração em segundos mais adequada para esta cena>,\n'
+        f'  "seed": <número entre 1000 e 9999>,\n'
+        f'  "offload": false,\n'
+        f'  "low_vram": false,\n'
+        f'  "ref_imgs": ["uploads/personagem1.jpg", "uploads/ambiente.png"]\n'
+        f'}}'
+    )
+
+    template = _load_system_prompt()
+    prompt = template.format(
+        description=description,
+        resources=resources_section,
+        task_type=task_type,
+        resolution=resolution,
+        duration=duration,
+        json_template=json_template,
+    )
+
+    _env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+    result = None
+    try:
+        result = subprocess.run(
+            ["/home/nmaldaner/.local/bin/claude", "-p", prompt],
+            capture_output=True, text=True, timeout=360, env=_env
+        )
+        raw = result.stdout.strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```[a-z]*\n?", "", raw)
+            raw = re.sub(r"\n?```$", "", raw)
+        jobs = json.loads(raw)
+        if not isinstance(jobs, list):
+            raise ValueError("Resposta não é um array")
+        return jsonify({"ok": True, "jobs": jobs, "saved_doc": saved_doc})
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "raw": result.stdout[:500] if result else "",
+            "saved_doc": saved_doc
+        }), 500
+
+
+@app.route("/projects/<name>/regenerate-scene", methods=["POST"])
+def regenerate_scene_prompt(name):
+    """Re-gera o prompt de uma cena específica via Claude CLI."""
+    data       = request.get_json(force=True)
+    label      = data.get("label", "")
+    resolution = data.get("resolution", "720P")
+    duration   = int(data.get("duration", 5))
+    ref_imgs   = data.get("ref_imgs", [])
+
+    images_list = "\n".join(f"- {p}" for p in ref_imgs) if ref_imgs else "Nenhuma"
+    json_template = (
+        f'{{\n'
+        f'  "label": "{label}",\n'
+        f'  "task_type": "reference_to_video",\n'
+        f'  "prompt": "Descrição cinemática detalhada em inglês para geração de vídeo por IA...",\n'
+        f'  "resolution": "{resolution}",\n'
+        f'  "duration": {duration},\n'
+        f'  "seed": <número entre 1000 e 9999>,\n'
+        f'  "offload": false,\n'
+        f'  "low_vram": false,\n'
+        f'  "ref_imgs": [<inclua paths relevantes da lista acima, ou [] se não houver>]\n'
+        f'}}'
+    )
+    prompt = f"""Você é um assistente de produção de vídeo. Gere um prompt detalhado para esta cena de vídeo IA (SkyReels).
+
+Cena: {label}
+Imagens de referência disponíveis (use os paths exatos):
+{images_list}
+Resolução: {resolution}
+Duração sugerida: ~{duration}s
+
+Retorne SOMENTE um objeto JSON válido (não um array), começando com {{ e terminando com }}:
+{json_template}
+
+APENAS o JSON, nada mais."""
+
+    _env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+    result = None
+    try:
+        result = subprocess.run(
+            ["/home/nmaldaner/.local/bin/claude", "-p", prompt],
+            capture_output=True, text=True, timeout=60, env=_env
+        )
+        raw = result.stdout.strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```[a-z]*\n?", "", raw)
+            raw = re.sub(r"\n?```$", "", raw)
+        job = json.loads(raw)
+        if isinstance(job, list):
+            job = job[0]
+        return jsonify({"ok": True, "job": job})
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "raw": result.stdout[:500] if result else ""
+        }), 500
+
+
+@app.route("/projects/<name>/generate-images", methods=["POST"])
+def generate_episode_images(name):
+    import urllib.request as urllib_req
+    try:
+        import fal_client
+    except ImportError:
+        return jsonify({"error": "fal-client não instalado. Execute: pip install fal-client"}), 500
+
+    cfg = _load_global_config()
+    fal_key = cfg.get("fal_key", "") or os.environ.get("FAL_KEY", "")
+    if not fal_key:
+        return jsonify({"error": "FAL_KEY não configurada. Clique em ⚙ na aba Projetos."}), 400
+
+    os.environ["FAL_KEY"] = fal_key
+    data    = request.get_json(force=True)
+    jobs    = data.get("jobs", [])
+    model   = cfg.get("image_model", "fal-ai/flux/dev")
+    img_dir = PROJECTS_DIR / name / "imagens"
+    img_dir.mkdir(exist_ok=True)
+
+    updated = []
+    for job in jobs:
+        img_prompt = job.get("image_prompt") or job.get("prompt", "")[:400]
+        try:
+            res = fal_client.subscribe(model, arguments={
+                "prompt": img_prompt,
+                "num_images": 1,
+                "image_size": "landscape_16_9"
+            })
+            url = res["images"][0]["url"]
+            fname = secure_filename(f"{job.get('label','scene')[:40]}.jpg").replace(" ", "_")
+            dest  = img_dir / fname
+            urllib_req.urlretrieve(url, str(dest))
+            rel   = str(dest.relative_to(PROJECT_ROOT))
+            job   = {**job, "ref_imgs": [rel]}
+        except Exception as e:
+            job = {**job, "_img_error": str(e)}
+        updated.append(job)
+
+    return jsonify({"ok": True, "jobs": updated})
+
+
+@app.route("/projects/<name>/generate-audio", methods=["POST"])
+def generate_episode_audio(name):
+    try:
+        from elevenlabs.client import ElevenLabs as EL
+    except ImportError:
+        return jsonify({"error": "elevenlabs não instalado. Execute: pip install elevenlabs"}), 500
+
+    cfg    = _load_global_config()
+    el_key = cfg.get("elevenlabs_key", "") or os.environ.get("ELEVENLABS_API_KEY", "")
+    voice  = cfg.get("elevenlabs_voice_id", "")
+    if not el_key or not voice:
+        return jsonify({"error": "ElevenLabs não configurado. Clique em ⚙ na aba Projetos."}), 400
+
+    data    = request.get_json(force=True)
+    jobs    = data.get("jobs", [])
+    aud_dir = PROJECTS_DIR / name / "audios"
+    aud_dir.mkdir(exist_ok=True)
+    client  = EL(api_key=el_key)
+
+    updated = []
+    for job in jobs:
+        text = job.get("audio_text") or ""
+        if not text:
+            updated.append(job)
+            continue
+        try:
+            audio_bytes = b"".join(client.text_to_speech.convert(
+                text=text, voice_id=voice,
+                model_id="eleven_multilingual_v2",
+                output_format="mp3_44100_128"
+            ))
+            fname = secure_filename(f"{job.get('label','scene')[:40]}.mp3").replace(" ", "_")
+            dest  = aud_dir / fname
+            dest.write_bytes(audio_bytes)
+            rel   = str(dest.relative_to(PROJECT_ROOT))
+            job   = {**job, "input_audio": rel}
+        except Exception as e:
+            job = {**job, "_audio_error": str(e)}
+        updated.append(job)
+
+    return jsonify({"ok": True, "jobs": updated})
+
+
+def _nq_get_project(nq_id):
+    """Retorna (nq, proj_name) ou (None, None)."""
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+    if nq is None:
+        return None, None
+    return nq, nq.get("project", "")
+
+
+@app.route("/nqueues/<int:nq_id>/generate-images", methods=["POST"])
+def nq_generate_images(nq_id):
+    import urllib.request as urllib_req
+    nq, proj_name = _nq_get_project(nq_id)
+    if nq is None:
+        return jsonify({"error": "Fila não encontrada"}), 404
+    if not proj_name:
+        return jsonify({"error": "Episódio não vinculado a um projeto"}), 400
+    try:
+        import fal_client
+    except ImportError:
+        return jsonify({"error": "fal-client não instalado"}), 500
+
+    cfg = _load_global_config()
+    fal_key = cfg.get("fal_key", "") or os.environ.get("FAL_KEY", "")
+    if not fal_key:
+        return jsonify({"error": "FAL_KEY não configurada. Clique em ⚙ na aba Projetos."}), 400
+
+    os.environ["FAL_KEY"] = fal_key
+    model = cfg.get("image_model", "fal-ai/flux/dev")
+    # Imagens do episódio ficam em projetos/<proj>/temp/<ep-name>/imagens/
+    ep_slug = re.sub(r'[^\w\-]', '_', nq.get("name", f"ep_{nq_id}"))[:60]
+    img_dir = PROJECTS_DIR / proj_name / "episodios" / ep_slug / "imagens"
+    img_dir.mkdir(parents=True, exist_ok=True)
+
+    with nq_lock:
+        jobs = list(nq.get("jobs", []))
+
+    errors = []
+    for i, job in enumerate(jobs):
+        if job.get("status") == "done":
+            continue
+        img_prompt = job.get("image_prompt") or job.get("prompt", "")[:400]
+        ref_paths  = [r for r in (job.get("ref_imgs") or []) if r and not r.startswith("http")]
+        try:
+            if ref_paths:
+                # Tem imagens de referência → usar nano-banana/edit (Gemini 2.5 Flash)
+                image_urls = []
+                for rp in ref_paths[:4]:   # máx 4 refs
+                    full = PROJECT_ROOT / rp
+                    if full.exists():
+                        image_urls.append(fal_client.upload_file(str(full)))
+                if image_urls:
+                    # Com refs → nano-banana/edit (Gemini 2.5 Flash + referências)
+                    res = fal_client.subscribe("fal-ai/nano-banana/edit", arguments={
+                        "prompt": img_prompt,
+                        "image_urls": image_urls,
+                        "num_images": 1,
+                        "aspect_ratio": "16:9",
+                        "output_format": "png",
+                    })
+                else:
+                    # Refs não encontradas em disco → text-to-image
+                    res = fal_client.subscribe("fal-ai/nano-banana", arguments={
+                        "prompt": img_prompt,
+                        "num_images": 1,
+                        "aspect_ratio": "16:9",
+                        "output_format": "png",
+                    })
+            else:
+                # Sem ref_imgs na cena → nano-banana text-to-image
+                res = fal_client.subscribe("fal-ai/nano-banana", arguments={
+                    "prompt": img_prompt,
+                    "num_images": 1,
+                    "aspect_ratio": "16:9",
+                    "output_format": "png",
+                })
+            url   = res["images"][0]["url"]
+            fname = secure_filename(f"{job.get('label','scene')[:40]}.png").replace(" ", "_")
+            dest  = img_dir / fname
+            urllib_req.urlretrieve(url, str(dest))
+            rel   = str(dest.relative_to(PROJECT_ROOT))
+            # Preserva as ref_imgs originais e adiciona a imagem gerada como primeira
+            orig_refs = [r for r in (job.get("ref_imgs") or []) if r != rel]
+            jobs[i] = {**job, "ref_imgs": [rel] + orig_refs}
+        except Exception as e:
+            errors.append(f"Cena {i+1}: {e}")
+
+    with nq_lock:
+        nq2 = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq2:
+            nq2["jobs"] = jobs
+    _save_queues()
+    return jsonify({"ok": True, "updated": len(jobs), "errors": errors})
+
+
+@app.route("/nqueues/<int:nq_id>/generate-audio", methods=["POST"])
+def nq_generate_audio(nq_id):
+    nq, proj_name = _nq_get_project(nq_id)
+    if nq is None:
+        return jsonify({"error": "Fila não encontrada"}), 404
+    if not proj_name:
+        return jsonify({"error": "Episódio não vinculado a um projeto"}), 400
+    try:
+        from elevenlabs.client import ElevenLabs as EL
+    except ImportError:
+        return jsonify({"error": "elevenlabs não instalado"}), 500
+
+    cfg    = _load_global_config()
+    el_key = cfg.get("elevenlabs_key", "") or os.environ.get("ELEVENLABS_API_KEY", "")
+    voice  = cfg.get("elevenlabs_voice_id", "")
+    if not el_key or not voice:
+        return jsonify({"error": "ElevenLabs não configurado. Clique em ⚙ na aba Projetos."}), 400
+
+    # Áudios do episódio ficam em projetos/<proj>/temp/<ep-name>/audios/
+    ep_slug = re.sub(r'[^\w\-]', '_', nq.get("name", f"ep_{nq_id}"))[:60]
+    aud_dir = PROJECTS_DIR / proj_name / "episodios" / ep_slug / "audios"
+    aud_dir.mkdir(parents=True, exist_ok=True)
+    client  = EL(api_key=el_key)
+
+    with nq_lock:
+        jobs = list(nq.get("jobs", []))
+
+    errors = []
+    for i, job in enumerate(jobs):
+        text = job.get("audio_text") or ""
+        if not text:
+            continue
+        try:
+            audio_bytes = b"".join(client.text_to_speech.convert(
+                text=text, voice_id=voice,
+                model_id="eleven_multilingual_v2",
+                output_format="mp3_44100_128"
+            ))
+            fname = secure_filename(f"{job.get('label','scene')[:40]}.mp3").replace(" ", "_")
+            dest  = aud_dir / fname
+            dest.write_bytes(audio_bytes)
+            rel   = str(dest.relative_to(PROJECT_ROOT))
+            jobs[i] = {**job, "input_audio": rel}
+        except Exception as e:
+            errors.append(f"Cena {i+1}: {e}")
+
+    with nq_lock:
+        nq2 = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq2:
+            nq2["jobs"] = jobs
+    _save_queues()
+    return jsonify({"ok": True, "updated": len(jobs), "errors": errors})
+
+
+# ─────────────────────────────────────────────────────────────
+
 _load_queues()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=7860, debug=False)
+    app.run(host="0.0.0.0", port=7860, debug=False, threaded=True)

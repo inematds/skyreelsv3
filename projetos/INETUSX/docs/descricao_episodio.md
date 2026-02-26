@@ -1,0 +1,1 @@
+quero 10 cenas para procurar a capivara no lago ao lado da escola, ela sempre vem comer hoje nao veio
