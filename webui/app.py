@@ -85,8 +85,6 @@ REGRAS OBRIGATÓRIAS — preencha TODOS os campos:
    - MÁXIMO 4 imagens por cena — NUNCA coloque mais de 4 (limite técnico do pipeline)
    - REGRA DE CONSISTÊNCIA DE AMBIENTE: SEMPRE inclua a imagem do local/ambiente em TODA
      cena que acontece naquele ambiente — inclusive closes e planos de diálogo.
-     Se a cena anterior mostra personagens no corredor da escola, a próxima cena com um
-     personagem falando também deve ter "uploads/escola.png" em ref_imgs.
      Sem a imagem do ambiente, o modelo gera um fundo aleatório e inconsistente.
    - Composição ideal por cena:
      · Cena de estabelecimento (wide/panorâmica): ambiente + 1-2 personagens presentes
@@ -94,6 +92,12 @@ REGRAS OBRIGATÓRIAS — preencha TODOS os campos:
      · Grupo: até 2 personagens principais + ambiente (máx 3 refs, reserve 1 slot para variação)
    - Exemplo correto (close em corredor): ["projetos/X/imagens/valen.png", "projetos/X/imagens/escola.png"]
    - Exemplo ERRADO (close sem ambiente): ["projetos/X/imagens/valen.png"]  ← fundo inconsistente!
+   - ⚠ PROIBIDO: colocar duas imagens diferentes que mostrem o MESMO personagem — isso
+     DUPLICA o personagem na cena (duas cópias do mesmo personagem aparecem lado a lado).
+     Use NO MÁXIMO uma imagem por personagem.
+   - ⚠ USE A IMAGEM CORRETA para o tipo de personagem: se o personagem é um ANIMAL
+     (ratinho, cachorro, robô, etc.), use a imagem desse animal — NUNCA substitua por uma
+     imagem de personagem humano para representá-lo.
 
 5. VOZ DO PERSONAGEM (campo "voice_id"):
    - Extraia o voice_id do ElevenLabs diretamente dos documentos do projeto (tabela de casting)
@@ -111,6 +115,12 @@ REGRAS OBRIGATÓRIAS — preencha TODOS os campos:
 
 7. CONSISTÊNCIA NARRATIVA:
    - Use os documentos do projeto como base de conhecimento absoluta para personagens, universo e vozes
+   - Use EXATAMENTE os nomes dos personagens conforme os documentos do projeto — NUNCA invente
+     nomes alternativos ou genéricos (ex: se o personagem chama "Ratinho", não use "Rato" ou "ratinho")
+   - ⚠ COERÊNCIA AÇÃO/DIREÇÃO: o audio_text e o prompt de vídeo DEVEM descrever a MESMA
+     ação na MESMA direção. Se a narração diz "subindo a escada", o prompt DEVE dizer
+     "walking UP the stairs" — jamais "walking down". Contradições entre áudio e vídeo
+     destroem completamente a coerência narrativa.
    - Distribua imagens de referência coerentemente (personagem correto em cada cena)
    - Adapte duração conforme intensidade narrativa (~{duration}s como base)
    - Cubra TODA a história descrita — não pule cenas importantes
@@ -1411,6 +1421,19 @@ def restart_nq_route(nq_id):
     return jsonify({"ok": True})
 
 
+def _audio_duration(path: Path) -> float:
+    """Returns audio duration in seconds using ffprobe."""
+    try:
+        r = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", str(path)],
+            capture_output=True, text=True, timeout=10
+        )
+        data = json.loads(r.stdout) if r.returncode == 0 else {}
+        return float(data.get("format", {}).get("duration", 0))
+    except Exception:
+        return 0.0
+
+
 def _video_info(path):
     """Returns (has_audio, duration_seconds) for a video file."""
     r = subprocess.run(
@@ -2254,7 +2277,14 @@ def generate_episode_audio(name):
             dest  = aud_dir / fname
             dest.write_bytes(audio_bytes)
             rel   = str(dest.relative_to(PROJECT_ROOT))
-            job   = {**job, "input_audio": rel}
+            import math
+            aud_dur = _audio_duration(dest)
+            new_job = {**job, "input_audio": rel}
+            if aud_dur > 0:
+                min_dur = math.ceil(aud_dur) + 1
+                if new_job.get("duration", 0) < min_dur:
+                    new_job["duration"] = min_dur
+            job = new_job
         except Exception as e:
             job = {**job, "_audio_error": str(e)}
         updated.append(job)
@@ -2410,7 +2440,16 @@ def nq_generate_audio(nq_id):
             dest  = aud_dir / fname
             dest.write_bytes(audio_bytes)
             rel   = str(dest.relative_to(PROJECT_ROOT))
-            jobs[i] = {**job, "input_audio": rel, "voice_id": voice}
+            # Sincroniza duração do job com a duração real do áudio (+1s de respiro)
+            import math
+            aud_dur = _audio_duration(dest)
+            new_job = {**job, "input_audio": rel, "voice_id": voice}
+            if aud_dur > 0:
+                min_dur = math.ceil(aud_dur) + 1
+                if new_job.get("duration", 0) < min_dur:
+                    new_job["duration"] = min_dur
+                    print(f"[audio-gen] cena '{job.get('label','')}': áudio {aud_dur:.1f}s → duration={min_dur}s")
+            jobs[i] = new_job
         except Exception as e:
             errors.append(f"Cena {i+1}: {e}")
 
