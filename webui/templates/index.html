@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.38.13</title>
+<title>INEMA SkyReels V3 3.39.13</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -784,6 +784,45 @@
   }
   .nq-scene-details { margin-top: 4px; }
 
+  /* Quick-view buttons na linha da cena */
+  .nq-qbtns { display: flex; gap: 3px; margin-left: 2px; flex-shrink: 0; }
+  .nq-qbtn {
+    background: #111118; border: 1px solid #2a2a3a; border-radius: 5px;
+    color: #666; padding: 1px 7px; font-size: .72rem; cursor: pointer;
+    white-space: nowrap; transition: all .15s; line-height: 1.6;
+  }
+  .nq-qbtn:hover { border-color: #6c5ce7; color: #ccc; }
+  .nq-qbtn.qv-active { background: #1e1b3a; border-color: #7c3aed; color: #a78bfa; }
+
+  /* Quick-view panel (entre header e body) */
+  .nq-quickview {
+    display: none; padding: 10px 14px 12px;
+    background: #0d0d18; border-top: 1px solid #1e1e2e;
+  }
+  .nq-quickview.visible { display: block; }
+  .nq-quickview video { width: 100%; max-height: 220px; border-radius: 6px; background: #000; display: block; }
+  .nq-quickview audio { width: 100%; margin-top: 2px; }
+  .nq-qv-imgs { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
+  .nq-qv-imgs img {
+    height: 90px; border-radius: 5px; cursor: pointer;
+    object-fit: cover; border: 1px solid #2a2a3a; transition: border-color .15s;
+  }
+  .nq-qv-imgs img:hover { border-color: #7c3aed; }
+  .nq-qv-imgs .qv-no-img { color: #444; font-size: .75rem; font-style: italic; }
+  .nq-qv-text { font-size: .82rem; line-height: 1.65; }
+  .nq-qv-text .qvt-label {
+    color: #555; font-size: .68rem; text-transform: uppercase;
+    letter-spacing: .05em; margin-top: 10px; margin-bottom: 3px;
+  }
+  .nq-qv-text .qvt-label:first-child { margin-top: 0; }
+  .nq-qv-text .qvt-content {
+    color: #ccc; white-space: pre-wrap; word-break: break-word;
+    background: #111120; border-radius: 5px; padding: 6px 9px;
+  }
+  .nq-qv-text .qvt-content.pt { color: #a8d8a8; }
+  .nq-qv-text .qvt-content.en { color: #a8c8e8; }
+  .nq-qv-text .qvt-empty { color: #444; font-style: italic; font-size: .78rem; }
+
   /* Running banner (top of nq list / detail) */
   .nq-running-banner {
     display: none;
@@ -967,7 +1006,7 @@
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="38 recursos adicionados">38</span>.<span class="fix" title="13 correções">13</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="39 recursos adicionados">39</span>.<span class="fix" title="13 correções">13</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -2105,6 +2144,118 @@ function buildSceneCard(nqId, job) {
     header.appendChild(editBtn);
   }
 
+  // ── Quick-view buttons ────────────────────────────────────
+  const qvPanel = document.createElement('div');
+  qvPanel.className = 'nq-quickview';
+
+  const refs = Array.isArray(job.ref_imgs) ? job.ref_imgs : (job.ref_imgs ? [job.ref_imgs] : []);
+  const hasVideo = !!job.output_video;
+  const hasImgs  = refs.length > 0;
+  const hasAudio = !!job.input_audio;
+  const hasText  = !!(job.audio_text || job.prompt);
+
+  function _buildQvContent(type) {
+    qvPanel.innerHTML = '';
+    if (type === 'video') {
+      if (job.output_video) {
+        const v = document.createElement('video');
+        v.src = '/video/' + job.output_video;
+        v.controls = true; v.autoplay = false;
+        qvPanel.appendChild(v);
+      }
+    } else if (type === 'imgs') {
+      const wrap = document.createElement('div');
+      wrap.className = 'nq-qv-imgs';
+      if (refs.length) {
+        refs.forEach(p => {
+          const img = document.createElement('img');
+          img.src = '/file/' + p;
+          img.title = p.split('/').pop();
+          img.addEventListener('click', () => window.open('/file/' + p, '_blank'));
+          wrap.appendChild(img);
+        });
+      } else {
+        const na = document.createElement('span');
+        na.className = 'qv-no-img'; na.textContent = 'Sem imagens de referência.';
+        wrap.appendChild(na);
+      }
+      qvPanel.appendChild(wrap);
+    } else if (type === 'audio') {
+      if (job.input_audio) {
+        const aud = document.createElement('audio');
+        aud.src = '/file/' + job.input_audio;
+        aud.controls = true;
+        qvPanel.appendChild(aud);
+        if (job.audio_bg) {
+          const bgLbl = document.createElement('div');
+          bgLbl.style.cssText = 'font-size:.7rem;color:#666;margin-top:6px';
+          bgLbl.textContent = '🎵 Trilha de fundo: ' + job.audio_bg.split('/').pop();
+          qvPanel.appendChild(bgLbl);
+          const bgAud = document.createElement('audio');
+          bgAud.src = '/file/' + job.audio_bg;
+          bgAud.controls = true;
+          qvPanel.appendChild(bgAud);
+        }
+      }
+    } else if (type === 'text') {
+      const wrap = document.createElement('div');
+      wrap.className = 'nq-qv-text';
+      const sections = [
+        job.audio_text ? ['🇧🇷 Narração / Diálogo (PT-BR)', job.audio_text, 'pt'] : null,
+        job.prompt     ? ['🎬 Prompt de Vídeo (EN)', job.prompt, 'en'] : null,
+        job.image_prompt ? ['🖼 Prompt de Imagem (EN)', job.image_prompt, 'en'] : null,
+      ];
+      sections.forEach(s => {
+        if (!s) return;
+        const lbl = document.createElement('div'); lbl.className = 'qvt-label'; lbl.textContent = s[0];
+        const cnt = document.createElement('div'); cnt.className = 'qvt-content ' + s[2]; cnt.textContent = s[1];
+        wrap.appendChild(lbl); wrap.appendChild(cnt);
+      });
+      if (!job.audio_text && !job.prompt) {
+        const na = document.createElement('div'); na.className = 'qvt-empty'; na.textContent = 'Sem texto nesta cena.';
+        wrap.appendChild(na);
+      }
+      qvPanel.appendChild(wrap);
+    }
+  }
+
+  if (hasVideo || hasImgs || hasAudio || hasText) {
+    const qvBtns = document.createElement('div');
+    qvBtns.className = 'nq-qbtns';
+
+    const btnDefs = [
+      hasVideo ? ['🎬', 'video', 'Ver vídeo']   : null,
+      hasImgs  ? ['🖼',  'imgs',  'Ver imagens'] : null,
+      hasAudio ? ['🔊', 'audio', 'Ouvir áudio'] : null,
+      hasText  ? ['📝',  'text',  'Ver textos']  : null,
+    ];
+    btnDefs.forEach(def => {
+      if (!def) return;
+      const [icon, type, title] = def;
+      const btn = document.createElement('button');
+      btn.className = 'nq-qbtn';
+      btn.textContent = icon;
+      btn.title = title;
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const already = qvPanel.classList.contains('visible') && qvPanel.dataset.active === type;
+        // Desativa todos os botões do grupo
+        qvBtns.querySelectorAll('.nq-qbtn').forEach(b => b.classList.remove('qv-active'));
+        if (already) {
+          qvPanel.classList.remove('visible');
+          qvPanel.dataset.active = '';
+        } else {
+          btn.classList.add('qv-active');
+          _buildQvContent(type);
+          qvPanel.dataset.active = type;
+          qvPanel.classList.add('visible');
+        }
+      });
+      qvBtns.appendChild(btn);
+    });
+    header.appendChild(qvBtns);
+  }
+
   const expand = document.createElement('span');
   expand.className = 'nq-scene-expand';
   expand.textContent = '▾';
@@ -2148,6 +2299,7 @@ function buildSceneCard(nqId, job) {
   body.appendChild(det);
 
   card.appendChild(header);
+  card.appendChild(qvPanel);
   card.appendChild(body);
   return card;
 }
