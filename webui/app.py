@@ -82,10 +82,18 @@ REGRAS OBRIGATÓRIAS — preencha TODOS os campos:
 
 4. IMAGENS DE REFERÊNCIA (campo "ref_imgs"):
    - Use os paths EXATOS das imagens listadas nos recursos acima
-   - Priorize imagens dos personagens que aparecem NA cena
    - MÁXIMO 4 imagens por cena — NUNCA coloque mais de 4 (limite técnico do pipeline)
-   - Prefira: 1 imagem do personagem principal + 1 do ambiente (2–3 no total é ideal)
-   - Exemplo: ["uploads/valen.png", "uploads/escola.png"]
+   - REGRA DE CONSISTÊNCIA DE AMBIENTE: SEMPRE inclua a imagem do local/ambiente em TODA
+     cena que acontece naquele ambiente — inclusive closes e planos de diálogo.
+     Se a cena anterior mostra personagens no corredor da escola, a próxima cena com um
+     personagem falando também deve ter "uploads/escola.png" em ref_imgs.
+     Sem a imagem do ambiente, o modelo gera um fundo aleatório e inconsistente.
+   - Composição ideal por cena:
+     · Cena de estabelecimento (wide/panorâmica): ambiente + 1-2 personagens presentes
+     · Close/diálogo: personagem que fala + ambiente onde a cena ocorre
+     · Grupo: até 2 personagens principais + ambiente (máx 3 refs, reserve 1 slot para variação)
+   - Exemplo correto (close em corredor): ["projetos/X/imagens/valen.png", "projetos/X/imagens/escola.png"]
+   - Exemplo ERRADO (close sem ambiente): ["projetos/X/imagens/valen.png"]  ← fundo inconsistente!
 
 5. VOZ DO PERSONAGEM (campo "voice_id"):
    - Extraia o voice_id do ElevenLabs diretamente dos documentos do projeto (tabela de casting)
