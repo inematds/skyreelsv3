@@ -140,6 +140,151 @@ def _load_system_prompt():
     return DEFAULT_SYSTEM_PROMPT
 
 
+# ── Templates dos system prompts por projeto ──────────────────────────────
+DEFAULT_PHASE1_TEMPLATE = """\
+Você é um supervisor de produção de série animada.
+A partir da descrição do episódio e dos recursos visuais do projeto, faça:
+
+1. MAPEAMENTO DE AMBIENTES: Identifique todos os locais/ambientes onde as cenas acontecem
+2. ELEMENTOS NOVOS: Identifique elementos visuais que NÃO têm imagem de referência disponível na lista abaixo
+
+Imagens de referência disponíveis no projeto:
+{images_list}{docs_str}
+
+Descrição do episódio:
+{description}
+
+Retorne SOMENTE um JSON válido com este formato exato:
+{{
+  "environments": [
+    {{
+      "name": "nome curto do ambiente",
+      "description": "descrição visual detalhada do ambiente",
+      "existing_ref": "projetos/X/imagens/Y.png ou null se não existe"
+    }}
+  ],
+  "new_elements": [
+    {{
+      "name": "nome do elemento",
+      "type": "environment|character|object",
+      "image_prompt": "prompt detalhado em inglês para gerar imagem via fal.ai (anime style, 16:9, 2030 futuristic)"
+    }}
+  ]
+}}
+
+REGRAS OBRIGATÓRIAS:
+- environments.existing_ref: use o path EXATO de uma imagem da lista acima (copie exatamente como está), ou null
+- new_elements: SOMENTE elementos que NÃO têm nenhuma imagem correspondente na lista acima
+- Máximo 5 novos elementos — priorize ambientes e personagens novos mais importantes
+- Se todos os ambientes já têm referência visual: new_elements = []
+
+APENAS o JSON.\
+"""
+
+DEFAULT_IMAGE_GUIDE = """\
+# Guia de Geração de Imagens
+
+Este arquivo define o estilo e regras para geração de imagens via fal.ai (Flux/Gemini).
+As regras aqui são usadas pela IA ao gerar o campo `image_prompt` de cada cena.
+
+## Estilo visual padrão
+- anime style illustration
+- 2030 futuristic setting
+- vibrant colors, detailed backgrounds
+- 16:9 aspect ratio
+
+## Regras obrigatórias
+- Descreva: personagens presentes, ambiente, cores dominantes, estilo artístico, iluminação, ângulo
+- Mantenha estilo visual consistente entre todas as cenas e episódios
+- NUNCA inclua elementos que contradizem o universo da série
+
+## Exemplo de image_prompt
+"Anime style illustration, 2030 futuristic school corridor, teenage girl with purple hair
+and confident expression, warm morning light, detailed background, vibrant colors, 16:9"
+\
+"""
+
+DEFAULT_AUDIO_GUIDE = """\
+# Guia de Geração de Áudio (ElevenLabs TTS)
+
+Este arquivo define as regras para geração de áudio via ElevenLabs TTS.
+O campo `audio_text` de cada cena usa estas diretrizes.
+
+## Idioma
+- PORTUGUÊS BRASILEIRO exclusivamente
+
+## Tom e estilo
+- Narração: terceira pessoa, tempo presente, tom cinemático e envolvente
+- Diálogos: primeira pessoa, tom natural e expressivo para cada personagem
+- Mantenha a personalidade definida nos documentos do projeto
+
+## Regras
+- Inclua APENAS o que será falado ou narrado — sem descrições de cena
+- Se a cena for silenciosa ou apenas musical, use string vazia: ""
+- Duração do áudio determina a duração do vídeo — escreva com ritmo adequado à cena
+- Evite texto muito longo que não couça no tempo de duração da cena (~5s ≈ 2-3 frases curtas)
+
+## Casting de vozes
+Definido na tabela de personagens nos documentos do projeto (campo voice_id).
+\
+"""
+
+DEFAULT_VIDEO_GUIDE = """\
+# Guia de Geração de Vídeo (SkyReels V3)
+
+Este arquivo define as regras para geração de vídeos via SkyReels V3.
+O campo `prompt` de cada cena usa estas diretrizes.
+
+## Tasks disponíveis
+- **reference_to_video**: gera vídeo a partir de 1–4 imagens de referência + prompt
+- **single_shot_extension**: estende vídeo existente (5–30s)
+- **shot_switching_extension**: estende com transição cinemática (máx. 5s)
+- **talking_avatar**: avatar falante (retrato + áudio, até 200s)
+
+## Regras do prompt de vídeo
+- Escreva em INGLÊS
+- Inclua: composição, iluminação, movimento de câmera, emoção, ação dos personagens
+- Seja específico sobre direções (up/down/left/right) — o vídeo seguirá exatamente
+- ⚠ COERÊNCIA: o prompt de vídeo DEVE descrever a mesma ação/direção que o audio_text
+
+## Referências visuais (ref_imgs)
+- MÁXIMO 4 imagens por cena
+- Use SEMPRE a imagem do ambiente + imagem do personagem que aparece
+- NUNCA duas imagens do mesmo personagem (duplica o personagem na cena)
+
+## Exemplo de prompt
+"Medium shot, Valen stands at school corridor, morning sunlight through windows,
+she turns to look at Lumi, curious expression, soft camera pan right,
+anime style, 2030 futuristic school, cinematic lighting"
+\
+"""
+
+
+def _ensure_project_prompts(proj_dir: Path):
+    """Cria arquivos de system prompt em docs/ do projeto se não existirem."""
+    docs_dir = proj_dir / "docs"
+    docs_dir.mkdir(exist_ok=True)
+    files = {
+        "_sys_episodio.md": DEFAULT_SYSTEM_PROMPT,
+        "_sys_fase1.md":    DEFAULT_PHASE1_TEMPLATE,
+        "_sys_imagem.md":   DEFAULT_IMAGE_GUIDE,
+        "_sys_audio.md":    DEFAULT_AUDIO_GUIDE,
+        "_sys_video.md":    DEFAULT_VIDEO_GUIDE,
+    }
+    for fname, content in files.items():
+        fp = docs_dir / fname
+        if not fp.exists():
+            fp.write_text(content, encoding="utf-8")
+
+
+def _load_project_prompt(proj_dir: Path, filename: str, default: str) -> str:
+    """Carrega prompt do projeto; usa default se não existir."""
+    fp = proj_dir / "docs" / filename
+    if fp.exists():
+        return fp.read_text(encoding="utf-8")
+    return default
+
+
 def _load_global_config():
     if GLOBAL_CONFIG_FILE.exists():
         try:
@@ -1710,6 +1855,7 @@ def create_project():
         return jsonify({"error": "Projeto já existe"}), 409
     for sub in ("imagens", "audios", "docs", "episodios", "temp"):
         (proj_dir / sub).mkdir(parents=True, exist_ok=True)
+    _ensure_project_prompts(proj_dir)
     return jsonify({"ok": True, "name": name})
 
 
@@ -1718,6 +1864,7 @@ def get_project(name):
     proj_dir = PROJECTS_DIR / name
     if not proj_dir.exists():
         return jsonify({"error": "Projeto não encontrado"}), 404
+    _ensure_project_prompts(proj_dir)
     folders = {}
     for sub in ("imagens", "audios", "docs", "episodios", "temp"):
         sub_dir = proj_dir / sub
@@ -1835,47 +1982,13 @@ def reset_system_prompt():
     return jsonify({"ok": True, "prompt": DEFAULT_SYSTEM_PROMPT})
 
 
-def _build_phase1_prompt(description: str, image_paths: list, docs_content: list) -> str:
+def _build_phase1_prompt(description: str, image_paths: list, docs_content: list,
+                         template: str | None = None) -> str:
     """Prompt para Fase 1: Claude identifica ambientes e elementos novos necessários."""
     images_list = "\n".join(f"- {p}" for p in image_paths) if image_paths else "Nenhuma"
     docs_str = ("\n\nDocumentos do projeto:\n" + "\n\n".join(docs_content)[:3000]) if docs_content else ""
-    return f"""Você é um supervisor de produção de série animada.
-A partir da descrição do episódio e dos recursos visuais do projeto, faça:
-
-1. MAPEAMENTO DE AMBIENTES: Identifique todos os locais/ambientes onde as cenas acontecem
-2. ELEMENTOS NOVOS: Identifique elementos visuais que NÃO têm imagem de referência disponível na lista abaixo
-
-Imagens de referência disponíveis no projeto:
-{images_list}{docs_str}
-
-Descrição do episódio:
-{description}
-
-Retorne SOMENTE um JSON válido com este formato exato:
-{{
-  "environments": [
-    {{
-      "name": "nome curto do ambiente",
-      "description": "descrição visual detalhada do ambiente",
-      "existing_ref": "projetos/X/imagens/Y.png ou null se não existe"
-    }}
-  ],
-  "new_elements": [
-    {{
-      "name": "nome do elemento",
-      "type": "environment|character|object",
-      "image_prompt": "prompt detalhado em inglês para gerar imagem via fal.ai (anime style, 16:9, 2030 futuristic)"
-    }}
-  ]
-}}
-
-REGRAS OBRIGATÓRIAS:
-- environments.existing_ref: use o path EXATO de uma imagem da lista acima (copie exatamente como está), ou null
-- new_elements: SOMENTE elementos que NÃO têm nenhuma imagem correspondente na lista acima
-- Máximo 5 novos elementos — priorize ambientes e personagens novos mais importantes
-- Se todos os ambientes já têm referência visual: new_elements = []
-
-APENAS o JSON."""
+    tpl = template or DEFAULT_PHASE1_TEMPLATE
+    return tpl.format(images_list=images_list, docs_str=docs_str, description=description)
 
 
 @app.route("/projects/<name>/generate-episode", methods=["POST"])
@@ -1888,10 +2001,14 @@ def generate_episode_prompts(name):
     duration    = int(data.get("duration", 5))
     ref_imgs    = data.get("ref_imgs", [])
 
+    # Garantir que os arquivos de system prompt existam no projeto
+    proj_dir  = PROJECTS_DIR / name
+    if proj_dir.exists():
+        _ensure_project_prompts(proj_dir)
+
     # Salvar descrição em docs/ antes de gerar
     saved_doc = None
     doc_path  = None
-    proj_dir  = PROJECTS_DIR / name
     if proj_dir.exists() and description:
         docs_dir = proj_dir / "docs"
         docs_dir.mkdir(exist_ok=True)
@@ -1915,7 +2032,7 @@ def generate_episode_prompts(name):
             if f.is_file():
                 all_audios.append(f.name)
         for f in sorted((proj_dir / "docs").iterdir()) if (proj_dir / "docs").exists() else []:
-            if f.is_file() and f.suffix in (".md", ".txt") and f != doc_path:
+            if f.is_file() and f.suffix in (".md", ".txt") and f != doc_path and not f.name.startswith("_sys_"):
                 try:
                     all_docs_content.append(f"--- {f.name} ---\n{f.read_text(encoding='utf-8', errors='ignore')[:2000]}")
                 except Exception:
@@ -1949,8 +2066,9 @@ def generate_episode_prompts(name):
         f'}}'
     )
 
-    # Fase 2 usará json_template e template do sistema; construímos fora para capturar no closure
-    _sys_template = _load_system_prompt()
+    # Fase 2 usará json_template e template do sistema; per-project override em docs/_sys_episodio.md
+    _sys_template  = _load_project_prompt(proj_dir, "_sys_episodio.md", _load_system_prompt())
+    _fase1_template = _load_project_prompt(proj_dir, "_sys_fase1.md", DEFAULT_PHASE1_TEMPLATE)
 
     # Iniciar geração em background — retorna job_id imediatamente
     job_id = uuid.uuid4().hex[:8]
@@ -1978,7 +2096,7 @@ def generate_episode_prompts(name):
                 _ep_gen_state[job_id]["phase"]     = "phase1"
                 _ep_gen_state[job_id]["phase_msg"] = "Fase 1: identificando ambientes e elementos visuais…"
 
-            phase1_prompt = _build_phase1_prompt(description, effective_imgs, all_docs_content)
+            phase1_prompt = _build_phase1_prompt(description, effective_imgs, all_docs_content, _fase1_template)
             proc = subprocess.run(
                 ["/home/nmaldaner/.local/bin/claude", "-p", phase1_prompt],
                 capture_output=True, text=True, timeout=180, env=_env
