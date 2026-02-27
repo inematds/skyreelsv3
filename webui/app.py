@@ -2632,9 +2632,9 @@ def nq_generate_images(nq_id):
             dest  = img_dir / fname
             urllib_req.urlretrieve(url, str(dest))
             rel   = str(dest.relative_to(PROJECT_ROOT))
-            # Preserva as ref_imgs originais e adiciona a imagem gerada como primeira
+            # Preserva as ref_imgs originais e adiciona a imagem gerada como primeira (máx 4)
             orig_refs = [r for r in (job.get("ref_imgs") or []) if r != rel]
-            jobs[i] = {**job, "ref_imgs": [rel] + orig_refs}
+            jobs[i] = {**job, "ref_imgs": ([rel] + orig_refs)[:4]}
         except Exception as e:
             errors.append(f"Cena {i+1}: {e}")
 
@@ -2867,7 +2867,7 @@ def nq_job_generate_image(nq_id, job_id):
                 for j in nq3["jobs"]:
                     if j["id"] == job_id:
                         orig = [r for r in (j.get("ref_imgs") or []) if r != rel]
-                        j["ref_imgs"] = [rel] + orig
+                        j["ref_imgs"] = ([rel] + orig)[:4]
                         break
         _save_queues()
         return jsonify({"ok": True, "image_path": rel})
