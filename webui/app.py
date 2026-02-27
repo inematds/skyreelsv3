@@ -71,7 +71,10 @@ REGRAS OBRIGATÓRIAS — preencha TODOS os campos:
    - Prompt em INGLÊS para geração de imagem estática via fal.ai / Flux
    - Descreva: personagens presentes, ambiente, cores dominantes, estilo artístico, iluminação, ângulo
    - Mantenha estilo visual consistente com os personagens do projeto
-   - Exemplo: "anime style illustration, 2030 futuristic school corridor, teenage girl with purple hair and confident expression, warm morning light, detailed background, vibrant colors"
+   - ⚠ ESCALA FÍSICA REAL: animais devem aparecer em tamanho real — hamster é do tamanho de uma mão,
+     gato do tamanho de um colo, robô companheiro menor que os estudantes. NUNCA exagere o tamanho
+     de animais — especifique sempre: "small hamster on Maya's palm", "tiny robot at knee height"
+   - Exemplo: "anime style illustration, 2030 futuristic school corridor, teenage girl with purple hair and confident expression, warm morning light, small brown hamster on her shoulder, vibrant colors"
 
 3. TEXTO DE ÁUDIO (campo "audio_text"):
    - Narração ou diálogos em PORTUGUÊS BRASILEIRO para geração via ElevenLabs
@@ -198,9 +201,20 @@ As regras aqui são usadas pela IA ao gerar o campo `image_prompt` de cada cena.
 - Mantenha estilo visual consistente entre todas as cenas e episódios
 - NUNCA inclua elementos que contradizem o universo da série
 
+## Regras de escala física (OBRIGATÓRIO)
+- Todos os personagens e animais devem aparecer em proporção física REAL
+- Hamster/rato: tamanho de uma mão humana — pequeno, coadjuvante visual
+- Gato/cachorro pequeno: tamanho de um lap (colo)
+- Estudantes: altura humana normal (1,6m–1,8m)
+- Robô companheiro: altura de criança ou menor (não maior que os estudantes)
+- NUNCA exagere o tamanho de animais — eles são coadjuvantes, NÃO protagonistas visuais
+- Exceção SOMENTE se a descrição da cena explicitamente pedir tamanho diferente
+- Para especificar escala no prompt: "small hamster sitting on Maya's palm, hand-sized pet"
+
 ## Exemplo de image_prompt
 "Anime style illustration, 2030 futuristic school corridor, teenage girl with purple hair
-and confident expression, warm morning light, detailed background, vibrant colors, 16:9"
+and confident expression, warm morning light, detailed background, vibrant colors, 16:9,
+small brown hamster resting on her shoulder, realistic proportions"
 \
 """
 
@@ -1853,7 +1867,7 @@ def create_project():
     proj_dir = PROJECTS_DIR / name
     if proj_dir.exists():
         return jsonify({"error": "Projeto já existe"}), 409
-    for sub in ("imagens", "audios", "docs", "episodios", "temp"):
+    for sub in ("imagens", "audios", "docs", "episodios", "temp", "figurantes"):
         (proj_dir / sub).mkdir(parents=True, exist_ok=True)
     _ensure_project_prompts(proj_dir)
     return jsonify({"ok": True, "name": name})
@@ -1866,7 +1880,7 @@ def get_project(name):
         return jsonify({"error": "Projeto não encontrado"}), 404
     _ensure_project_prompts(proj_dir)
     folders = {}
-    for sub in ("imagens", "audios", "docs", "episodios", "temp"):
+    for sub in ("imagens", "audios", "docs", "episodios", "temp", "figurantes"):
         sub_dir = proj_dir / sub
         sub_dir.mkdir(exist_ok=True)
         files = []
@@ -1905,7 +1919,7 @@ def get_project_voices(name):
 
 @app.route("/projects/<name>/upload/<subfolder>", methods=["POST"])
 def upload_project_file(name, subfolder):
-    if subfolder not in ("imagens", "audios", "docs", "episodios", "temp"):
+    if subfolder not in ("imagens", "audios", "docs", "episodios", "temp", "figurantes"):
         return jsonify({"error": "Pasta inválida"}), 400
     proj_dir = PROJECTS_DIR / name / subfolder
     proj_dir.mkdir(parents=True, exist_ok=True)
@@ -1923,7 +1937,7 @@ def upload_project_file(name, subfolder):
 
 @app.route("/projects/<name>/files/<subfolder>/<filename>", methods=["DELETE"])
 def delete_project_file(name, subfolder, filename):
-    if subfolder not in ("imagens", "audios", "docs", "episodios", "temp"):
+    if subfolder not in ("imagens", "audios", "docs", "episodios", "temp", "figurantes"):
         return jsonify({"error": "Pasta inválida"}), 400
     fpath = PROJECTS_DIR / name / subfolder / filename
     if not fpath.exists():
@@ -2112,52 +2126,161 @@ def generate_episode_prompts(name):
             with _ep_gen_lock:
                 _ep_gen_state[job_id]["environments"] = environments
 
-            # ─── FASE 1b: gerar imagens para elementos novos ──────────────────
-            new_refs = []
-            if new_elements:
-                with _ep_gen_lock:
-                    _ep_gen_state[job_id]["phase"]     = "generating_refs"
-                    _ep_gen_state[job_id]["phase_msg"] = f"Gerando {len(new_elements)} imagem(ns) de referência nova(s)…"
+            # ─── FASE 1b: gerar imagens de ambiente + elementos novos ────────
+            new_refs   = []
+            amb_map    = {}   # env_name (lower) → path da imagem de ambiente gerada
+            cfg        = _load_global_config()
+            fal_key    = cfg.get("fal_key", "") or os.environ.get("FAL_KEY", "")
+            fal_ok     = False
 
-                cfg = _load_global_config()
-                fal_key = cfg.get("fal_key", "") or os.environ.get("FAL_KEY", "")
-                if fal_key:
+            if fal_key:
+                try:
+                    import fal_client
+                    import urllib.request as urllib_req
+                    os.environ["FAL_KEY"] = fal_key
+                    fal_ok = True
+                except ImportError:
+                    print("[ep-gen] fal-client não instalado — pulando geração de imagens")
+
+            if fal_ok:
+                # ── Figurantes do projeto ────────────────────────────────────────
+                fig_dir  = PROJECTS_DIR / name / "figurantes"
+                fig_dir.mkdir(exist_ok=True)
+                figurantes = [str(f.relative_to(PROJECT_ROOT))
+                              for f in sorted(fig_dir.iterdir()) if f.is_file()]
+
+                # Auto-gerar figurantes se pasta vazia e temos docs
+                if not figurantes and all_docs_content:
+                    with _ep_gen_lock:
+                        _ep_gen_state[job_id]["phase"]     = "generating_refs"
+                        _ep_gen_state[job_id]["phase_msg"] = "Gerando figurantes padrão do projeto…"
+                    docs_ctx = "\n\n".join(all_docs_content)[:2000]
+                    fig_prompt = (
+                        f"Anime style illustration, 2030 futuristic school, diverse group of "
+                        f"generic background students (extras), 3-4 teenagers with different "
+                        f"hair colors and styles, school uniforms with futuristic details, "
+                        f"neutral expressions, standing in corridor, high quality, "
+                        f"vibrant colors, 16:9 aspect ratio. "
+                        f"Based on series: {docs_ctx[:300]}"
+                    )
                     try:
-                        import fal_client
-                        import urllib.request as urllib_req
-                        os.environ["FAL_KEY"] = fal_key
-                        model = cfg.get("image_model", "fal-ai/flux/dev")
-                        img_dir = PROJECTS_DIR / name / "imagens"
-                        img_dir.mkdir(exist_ok=True)
+                        res = fal_client.subscribe("fal-ai/nano-banana", arguments={
+                            "prompt": fig_prompt,
+                            "num_images": 1,
+                            "aspect_ratio": "16:9",
+                            "output_format": "png",
+                        })
+                        url   = res["images"][0]["url"]
+                        dest  = fig_dir / "figurantes_escola.png"
+                        urllib_req.urlretrieve(url, str(dest))
+                        figurantes = [str(dest.relative_to(PROJECT_ROOT))]
+                        print(f"[ep-gen] figurantes auto-gerados: {figurantes[0]}")
+                    except Exception as fig_err:
+                        print(f"[ep-gen] erro ao gerar figurantes: {fig_err}")
 
-                        for idx_e, elem in enumerate(new_elements):
-                            with _ep_gen_lock:
-                                _ep_gen_state[job_id]["phase_msg"] = (
-                                    f"Gerando referência {idx_e + 1}/{len(new_elements)}: "
-                                    f"{elem.get('name', '')}…"
-                                )
-                            try:
-                                img_prompt = elem.get("image_prompt") or elem.get("name", "")
-                                res = fal_client.subscribe(model, arguments={
+                # ── Gerar imagem canônica por ambiente ───────────────────────────
+                total_envs = len(environments)
+                amb_dir = PROJECTS_DIR / name / "episodios" / f"gen_{job_id}" / "ambientes"
+                amb_dir.mkdir(parents=True, exist_ok=True)
+
+                for idx_a, env in enumerate(environments):
+                    with _ep_gen_lock:
+                        _ep_gen_state[job_id]["phase"]     = "generating_refs"
+                        _ep_gen_state[job_id]["phase_msg"] = (
+                            f"Gerando ambiente {idx_a + 1}/{total_envs}: {env.get('name', '')}…"
+                        )
+                    safe_env = re.sub(r'[^\w\-]', '_', env.get("name", "ambiente")[:40])
+                    dest     = amb_dir / f"{safe_env}.png"
+                    if dest.exists():
+                        amb_map[env["name"].lower()] = str(dest.relative_to(PROJECT_ROOT))
+                        continue
+                    try:
+                        env_desc = env.get("description", env.get("name", ""))
+                        img_prompt = (
+                            f"Anime style, 2030 futuristic school, {env_desc}, "
+                            f"background students present, vibrant colors, cinematic lighting, "
+                            f"16:9 aspect ratio, high quality illustration"
+                        )
+                        # Refs: existing_ref do ambiente + figurantes (max 3 slots)
+                        ref_paths = []
+                        existing = env.get("existing_ref")
+                        if existing and (PROJECT_ROOT / existing).exists():
+                            ref_paths.append(existing)
+                        ref_paths += figurantes[:3 - len(ref_paths)]
+
+                        if ref_paths:
+                            image_urls = []
+                            for rp in ref_paths[:3]:
+                                full = PROJECT_ROOT / rp
+                                if full.exists():
+                                    image_urls.append(fal_client.upload_file(str(full)))
+                            if image_urls:
+                                res = fal_client.subscribe("fal-ai/nano-banana/edit", arguments={
+                                    "prompt": img_prompt,
+                                    "image_urls": image_urls,
+                                    "num_images": 1,
+                                    "aspect_ratio": "16:9",
+                                    "output_format": "png",
+                                })
+                            else:
+                                res = fal_client.subscribe("fal-ai/nano-banana", arguments={
                                     "prompt": img_prompt,
                                     "num_images": 1,
-                                    "image_size": "landscape_16_9",
+                                    "aspect_ratio": "16:9",
+                                    "output_format": "png",
                                 })
-                                url = res["images"][0]["url"]
-                                safe_n = re.sub(r'[^\w\-]', '_', elem.get("name", "element")[:40])
-                                dest = img_dir / f"{safe_n}.png"
-                                urllib_req.urlretrieve(url, str(dest))
-                                rel = str(dest.relative_to(PROJECT_ROOT))
-                                new_refs.append({
-                                    "name": elem.get("name"),
-                                    "type": elem.get("type", ""),
-                                    "path": rel,
-                                })
-                                print(f"[ep-gen] nova ref gerada: {rel}")
-                            except Exception as img_err:
-                                print(f"[ep-gen] erro ao gerar imagem para '{elem.get('name')}': {img_err}")
-                    except ImportError:
-                        print("[ep-gen] fal-client não instalado — pulando geração de novas refs")
+                        else:
+                            res = fal_client.subscribe("fal-ai/nano-banana", arguments={
+                                "prompt": img_prompt,
+                                "num_images": 1,
+                                "aspect_ratio": "16:9",
+                                "output_format": "png",
+                            })
+
+                        url = res["images"][0]["url"]
+                        urllib_req.urlretrieve(url, str(dest))
+                        rel = str(dest.relative_to(PROJECT_ROOT))
+                        amb_map[env["name"].lower()] = rel
+                        # Atualizar existing_ref do ambiente com a imagem gerada
+                        env["generated_ref"] = rel
+                        print(f"[ep-gen] ambiente gerado: {rel}")
+                    except Exception as amb_err:
+                        print(f"[ep-gen] erro ao gerar ambiente '{env.get('name')}': {amb_err}")
+                        if env.get("existing_ref"):
+                            amb_map[env["name"].lower()] = env["existing_ref"]
+
+                # ── Gerar refs para elementos novos ──────────────────────────────
+                total_new = len(new_elements)
+                if new_elements:
+                    img_dir = PROJECTS_DIR / name / "imagens"
+                    img_dir.mkdir(exist_ok=True)
+                    for idx_e, elem in enumerate(new_elements):
+                        with _ep_gen_lock:
+                            _ep_gen_state[job_id]["phase_msg"] = (
+                                f"Gerando elemento novo {idx_e + 1}/{total_new}: "
+                                f"{elem.get('name', '')}…"
+                            )
+                        try:
+                            img_prompt = elem.get("image_prompt") or elem.get("name", "")
+                            res = fal_client.subscribe("fal-ai/nano-banana", arguments={
+                                "prompt": img_prompt,
+                                "num_images": 1,
+                                "aspect_ratio": "16:9",
+                                "output_format": "png",
+                            })
+                            url   = res["images"][0]["url"]
+                            safe_n = re.sub(r'[^\w\-]', '_', elem.get("name", "element")[:40])
+                            dest  = img_dir / f"{safe_n}.png"
+                            urllib_req.urlretrieve(url, str(dest))
+                            rel = str(dest.relative_to(PROJECT_ROOT))
+                            new_refs.append({
+                                "name": elem.get("name"),
+                                "type": elem.get("type", ""),
+                                "path": rel,
+                            })
+                            print(f"[ep-gen] nova ref gerada: {rel}")
+                        except Exception as img_err:
+                            print(f"[ep-gen] erro ao gerar '{elem.get('name')}': {img_err}")
 
             with _ep_gen_lock:
                 _ep_gen_state[job_id]["new_refs"] = new_refs
@@ -2176,11 +2299,11 @@ def generate_episode_prompts(name):
             if environments:
                 env_section = (
                     "\n\nMAPA DE AMBIENTES DO EPISÓDIO"
-                    " — distribua CONSISTENTEMENTE por cena:\n"
+                    " — use EXATAMENTE estas imagens em todas as cenas de cada ambiente:\n"
                 )
                 for env in environments:
-                    ref = env.get("existing_ref")
-                    # Substituir/completar com nova ref gerada se houver
+                    # Prioridade: imagem de ambiente gerada > existing_ref > nova ref de new_elements
+                    ref = amb_map.get(env["name"].lower()) or env.get("generated_ref") or env.get("existing_ref")
                     for nr in new_refs:
                         if nr["name"].lower() == env["name"].lower():
                             ref = nr["path"]
@@ -2189,7 +2312,7 @@ def generate_episode_prompts(name):
                     if ref:
                         env_section += (
                             f"  → REFERÊNCIA OBRIGATÓRIA: {ref}"
-                            f" (inclua em TODA cena que ocorre neste ambiente)\n"
+                            f" (use em TODA cena deste ambiente — garante consistência visual)\n"
                         )
 
             resources_section_updated = (

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INEMA SkyReels V3 3.43.18</title>
+<title>INEMA SkyReels V3 3.44.18</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
@@ -922,6 +922,11 @@
   .proj-file-btn { background:none; border:1px solid #2a2a3a; border-radius:4px; color:#888; font-size:.72rem; padding:2px 7px; cursor:pointer; }
   .proj-file-btn:hover { border-color:#a78bfa; color:#a78bfa; }
   .proj-upload-row { padding:8px 14px 12px; display:flex; align-items:center; gap:8px; }
+  .proj-fig-grid { display:flex; flex-wrap:wrap; gap:8px; padding:10px 14px; }
+  .proj-fig-thumb { position:relative; width:100px; height:64px; border-radius:6px; overflow:hidden; border:1px solid #2a2a3a; cursor:pointer; flex-shrink:0; }
+  .proj-fig-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .proj-fig-del { position:absolute; top:2px; right:2px; background:rgba(0,0,0,.7); border:none; color:#f87171; font-size:.6rem; border-radius:3px; padding:1px 4px; cursor:pointer; opacity:0; transition:opacity .15s; }
+  .proj-fig-thumb:hover .proj-fig-del { opacity:1; }
   .proj-upload-btn { background:#1a1230; border:1px solid #3a2a5a; border-radius:5px; color:#a78bfa; font-size:.78rem; padding:5px 12px; cursor:pointer; }
   .proj-upload-btn:hover { background:#2a1a40; }
   .proj-upload-input { display:none; }
@@ -1006,7 +1011,7 @@
 <body>
 
 <header>
-  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="43 recursos adicionados">43</span>.<span class="fix" title="18 correções">18</span></span></h1>
+  <h1>INEMA SkyReels V3 <span class="ver">3.<span class="feat" title="44 recursos adicionados">44</span>.<span class="fix" title="18 correções">18</span></span></h1>
   <span>Interface de Geração de Vídeo</span>
 </header>
 
@@ -2951,8 +2956,8 @@ async function loadProjectDetail(name) {
   const res = await fetch(`/projects/${encodeURIComponent(name)}`);
   const data = await res.json();
   const detail = document.getElementById('proj-detail');
-  const FOLDER_LABELS = { imagens: '\uD83D\uDDBC Imagens', audios: '\uD83C\uDFB5 \xC1udios', docs: '\uD83D\uDCC4 Docs' };
-  const FOLDER_ACCEPT = { imagens: 'image/*', audios: 'audio/*', docs: '*/*' };
+  const FOLDER_LABELS = { imagens: '🖼 Imagens', audios: '🎵 Áudios', docs: '📄 Docs', figurantes: '👥 Figurantes' };
+  const FOLDER_ACCEPT = { imagens: 'image/*', audios: 'audio/*', docs: '*/*', figurantes: 'image/*' };
 
   let html = `<div class="proj-detail-header">
     <button class="nq-action-btn" onclick="refreshProjects()">\u2190 Voltar</button>
@@ -2960,20 +2965,31 @@ async function loadProjectDetail(name) {
     <button class="nq-action-btn" onclick="confirmDeleteProject('${name}')" style="background:#2a1010;border-color:#4a2020;color:#f87171">\uD83D\uDDD1 Excluir projeto</button>
   </div>`;
 
-  for (const sub of ['imagens', 'audios', 'docs']) {
+  for (const sub of ['imagens', 'figurantes', 'audios', 'docs']) {
     const files = data.folders[sub] || [];
     const isImgs = sub === 'imagens';
+    const isFig  = sub === 'figurantes';
     const toggleBtn = isImgs && files.length
       ? `<span onclick="event.stopPropagation()">
            <button class="proj-file-btn" id="proj-img-view-btn" onclick="toggleProjImgView('${name}')" style="font-size:.7rem;padding:2px 8px">\u25A6 Visual</button>
            <button class="proj-file-btn" onclick="toggleProjImgSelectAll('${name}',true)" style="font-size:.7rem;padding:2px 6px" title="Selecionar todas">\u2713</button>
            <button class="proj-file-btn" onclick="toggleProjImgSelectAll('${name}',false)" style="font-size:.7rem;padding:2px 6px" title="Desmarcar todas">\u25A1</button>
          </span>` : '';
+    const subId = `proj-files-${sub}`;
     const bodyContent = isImgs && files.length
       ? `<div id="proj-img-body" data-view="list" data-proj="${name}"></div>`
-      : `<div class="proj-file-list" id="proj-files-${sub}">
-           ${files.map(f => buildProjectFileRow(f, sub)).join('') || '<div style="color:#444;padding:4px 0 4px 14px;font-size:.8rem">Vazio</div>'}
-         </div>`;
+      : isFig
+        ? `<div class="proj-fig-grid" id="${subId}">
+             ${files.length
+               ? files.map(f => `<div class="proj-fig-thumb" title="${f.name}">
+                   <img src="/file/${f.path}" onclick="window.open('/file/${f.path}','_blank')">
+                   <button class="proj-fig-del" onclick="deleteProjectFile('${name}','${sub}','${f.name}',this)" title="Remover">✕</button>
+                 </div>`).join('')
+               : '<div style="color:#444;padding:4px 14px;font-size:.8rem">Vazio — adicione imagens de figurantes ou serão gerados automaticamente</div>'}
+           </div>`
+        : `<div class="proj-file-list" id="${subId}">
+             ${files.map(f => buildProjectFileRow(f, sub)).join('') || '<div style="color:#444;padding:4px 0 4px 14px;font-size:.8rem">Vazio</div>'}
+           </div>`;
     html += `<div class="proj-folder-section">
       <div class="proj-folder-title" onclick="toggleProjSection(this)">
         <span class="pf-arrow">&#9654;</span>
