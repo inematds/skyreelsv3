@@ -79,9 +79,13 @@ REGRAS OBRIGATÓRIAS — preencha TODOS os campos:
 3. TEXTO DE ÁUDIO (campo "audio_text"):
    - Narração ou diálogos em PORTUGUÊS BRASILEIRO para geração via ElevenLabs
    - Inclua APENAS o que será falado/narrado nesta cena
+   - ⚠ NUNCA inclua o nome do personagem como prefixo — escreva DIRETO a fala ou narração.
+     ERRADO: "Valen: Você também vai para a turma do Professor Dex?"
+     CORRETO: "Você também vai para a turma do Professor Dex?"
+     ERRADO: "[Lumi] Claro, vamos juntas!"
+     CORRETO: "Claro, vamos juntas!"
    - Se a cena for silenciosa ou só musical, use string vazia: ""
    - Mantenha tom e personalidade dos personagens conforme os documentos do projeto
-   - Exemplo: "Valen olha para Lumi e diz: Você também vai para a turma do Professor Dex?"
 
 4. IMAGENS DE REFERÊNCIA (campo "ref_imgs"):
    - Use os paths EXATOS das imagens listadas nos recursos acima
@@ -1580,6 +1584,20 @@ def restart_nq_route(nq_id):
     return jsonify({"ok": True})
 
 
+def _strip_audio_prefix(text: str) -> str:
+    """Remove prefixos de nome de personagem do audio_text antes de enviar ao ElevenLabs.
+    Ex: 'Valen: texto' → 'texto', '[Lumi] texto' → 'texto', '(narração) texto' → 'texto'
+    """
+    import re as _re
+    # Padrão: "[Nome] texto" ou "[Nome]: texto"
+    text = _re.sub(r'^\s*\[[^\]]{1,40}\]\s*:?\s*', '', text)
+    # Padrão: "Nome: texto" ou "Nome — texto" ou "Nome - texto" (hífen só com espaço antes)
+    text = _re.sub(r'^\s*[A-ZÀ-Ú][a-zA-ZÀ-ú ]{1,30}\s*(?::|—| - )\s*', '', text)
+    # Padrão: "(narração)", "(narrador)", "(voz off)", etc.
+    text = _re.sub(r'^\s*\([^)]{1,30}\)\s*', '', text)
+    return text.strip()
+
+
 def _audio_duration(path: Path) -> float:
     """Returns audio duration in seconds using ffprobe."""
     try:
@@ -2504,7 +2522,7 @@ def generate_episode_audio(name):
 
     updated = []
     for job in jobs:
-        text = job.get("audio_text") or ""
+        text = _strip_audio_prefix(job.get("audio_text") or "")
         if not text:
             updated.append(job)
             continue
@@ -2659,7 +2677,7 @@ def nq_generate_audio(nq_id):
 
     errors = []
     for i, job in enumerate(jobs):
-        text = job.get("audio_text") or ""
+        text = _strip_audio_prefix(job.get("audio_text") or "")
         if not text:
             continue
         # Voz: 1) voice_id do próprio job, 2) match por nome do personagem no label, 3) global
@@ -2727,7 +2745,7 @@ def nq_job_generate_audio(nq_id, job_id):
     if job is None:
         return jsonify({"error": "Cena não encontrada"}), 404
 
-    text = job.get("audio_text", "").strip()
+    text = _strip_audio_prefix(job.get("audio_text", ""))
     if not text:
         return jsonify({"error": "Cena sem audio_text"}), 400
 
