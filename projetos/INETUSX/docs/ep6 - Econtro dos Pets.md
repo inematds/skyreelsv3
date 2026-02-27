@@ -1,0 +1,1 @@
+o dia de apresentar os pets, nesta escola tem 1 dia do mes que todos podem trazer seu pet, como todo pei tem uma coleira q controla ele para nao fazer bagunca nem persegiur os outros, cada uma vai mostrar seu pet e falar oq  ele tem de coisa incrivel.   o ambiente é a sala de aulaa , e depois bnrincar no patio, serao 10 cenas.
