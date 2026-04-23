@@ -313,6 +313,28 @@ def _load_global_config():
 
 app = Flask(__name__)
 
+# ---- Observability ----
+# Mantido sincronizado com webui/templates/index.html (title + header <h1>)
+VERSION = "3.49.19"
+APP_START_TS = time.time()
+
+
+def _gpu_free_gb():
+    """Soma da memória livre de GPU (GB) via nvidia-smi. None se indisponível."""
+    try:
+        r = subprocess.run(
+            ["nvidia-smi", "--query-gpu=memory.free",
+             "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=3,
+        )
+        if r.returncode != 0:
+            return None
+        total_mb = sum(int(x.strip()) for x in r.stdout.splitlines() if x.strip())
+        return round(total_mb / 1024, 2)
+    except Exception:
+        return None
+
+
 # ---- Global generation state ----
 generation_state = {
     "running": False,
@@ -368,6 +390,9 @@ def _save_queues():
             for j in nq["jobs"]:
                 if j["status"] in ("running", "pending"):
                     j["status"] = "idle"
+            # Drop ephemeral fields (prefixed with "_") — webhooks, timers, etc.
+            for k in [k for k in nq.keys() if k.startswith("_")]:
+                del nq[k]
         QUEUES_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False))
     except Exception as e:
         print(f"[queues] save error: {e}")
@@ -495,12 +520,16 @@ def _resolve_nq_refs(job, nq):
         if not value or not isinstance(value, str):
             return value
 
-        # {{prev}}
+        # {{prev}} → most recent previous job com output_video setado
+        # (anda pra trás pra pular jobs com erro após /resume-from-error)
         if _RE_PREV.match(value):
-            if idx > 0:
-                out = jobs[idx - 1].get("output_video", "")
+            for back_idx in range(idx - 1, -1, -1):
+                out = jobs[back_idx].get("output_video", "")
                 if out:
-                    print(f"[ref] {{{{prev}}}} → {out}")
+                    if back_idx != idx - 1:
+                        print(f"[ref] {{{{prev}}}} → {out} (skipped {idx - 1 - back_idx} job(s) sem output)")
+                    else:
+                        print(f"[ref] {{{{prev}}}} → {out}")
                     return out
             print(f"[ref] warning: {{{{prev}}}} could not resolve (idx={idx})")
             return value
@@ -642,11 +671,83 @@ def start_next_queued_job():
                 return
 
 
+def _fire_webhook(url, payload):
+    """POSTa payload pro callback_url em thread separada. 3 retries com backoff
+    exponencial (1s, 2s, 4s) em timeout/conn-error/5xx. 4xx não é retry-able."""
+    import urllib.request as urllib_req
+    import urllib.error as urllib_err
+
+    def _send():
+        body = json.dumps(payload).encode("utf-8")
+        delay = 1.0
+        for attempt in range(1, 4):
+            try:
+                req = urllib_req.Request(
+                    url, data=body,
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urllib_req.urlopen(req, timeout=10) as resp:
+                    code = resp.status
+                    if 200 <= code < 300:
+                        print(f"[webhook] ok → {url} (attempt {attempt}, {code})")
+                        return
+                    if 400 <= code < 500:
+                        print(f"[webhook] {code} (no retry) → {url}")
+                        return
+                    print(f"[webhook] {code} (retry) → {url}")
+            except urllib_err.HTTPError as e:
+                if 400 <= e.code < 500:
+                    print(f"[webhook] {e.code} (no retry) → {url}")
+                    return
+                print(f"[webhook] HTTPError {e.code} attempt {attempt}")
+            except Exception as e:
+                print(f"[webhook] exception attempt {attempt}: {e}")
+            if attempt < 3:
+                time.sleep(delay)
+                delay *= 2
+        print(f"[webhook] GAVE UP after 3 attempts → {url}")
+
+    threading.Thread(target=_send, daemon=True).start()
+
+
+def _build_nq_webhook_payload(nq):
+    """Payload enviado quando a fila termina (done ou error)."""
+    started = nq.get("_started_ts")
+    now = time.time()
+    duration_s = round(now - started, 2) if started else None
+    output_videos = [
+        j.get("output_video") for j in nq.get("jobs", [])
+        if j.get("status") == "done" and j.get("output_video")
+    ]
+    failed_jobs = [
+        {
+            "index": j.get("nq_job_index"),
+            "label": j.get("label", ""),
+            "seed": j.get("seed"),
+            "task_type": j.get("task_type"),
+        }
+        for j in nq.get("jobs", []) if j.get("status") == "error"
+    ]
+    return {
+        "queue_id": nq["id"],
+        "queue_name": nq.get("name", ""),
+        "project": nq.get("project", ""),
+        "status": nq.get("status", ""),
+        "duration_s": duration_s,
+        "output_videos": output_videos,
+        "failed_jobs": failed_jobs,
+    }
+
+
 def _nq_job_done_hook(job):
     """Called after each job finishes. Stops the queue on error; marks done when all finish."""
     nq_id = job.get("nq_id")
     if nq_id is None:
         return
+    terminal_status = None
+    webhook_url = None
+    payload = None
     with nq_lock:
         nq = next((q for q in named_queues if q["id"] == nq_id), None)
         if nq is None:
@@ -661,6 +762,7 @@ def _nq_job_done_hook(job):
                         if j in job_queue:
                             job_queue.remove(j)
             nq["status"] = "error"
+            terminal_status = "error"
         else:
             still_active = any(j["status"] in ("pending", "running") for j in nq["jobs"])
             all_finished = all(j["status"] in ("done", "error") for j in nq["jobs"])
@@ -668,13 +770,22 @@ def _nq_job_done_hook(job):
                 if all_finished:
                     any_error = any(j["status"] == "error" for j in nq["jobs"])
                     nq["status"] = "error" if any_error else "done"
+                    terminal_status = nq["status"]
                 else:
                     nq["status"] = "idle"  # some jobs still idle
+        if terminal_status:
+            webhook_url = nq.pop("_callback_url", None)
+            if webhook_url:
+                payload = _build_nq_webhook_payload(nq)
+            nq.pop("_started_ts", None)
     _save_queues()
+    if webhook_url and payload:
+        _fire_webhook(webhook_url, payload)
 
 
-def run_named_queue(nq_id):
-    """Schedule all idle jobs of a named queue for sequential execution."""
+def run_named_queue(nq_id, callback_url=None):
+    """Schedule all idle jobs of a named queue for sequential execution.
+    Se callback_url for passado, dispara webhook quando a fila terminar."""
     with nq_lock:
         nq = next((q for q in named_queues if q["id"] == nq_id), None)
         if nq is None or nq["status"] == "running":
@@ -683,6 +794,9 @@ def run_named_queue(nq_id):
         if not pending_jobs:
             return False
         nq["status"] = "running"
+        nq["_started_ts"] = time.time()
+        if callback_url:
+            nq["_callback_url"] = callback_url
         for j in pending_jobs:
             j["status"] = "pending"
 
@@ -786,6 +900,28 @@ def run_generation(cmd, env_extra=None, metadata=None, job=None):
             videos = sorted(RESULT_DIR.rglob("*.mp4"), key=lambda p: p.stat().st_mtime)
             if videos:
                 last_video = videos[-1]
+                # Namespacing por projeto: se o job pertence a uma fila com
+                # 'project' setado, move o mp4 de result/<task>/ para
+                # result/<project>/<task>/. Retrocompat: sem project, fica no lugar.
+                nq_project = ""
+                if job and job.get("nq_id") is not None:
+                    with nq_lock:
+                        nq_ref = next(
+                            (q for q in named_queues if q["id"] == job["nq_id"]),
+                            None,
+                        )
+                        if nq_ref:
+                            nq_project = nq_ref.get("project", "") or ""
+                if nq_project:
+                    task_dir = last_video.parent.name  # ex.: reference_to_video
+                    new_dir = RESULT_DIR / nq_project / task_dir
+                    new_dir.mkdir(parents=True, exist_ok=True)
+                    new_path = new_dir / last_video.name
+                    try:
+                        last_video.rename(new_path)
+                        last_video = new_path
+                    except Exception as e:
+                        print(f"[namespace] warn: não consegui mover {last_video}: {e}")
                 generation_state["last_video"] = str(last_video.relative_to(PROJECT_ROOT))
                 if job:
                     job["output_video"] = generation_state["last_video"]
@@ -804,6 +940,15 @@ def run_generation(cmd, env_extra=None, metadata=None, job=None):
                     metadata["generated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
                     meta_path = last_video.with_suffix(".json")
                     meta_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2))
+                # Input sidecar — job payload original pra auditoria/reprodutibilidade
+                if job:
+                    try:
+                        sidecar = last_video.with_name(last_video.stem + ".input.json")
+                        sidecar.write_text(
+                            json.dumps(job, ensure_ascii=False, indent=2, default=str)
+                        )
+                    except Exception as e:
+                        print(f"[input-sidecar] warn: {e}")
         else:
             generation_state["status"] = "error"
             if job:
@@ -999,6 +1144,22 @@ def stream():
 @app.route("/status")
 def status():
     return jsonify(generation_state)
+
+
+@app.route("/health")
+def health_route():
+    with job_queue_lock:
+        depth = sum(
+            1 for j in job_queue if j.get("status") in ("pending", "running")
+        )
+    state = "busy" if generation_state.get("running") else "ready"
+    return jsonify({
+        "status": state,
+        "queue_depth": depth,
+        "gpu_free_gb": _gpu_free_gb(),
+        "version": VERSION,
+        "uptime_s": int(time.time() - APP_START_TS),
+    })
 
 
 @app.route("/uploads/list")
@@ -1527,10 +1688,11 @@ def unlink_nq_from_project(nq_id):
 
 @app.route("/nqueues/<int:nq_id>/run", methods=["POST"])
 def run_nq_route(nq_id):
-    ok = run_named_queue(nq_id)
+    callback_url = request.args.get("callback_url") or None
+    ok = run_named_queue(nq_id, callback_url=callback_url)
     if not ok:
         return jsonify({"error": "Fila não encontrada, já em execução, ou sem cenas pendentes"}), 400
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "callback_registered": bool(callback_url)})
 
 
 @app.route("/nqueues/<int:nq_id>/jobs/<int:job_id>/run", methods=["POST"])
@@ -1582,6 +1744,46 @@ def restart_nq_route(nq_id):
     if not ok:
         return jsonify({"error": "Sem cenas a executar"}), 400
     return jsonify({"ok": True})
+
+
+@app.route("/nqueues/<int:nq_id>/resume-from-error", methods=["POST"])
+def resume_from_error_nq_route(nq_id):
+    """Continua a execução pulando jobs com status=error.
+    Jobs idle seguintes são executados; {{prev}} resolve para o último
+    output_video anterior (ignora jobs com erro)."""
+    callback_url = request.args.get("callback_url") or None
+    with nq_lock:
+        nq = next((q for q in named_queues if q["id"] == nq_id), None)
+        if nq is None:
+            return jsonify({"error": "Fila não encontrada"}), 404
+        if nq["status"] == "running":
+            return jsonify({"error": "Não é possível operar uma fila em execução"}), 400
+        jobs = nq["jobs"]
+        if not jobs:
+            return jsonify({"error": "Fila vazia"}), 400
+        error_count = sum(1 for j in jobs if j["status"] == "error")
+        idle_count  = sum(1 for j in jobs if j["status"] == "idle")
+        done_count  = sum(1 for j in jobs if j["status"] == "done")
+        if error_count == 0:
+            return jsonify({"error": "Sem jobs com erro para pular"}), 400
+        if idle_count == 0:
+            return jsonify({"error": "Nenhuma cena idle restante após os erros"}), 400
+        # Se o primeiro job da fila falhou e nada anterior está 'done',
+        # não há ponto de partida pra {{prev}}: erro claro em vez de resolver
+        # silenciosamente pra string literal.
+        if jobs[0]["status"] == "error" and done_count == 0:
+            return jsonify({
+                "error": "Primeiro job da fila falhou e nenhuma cena anterior está 'done' — impossível retomar automaticamente. Use /reset ou edite o primeiro job."
+            }), 400
+    ok = run_named_queue(nq_id, callback_url=callback_url)
+    if not ok:
+        return jsonify({"error": "Falha ao iniciar retomada"}), 400
+    return jsonify({
+        "ok": True,
+        "skipped_errors": error_count,
+        "will_run": idle_count,
+        "callback_registered": bool(callback_url),
+    })
 
 
 def _strip_audio_prefix(text: str) -> str:
@@ -1693,6 +1895,7 @@ def finalize_nq_route(nq_id):
             if j.get("status") == "done" and j.get("output_video")
         ]
         nq_name = nq["name"]
+        nq_project = nq.get("project", "") or ""
 
     if not videos:
         return jsonify({"error": "Nenhuma cena concluída para finalizar"}), 400
@@ -1701,7 +1904,12 @@ def finalize_nq_route(nq_id):
     if missing:
         return jsonify({"error": f"Arquivo(s) não encontrado(s): {', '.join(missing)}"}), 400
 
-    out_dir = PROJECT_ROOT / "result" / "finalized"
+    # Namespacing: project setado → result/<project>/finalized/. Senão mantém
+    # result/finalized/ (retrocompat).
+    if nq_project:
+        out_dir = PROJECT_ROOT / "result" / nq_project / "finalized"
+    else:
+        out_dir = PROJECT_ROOT / "result" / "finalized"
     out_dir.mkdir(parents=True, exist_ok=True)
     ts = time.strftime("%Y-%m-%d_%H-%M-%S")
     safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in nq_name)
@@ -2881,4 +3089,4 @@ _load_queues()
 _save_queues()   # persiste ep_codes atribuídos retroactivamente
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=7860, debug=False, threaded=True)
+    app.run(host="0.0.0.0", port=7861, debug=False, threaded=True)

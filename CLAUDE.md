@@ -101,7 +101,7 @@ A versão aparece em **dois lugares** em `webui/templates/index.html` e deve est
 
 **Regra:** SEMPRE atualizar ambos os lugares com a nova versão antes de fazer `git push`. Nunca fazer push sem atualizar a versão.
 
-Versão atual: **3.13.7**
+Versão atual: **3.49.19**
 
 ## Model IDs
 

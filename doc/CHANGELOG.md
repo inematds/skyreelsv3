@@ -7,6 +7,34 @@ Convenção de versão: **Major.Recursos.Correções**
 
 ---
 
+## 3.49.19 — 2026-04-22
+
+### Recursos (fase 0 — integração imkt4 / orquestração externa)
+- **`GET /health` estruturado** — retorna `{status: ready|busy, queue_depth,
+  gpu_free_gb, version, uptime_s}`. Permite que orquestradores (imkt4, etc.)
+  detectem disponibilidade do worker sem abrir o SSE de `/stream`.
+- **Webhook callback ao final da fila** — `POST /nqueues/<id>/run?callback_url=...`
+  registra URL; quando a fila termina (done ou error), POSTa payload JSON
+  `{queue_id, queue_name, project, status, duration_s, output_videos[],
+  failed_jobs[]}` no callback. Retry 3× com backoff exponencial (1s, 2s, 4s)
+  em timeout / 5xx; 4xx não é retry-able. Callback_url também aceito em
+  `resume-from-error`. Fields ephemeral (prefixados com `_`) não são
+  persistidos em `queues.json`.
+- **`POST /nqueues/<id>/resume-from-error`** — retoma a fila pulando jobs
+  com status=error. `{{prev}}` passa a andar para trás até achar o último
+  job com `output_video` setado (ignora erros). Recusa com erro claro se
+  o primeiro job falhou sem nenhuma cena `done` anterior.
+- **Namespacing por projeto** — quando a fila tem `project` setado, vídeos
+  renderizados são movidos para `result/<project>/<task_type>/` e
+  `finalize` grava em `result/<project>/finalized/`. Filas sem `project`
+  mantêm o layout atual (`result/<task_type>/...`) — retrocompat.
+- **Input sidecar por cena** — ao lado de `<seed>_<ts>.mp4` agora também
+  é salvo `<seed>_<ts>.input.json` com o payload original do job (antes da
+  resolução de `{{prev}}`/`{{job:N}}`), permitindo auditoria e re-render
+  determinístico.
+
+---
+
 ## 3.8.3 — 2026-02-24
 
 ### Correções

@@ -14,6 +14,14 @@
 
 Este repositório é um fork do modelo de geração de vídeo **SkyReels V3**, com uma interface Web (Web UI) construída sobre ele para produção de vídeos em escala — especialmente séries animadas com múltiplos personagens e cenas.
 
+> **Em uso:** este projeto é consumido hoje pela plataforma
+> [`imkt4`](https://github.com/inematds/imkt4) (orquestrador multi-tenant de
+> pipelines de mídia) como worker macro de geração de vídeo por roteiro.
+> A partir da v3.49, a Web UI expõe `/health`, webhook callback em
+> `/nqueues/<id>/run?callback_url=...` e `resume-from-error` justamente
+> para esse caso de uso — ver [CHANGELOG 3.49.19](doc/CHANGELOG.md).
+> A interface continua 100% utilizável standalone.
+
 ### Funcionalidades adicionadas neste fork
 
 - **Web UI completa** — geração individual ou em fila, sem linha de comando
